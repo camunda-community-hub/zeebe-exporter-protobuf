@@ -35,7 +35,9 @@ import java.util.function.Function;
  * As a one class god factory...not great but keeping it around since it has all the code necessary
  * to create any of the protocol values, and I don't want to rewrite that.
  */
-public class RecordTransformer {
+public final class RecordTransformer {
+  private RecordTransformer() {}
+
   private static final EnumMap<ValueType, Function<Record, GeneratedMessageV3>> TRANSFORMERS =
       new EnumMap<>(ValueType.class);
 
