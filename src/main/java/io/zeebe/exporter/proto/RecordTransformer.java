@@ -24,30 +24,56 @@ import io.zeebe.exporter.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.record.value.job.Headers;
 import io.zeebe.exporter.record.value.raft.RaftMember;
 import io.zeebe.protocol.clientapi.RejectionType;
+import io.zeebe.protocol.clientapi.ValueType;
 import java.time.Instant;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * As a one class god factory...not great but keeping it around since it has all the code necessary
  * to create any of the protocol values, and I don't want to rewrite that.
  */
-public class SchemaFactory {
-  public Schema.RecordId toRecordId(Record record) {
+public class RecordTransformer {
+  private static final EnumMap<ValueType, Function<Record, GeneratedMessageV3>> TRANSFORMERS =
+      new EnumMap<>(ValueType.class);
+
+  static {
+    TRANSFORMERS.put(ValueType.DEPLOYMENT, v -> toDeploymentRecord(v));
+    TRANSFORMERS.put(ValueType.WORKFLOW_INSTANCE, v -> toWorkflowInstanceRecord(v));
+    TRANSFORMERS.put(ValueType.JOB_BATCH, v -> toJobBatchRecord(v));
+    TRANSFORMERS.put(ValueType.JOB, v -> toJobRecord(v));
+    TRANSFORMERS.put(ValueType.INCIDENT, v -> toIncidentRecord(v));
+    TRANSFORMERS.put(ValueType.MESSAGE, v -> toMessageRecord(v));
+    TRANSFORMERS.put(
+        ValueType.MESSAGE_START_EVENT_SUBSCRIPTION, v -> toMessageStartEventSubscriptionRecord(v));
+    TRANSFORMERS.put(ValueType.MESSAGE_SUBSCRIPTION, v -> toMessageSubscriptionRecord(v));
+    TRANSFORMERS.put(
+        ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION, v -> toWorkflowInstanceSubscriptionRecord(v));
+    TRANSFORMERS.put(ValueType.TIMER, v -> toTimerRecord(v));
+    TRANSFORMERS.put(ValueType.RAFT, v -> toRaftRecord(v));
+  }
+
+  public static GeneratedMessageV3 toProtobufMessage(Record record) {
+    return TRANSFORMERS.get(record.getMetadata().getValueType()).apply(record);
+  }
+
+  public static Schema.RecordId toRecordId(Record record) {
     return Schema.RecordId.newBuilder()
         .setPartitionId(record.getMetadata().getPartitionId())
         .setPosition(record.getPosition())
         .build();
   }
 
-  public Schema.RecordId toRecordId(RecordId recordId) {
+  public static Schema.RecordId toRecordId(RecordId recordId) {
     return Schema.RecordId.newBuilder()
         .setPosition(recordId.getPosition())
         .setPartitionId(recordId.getPartitionId())
         .build();
   }
 
-  public Schema.RecordMetadata toMetadata(Record record) {
+  public static Schema.RecordMetadata toMetadata(Record record) {
     final RecordMetadata metadata = record.getMetadata();
     final Schema.RecordMetadata.Builder builder =
         Schema.RecordMetadata.newBuilder()
@@ -68,7 +94,7 @@ public class SchemaFactory {
     return builder.build();
   }
 
-  public Schema.DeploymentRecord toDeploymentRecord(Record<DeploymentRecordValue> record) {
+  public static Schema.DeploymentRecord toDeploymentRecord(Record<DeploymentRecordValue> record) {
     final Schema.DeploymentRecord.Builder builder =
         Schema.DeploymentRecord.newBuilder().setMetadata(toMetadata(record));
 
@@ -83,7 +109,8 @@ public class SchemaFactory {
     return builder.build();
   }
 
-  public Schema.DeploymentRecord.Resource toDeploymentRecordResource(DeploymentResource resource) {
+  public static Schema.DeploymentRecord.Resource toDeploymentRecordResource(
+      DeploymentResource resource) {
     return Schema.DeploymentRecord.Resource.newBuilder()
         .setResource(ByteString.copyFrom(resource.getResource()))
         .setResourceName(resource.getResourceName())
@@ -91,7 +118,8 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.DeploymentRecord.Workflow toDeploymentRecordWorkflow(DeployedWorkflow workflow) {
+  public static Schema.DeploymentRecord.Workflow toDeploymentRecordWorkflow(
+      DeployedWorkflow workflow) {
     return Schema.DeploymentRecord.Workflow.newBuilder()
         .setBpmnProcessId(workflow.getBpmnProcessId())
         .setResourceName(workflow.getResourceName())
@@ -100,7 +128,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.IncidentRecord toIncidentRecord(Record<IncidentRecordValue> record) {
+  public static Schema.IncidentRecord toIncidentRecord(Record<IncidentRecordValue> record) {
     final IncidentRecordValue value = record.getValue();
 
     return Schema.IncidentRecord.newBuilder()
@@ -115,12 +143,12 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.JobRecord toJobRecord(Record<JobRecordValue> record) {
+  public static Schema.JobRecord toJobRecord(Record<JobRecordValue> record) {
     final Schema.JobRecord.Builder builder = toJobRecord(record.getValue());
     return builder.setMetadata(toMetadata(record)).build();
   }
 
-  public Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
+  public static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
     return Schema.JobRecord.newBuilder()
         .setDeadline(toTimestamp(value.getDeadline()))
         .setErrorMessage(value.getErrorMessage())
@@ -132,7 +160,7 @@ public class SchemaFactory {
         .setHeaders(toJobRecordHeaders(value.getHeaders()));
   }
 
-  public Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
+  public static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
     final JobBatchRecordValue value = record.getValue();
     final Schema.JobBatchRecord.Builder builder = Schema.JobBatchRecord.newBuilder();
 
@@ -155,7 +183,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.MessageRecord toMessageRecord(Record<MessageRecordValue> record) {
+  public static Schema.MessageRecord toMessageRecord(Record<MessageRecordValue> record) {
     final MessageRecordValue value = record.getValue();
 
     return Schema.MessageRecord.newBuilder()
@@ -168,7 +196,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.MessageSubscriptionRecord toMessageSubscriptionRecord(
+  public static Schema.MessageSubscriptionRecord toMessageSubscriptionRecord(
       Record<MessageSubscriptionRecordValue> record) {
     final MessageSubscriptionRecordValue value = record.getValue();
 
@@ -181,7 +209,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
+  public static Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
       Record<MessageStartEventSubscriptionRecordValue> record) {
     final MessageStartEventSubscriptionRecordValue value = record.getValue();
 
@@ -193,7 +221,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.RaftRecord toRaftRecord(Record<RaftRecordValue> record) {
+  public static Schema.RaftRecord toRaftRecord(Record<RaftRecordValue> record) {
     final RaftRecordValue value = record.getValue();
     final Schema.RaftRecord.Builder builder = Schema.RaftRecord.newBuilder();
 
@@ -204,7 +232,7 @@ public class SchemaFactory {
     return builder.setMetadata(toMetadata(record)).build();
   }
 
-  public Schema.TimerRecord toTimerRecord(Record<TimerRecordValue> record) {
+  public static Schema.TimerRecord toTimerRecord(Record<TimerRecordValue> record) {
     final TimerRecordValue value = record.getValue();
 
     return Schema.TimerRecord.newBuilder()
@@ -215,7 +243,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.WorkflowInstanceRecord toWorkflowInstanceRecord(
+  public static Schema.WorkflowInstanceRecord toWorkflowInstanceRecord(
       Record<WorkflowInstanceRecordValue> record) {
     final WorkflowInstanceRecordValue value = record.getValue();
 
@@ -231,7 +259,7 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.WorkflowInstanceSubscriptionRecord toWorkflowInstanceSubscriptionRecord(
+  public static Schema.WorkflowInstanceSubscriptionRecord toWorkflowInstanceSubscriptionRecord(
       Record<WorkflowInstanceSubscriptionRecordValue> record) {
     final WorkflowInstanceSubscriptionRecordValue value = record.getValue();
 
@@ -243,11 +271,11 @@ public class SchemaFactory {
         .build();
   }
 
-  public Schema.RaftRecord.Member toRaftRecordMember(RaftMember member) {
+  public static Schema.RaftRecord.Member toRaftRecordMember(RaftMember member) {
     return Schema.RaftRecord.Member.newBuilder().setNodeId(member.getNodeId()).build();
   }
 
-  public Schema.JobRecord.Headers toJobRecordHeaders(Headers headers) {
+  public static Schema.JobRecord.Headers toJobRecordHeaders(Headers headers) {
     return Schema.JobRecord.Headers.newBuilder()
         .setBpmnProcessId(headers.getBpmnProcessId())
         .setElementId(headers.getElementId())
@@ -258,14 +286,14 @@ public class SchemaFactory {
         .build();
   }
 
-  public Timestamp toTimestamp(Instant instant) {
+  public static Timestamp toTimestamp(Instant instant) {
     return Timestamp.newBuilder()
         .setSeconds(instant.getEpochSecond())
         .setNanos(instant.getNano())
         .build();
   }
 
-  public Struct toStruct(Map<?, ?> map) {
+  public static Struct toStruct(Map<?, ?> map) {
     final Struct.Builder builder = Struct.newBuilder();
 
     for (final Map.Entry<?, ?> entry : map.entrySet()) {
@@ -275,7 +303,7 @@ public class SchemaFactory {
     return builder.build();
   }
 
-  public Value toValue(Object object) {
+  public static Value toValue(Object object) {
     final Value.Builder builder = Value.newBuilder();
 
     if (object == null) {
