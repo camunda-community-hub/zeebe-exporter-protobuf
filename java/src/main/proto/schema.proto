@@ -166,4 +166,3 @@ message WorkflowInstanceSubscriptionRecord {
     string messageName = 4;
     google.protobuf.Struct payload = 5;
 }
-
