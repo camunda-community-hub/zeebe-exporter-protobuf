@@ -71,37 +71,6 @@
             </dependency>
 
             <dependency>
-                <groupId>io.zeebe</groupId>
-                <artifactId>zb-exporter-api</artifactId>
-                <version>${version.zeebe}</version>
-            </dependency>
-
-
-            <dependency>
-                <groupId>io.zeebe</groupId>
-                <artifactId>zb-exporter</artifactId>
-                <version>${version.zeebe}</version>
-            </dependency>
-
-            <!--<dependency>-->
-                <!--<groupId>org.slf4j</groupId>-->
-                <!--<artifactId>slf4j-api</artifactId>-->
-                <!--<version>${version.slf4j}</version>-->
-            <!--</dependency>-->
-
-            <!--<dependency>-->
-                <!--<groupId>io.grpc</groupId>-->
-                <!--<artifactId>grpc-protobuf</artifactId>-->
-                <!--<version>${version.grpc}</version>-->
-            <!--</dependency>-->
-
-            <!--<dependency>-->
-                <!--<groupId>io.grpc</groupId>-->
-                <!--<artifactId>grpc-stub</artifactId>-->
-                <!--<version>${version.grpc}</version>-->
-            <!--</dependency>-->
-
-            <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
                 <version>${version.protobuf}</version>
@@ -112,35 +81,6 @@
                 <artifactId>protobuf-java-util</artifactId>
                 <version>${version.protobuf}</version>
             </dependency>
-            <!--<dependency>-->
-                <!--<groupId>org.apache.logging.log4j</groupId>-->
-                <!--<artifactId>log4j-slf4j-impl</artifactId>-->
-                <!--<version>${version.log4j}</version>-->
-            <!--</dependency>-->
-
-            <!--<dependency>-->
-                <!--<groupId>org.apache.logging.log4j</groupId>-->
-                <!--<artifactId>log4j-core</artifactId>-->
-                <!--<version>${version.log4j}</version>-->
-            <!--</dependency>-->
-
-            <!--<dependency>-->
-                <!--<groupId>junit</groupId>-->
-                <!--<artifactId>junit</artifactId>-->
-                <!--<version>${version.junit}</version>-->
-            <!--</dependency>-->
-
-            <!--<dependency>-->
-                <!--<groupId>org.assertj</groupId>-->
-                <!--<artifactId>assertj-core</artifactId>-->
-                <!--<version>${version.assertj}</version>-->
-            <!--</dependency>-->
-
-            <!--<dependency>-->
-                <!--<groupId>org.mockito</groupId>-->
-                <!--<artifactId>mockito-core</artifactId>-->
-                <!--<version>${version.mockito}</version>-->
-            <!--</dependency>-->
         </dependencies>
     </dependencyManagement>
 
@@ -150,17 +90,14 @@
             <artifactId>zb-exporter-api</artifactId>
         </dependency>
 
-
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>${version.protobuf}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
-            <version>${version.protobuf}</version>
         </dependency>
     </dependencies>
 
