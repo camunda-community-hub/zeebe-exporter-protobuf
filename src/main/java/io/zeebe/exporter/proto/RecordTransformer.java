@@ -48,8 +48,6 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.JOB, v -> toJobRecord(v));
     TRANSFORMERS.put(ValueType.INCIDENT, v -> toIncidentRecord(v));
     TRANSFORMERS.put(ValueType.MESSAGE, v -> toMessageRecord(v));
-    TRANSFORMERS.put(
-        ValueType.MESSAGE_START_EVENT_SUBSCRIPTION, v -> toMessageStartEventSubscriptionRecord(v));
     TRANSFORMERS.put(ValueType.MESSAGE_SUBSCRIPTION, v -> toMessageSubscriptionRecord(v));
     TRANSFORMERS.put(
         ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION, v -> toWorkflowInstanceSubscriptionRecord(v));
@@ -80,6 +78,7 @@ public final class RecordTransformer {
     final Schema.RecordMetadata.Builder builder =
         Schema.RecordMetadata.newBuilder()
             .setIntent(metadata.getIntent().name())
+            .setValueType(metadata.getValueType().name())
             .setKey(record.getKey())
             .setProducerId(record.getProducerId())
             .setRaftTerm(record.getRaftTerm())
@@ -207,18 +206,6 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setMessageName(value.getMessageName())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setMetadata(toMetadata(record))
-        .build();
-  }
-
-  public static Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
-      Record<MessageStartEventSubscriptionRecordValue> record) {
-    final MessageStartEventSubscriptionRecordValue value = record.getValue();
-
-    return Schema.MessageStartEventSubscriptionRecord.newBuilder()
-        .setMessageName(value.getMessageName())
-        .setStartEventId(value.getStartEventId())
-        .setWorkflowKey(value.getWorkflowKey())
         .setMetadata(toMetadata(record))
         .build();
   }
