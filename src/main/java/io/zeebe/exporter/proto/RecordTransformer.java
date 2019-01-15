@@ -143,8 +143,10 @@ public final class RecordTransformer {
   }
 
   public static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
+    final Instant deadline = value.getDeadline();
+
     return Schema.JobRecord.newBuilder()
-        .setDeadline(toTimestamp(value.getDeadline()))
+        .setDeadline(deadline == null ? Timestamp.newBuilder().build() : toTimestamp(deadline))
         .setErrorMessage(value.getErrorMessage())
         .setRetries(value.getRetries())
         .setType(value.getType())
