@@ -6,7 +6,6 @@ option java_package = "io.zeebe.exporter.proto";
 
 // Makes use of so called "well known types". Arguable if it's a good idea
 // see https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
