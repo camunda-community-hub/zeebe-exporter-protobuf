@@ -66,13 +66,6 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.RecordId toRecordId(RecordId recordId) {
-    return Schema.RecordId.newBuilder()
-        .setPosition(recordId.getPosition())
-        .setPartitionId(recordId.getPartitionId())
-        .build();
-  }
-
   public static Schema.RecordMetadata toMetadata(Record record) {
     final RecordMetadata metadata = record.getMetadata();
     final Schema.RecordMetadata.Builder builder =
