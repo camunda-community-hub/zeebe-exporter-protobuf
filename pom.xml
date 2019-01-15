@@ -76,12 +76,6 @@
                 <artifactId>protobuf-java</artifactId>
                 <version>${version.protobuf}</version>
             </dependency>
-
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${version.protobuf}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -94,11 +88,6 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java-util</artifactId>
         </dependency>
 
         <dependency>
@@ -149,7 +138,7 @@
                         </goals>
                     </execution>
                 </executions>
-              </plugin>
+            </plugin>
 
             <!-- LICENSE PLUGIN -->
             <plugin>
