@@ -20,6 +20,7 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.protobuf.Struct;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.Value;
 import io.zeebe.exporter.proto.Schema.JobRecord;
@@ -30,6 +31,7 @@ import io.zeebe.exporter.record.value.DeploymentRecordValue;
 import io.zeebe.exporter.record.value.IncidentRecordValue;
 import io.zeebe.exporter.record.value.JobBatchRecordValue;
 import io.zeebe.exporter.record.value.JobRecordValue;
+import io.zeebe.exporter.record.value.MessageRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.record.value.deployment.DeploymentResource;
@@ -39,9 +41,11 @@ import io.zeebe.protocol.clientapi.RecordType;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
 import io.zeebe.protocol.intent.DeploymentIntent;
+import io.zeebe.protocol.intent.IncidentIntent;
 import io.zeebe.protocol.intent.Intent;
 import io.zeebe.protocol.intent.JobBatchIntent;
 import io.zeebe.protocol.intent.JobIntent;
+import io.zeebe.protocol.intent.MessageIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import java.time.Duration;
 import java.time.Instant;
@@ -53,7 +57,7 @@ import org.junit.Test;
 public class RecordTransformTest {
 
   @Test
-  public void shouldTransformDeployment() throws Exception {
+  public void shouldTransformDeployment() {
     // given
     final DeploymentRecordValue deploymentRecordValue = mockDeploymentRecordValue();
     final RecordMetadata recordMetadata =
@@ -109,9 +113,8 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getVersion()).isEqualTo(1);
     assertThat(workflowInstance.getWorkflowInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstance.getScopeInstanceKey()).isEqualTo(-1L);
-    assertThat(workflowInstance.getPayload().getFieldsCount()).isEqualTo(1);
-    assertThat(workflowInstance.getPayload().getFieldsMap())
-        .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+
+    assertPayload(workflowInstance.getPayload());
   }
 
   @Test
@@ -155,6 +158,70 @@ public class RecordTransformTest {
     assertThat(jobBatchRecord.getJobsList()).hasSize(1);
     final JobRecord jobRecord = jobBatchRecord.getJobsList().get(0);
     assertJobRecord(jobRecord);
+  }
+
+  @Test
+  public void shouldTransformIncident() {
+    // given
+    final IncidentRecordValue incidentRecordValue = mockIncidentRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.INCIDENT, IncidentIntent.CREATE);
+    final Record<IncidentRecordValue> mockedRecord =
+        mockRecord(incidentRecordValue, recordMetadata);
+
+    // when
+    final Schema.IncidentRecord incidentRecord =
+        (Schema.IncidentRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(incidentRecord.getMetadata(), "INCIDENT", "CREATE");
+
+    assertThat(incidentRecord.getBpmnProcessId()).isEqualTo("process");
+    assertThat(incidentRecord.getElementId()).isEqualTo("gateway");
+    assertThat(incidentRecord.getElementInstanceKey()).isEqualTo(1L);
+    assertThat(incidentRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+
+    assertThat(incidentRecord.getErrorMessage()).isEqualTo("failed");
+    assertThat(incidentRecord.getErrorType()).isEqualTo("boom");
+
+    assertThat(incidentRecord.getJobKey()).isEqualTo(12L);
+  }
+
+  @Test
+  public void shouldTransformMessage() {
+    // given
+    final MessageRecordValue messageRecordValue = mockMessageRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.MESSAGE, MessageIntent.PUBLISH);
+    final Record<MessageRecordValue> mockedRecord = mockRecord(messageRecordValue, recordMetadata);
+
+    // when
+    final Schema.MessageRecord messageRecord =
+        (Schema.MessageRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(messageRecord.getMetadata(), "MESSAGE", "PUBLISH");
+
+    assertThat(messageRecord.getCorrelationKey()).isEqualTo("key");
+    assertThat(messageRecord.getMessageId()).isEqualTo("msgId");
+    assertThat(messageRecord.getName()).isEqualTo("message");
+    assertThat(messageRecord.getTimeToLive()).isEqualTo(1000L);
+
+    assertPayload(messageRecord.getPayload());
+  }
+
+  private MessageRecordValue mockMessageRecordValue() {
+    final MessageRecordValue messageRecordValue = mock(MessageRecordValue.class);
+
+    when(messageRecordValue.getCorrelationKey()).thenReturn("key");
+    when(messageRecordValue.getMessageId()).thenReturn("msgId");
+    when(messageRecordValue.getName()).thenReturn("message");
+    when(messageRecordValue.getTimeToLive()).thenReturn(1000L);
+
+    when(messageRecordValue.getPayload()).thenReturn("{\"foo\":23}");
+    when(messageRecordValue.getPayloadAsMap()).thenReturn(Collections.singletonMap("foo", 23));
+
+    return messageRecordValue;
   }
 
   private JobBatchRecordValue mockJobBatchRecordValue() {
@@ -255,6 +322,12 @@ public class RecordTransformTest {
     return incidentRecordValue;
   }
 
+  private void assertPayload(Struct payload) {
+    assertThat(payload.getFieldsCount()).isEqualTo(1);
+    assertThat(payload.getFieldsMap())
+        .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+  }
+
   private void assertJobRecord(JobRecord jobRecord) {
 
     final JobRecord.Headers headers = jobRecord.getHeaders();
@@ -268,9 +341,7 @@ public class RecordTransformTest {
     assertThat(jobRecord.getCustomHeaders().getFieldsCount()).isEqualTo(1);
     assertThat(jobRecord.getCustomHeaders().getFieldsMap())
         .containsExactly(entry("foo", Value.newBuilder().setStringValue("bar").build()));
-    assertThat(jobRecord.getPayload().getFieldsCount()).isEqualTo(1);
-    assertThat(jobRecord.getPayload().getFieldsMap())
-        .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+    assertPayload(jobRecord.getPayload());
 
     assertThat(jobRecord.getDeadline()).isEqualTo(Timestamp.newBuilder().setSeconds(123).build());
     assertThat(jobRecord.getErrorMessage()).isEqualTo("this is an error msg");
