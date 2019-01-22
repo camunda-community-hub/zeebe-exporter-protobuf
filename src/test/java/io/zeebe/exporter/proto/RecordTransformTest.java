@@ -28,6 +28,7 @@ import io.zeebe.exporter.record.RecordMetadata;
 import io.zeebe.exporter.record.RecordValue;
 import io.zeebe.exporter.record.value.DeploymentRecordValue;
 import io.zeebe.exporter.record.value.IncidentRecordValue;
+import io.zeebe.exporter.record.value.JobBatchRecordValue;
 import io.zeebe.exporter.record.value.JobRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
@@ -39,8 +40,10 @@ import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
 import io.zeebe.protocol.intent.DeploymentIntent;
 import io.zeebe.protocol.intent.Intent;
+import io.zeebe.protocol.intent.JobBatchIntent;
 import io.zeebe.protocol.intent.JobIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,7 +53,7 @@ import org.junit.Test;
 public class RecordTransformTest {
 
   @Test
-  public void shouldTransformDeployment() {
+  public void shouldTransformDeployment() throws Exception {
     // given
     final DeploymentRecordValue deploymentRecordValue = mockDeploymentRecordValue();
     final RecordMetadata recordMetadata =
@@ -124,27 +127,48 @@ public class RecordTransformTest {
 
     // then
     assertMetadata(jobRecord.getMetadata(), "JOB", "CREATE");
+    assertJobRecord(jobRecord);
+  }
 
-    final JobRecord.Headers headers = jobRecord.getHeaders();
-    assertThat(headers.getBpmnProcessId()).isEqualTo("process");
-    assertThat(headers.getElementId()).isEqualTo("task");
-    assertThat(headers.getWorkflowKey()).isEqualTo(4L);
-    assertThat(headers.getWorkflowDefinitionVersion()).isEqualTo(1);
-    assertThat(headers.getWorkflowInstanceKey()).isEqualTo(1L);
-    assertThat(headers.getElementInstanceKey()).isEqualTo(3L);
+  @Test
+  public void shouldTransformJobBatch() {
+    // given
+    final JobBatchRecordValue jobBatchRecordValue = mockJobBatchRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.JOB_BATCH, JobBatchIntent.ACTIVATE);
+    final Record<JobBatchRecordValue> mockedRecord =
+        mockRecord(jobBatchRecordValue, recordMetadata);
 
-    assertThat(jobRecord.getCustomHeaders().getFieldsCount()).isEqualTo(1);
-    assertThat(jobRecord.getCustomHeaders().getFieldsMap())
-        .containsExactly(entry("foo", Value.newBuilder().setStringValue("bar").build()));
-    assertThat(jobRecord.getPayload().getFieldsCount()).isEqualTo(1);
-    assertThat(jobRecord.getPayload().getFieldsMap())
-        .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+    // when
+    final Schema.JobBatchRecord jobBatchRecord =
+        (Schema.JobBatchRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
-    assertThat(jobRecord.getDeadline()).isEqualTo(Timestamp.newBuilder().setSeconds(123).build());
-    assertThat(jobRecord.getErrorMessage()).isEqualTo("this is an error msg");
-    assertThat(jobRecord.getRetries()).isEqualTo(3);
-    assertThat(jobRecord.getType()).isEqualTo("jobType");
-    assertThat(jobRecord.getWorker()).isEqualTo("myveryownworker");
+    // then
+    assertMetadata(jobBatchRecord.getMetadata(), "JOB_BATCH", "ACTIVATE");
+
+    assertThat(jobBatchRecord.getJobKeysList()).containsExactly(5L);
+    assertThat(jobBatchRecord.getAmount()).isEqualTo(1);
+    assertThat(jobBatchRecord.getTimeout()).isEqualTo(1_000L);
+    assertThat(jobBatchRecord.getType()).isEqualTo("jobType");
+    assertThat(jobBatchRecord.getWorker()).isEqualTo("myveryownworker");
+
+    assertThat(jobBatchRecord.getJobsList()).hasSize(1);
+    final JobRecord jobRecord = jobBatchRecord.getJobsList().get(0);
+    assertJobRecord(jobRecord);
+  }
+
+  private JobBatchRecordValue mockJobBatchRecordValue() {
+    final JobBatchRecordValue jobBatchRecordValue = mock(JobBatchRecordValue.class);
+
+    when(jobBatchRecordValue.getJobKeys()).thenReturn(Collections.singletonList(5L));
+    final List<JobRecordValue> jobRecordValues = Collections.singletonList(mockJobRecordValue());
+    when(jobBatchRecordValue.getJobs()).thenReturn(jobRecordValues);
+    when(jobBatchRecordValue.getAmount()).thenReturn(1);
+    when(jobBatchRecordValue.getTimeout()).thenReturn(Duration.ofMillis(1000));
+    when(jobBatchRecordValue.getType()).thenReturn("jobType");
+    when(jobBatchRecordValue.getWorker()).thenReturn("myveryownworker");
+
+    return jobBatchRecordValue;
   }
 
   private JobRecordValue mockJobRecordValue() {
@@ -229,6 +253,30 @@ public class RecordTransformTest {
     when(incidentRecordValue.getJobKey()).thenReturn(12L);
 
     return incidentRecordValue;
+  }
+
+  private void assertJobRecord(JobRecord jobRecord) {
+
+    final JobRecord.Headers headers = jobRecord.getHeaders();
+    assertThat(headers.getBpmnProcessId()).isEqualTo("process");
+    assertThat(headers.getElementId()).isEqualTo("task");
+    assertThat(headers.getWorkflowKey()).isEqualTo(4L);
+    assertThat(headers.getWorkflowDefinitionVersion()).isEqualTo(1);
+    assertThat(headers.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(headers.getElementInstanceKey()).isEqualTo(3L);
+
+    assertThat(jobRecord.getCustomHeaders().getFieldsCount()).isEqualTo(1);
+    assertThat(jobRecord.getCustomHeaders().getFieldsMap())
+        .containsExactly(entry("foo", Value.newBuilder().setStringValue("bar").build()));
+    assertThat(jobRecord.getPayload().getFieldsCount()).isEqualTo(1);
+    assertThat(jobRecord.getPayload().getFieldsMap())
+        .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+
+    assertThat(jobRecord.getDeadline()).isEqualTo(Timestamp.newBuilder().setSeconds(123).build());
+    assertThat(jobRecord.getErrorMessage()).isEqualTo("this is an error msg");
+    assertThat(jobRecord.getRetries()).isEqualTo(3);
+    assertThat(jobRecord.getType()).isEqualTo("jobType");
+    assertThat(jobRecord.getWorker()).isEqualTo("myveryownworker");
   }
 
   private void assertMetadata(Schema.RecordMetadata metadata, String valueType, String intent) {
