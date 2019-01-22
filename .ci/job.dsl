@@ -61,7 +61,7 @@ sha1sum ${UBER_JAR} > ${UBER_CHECKSUM}
 # do github release
 curl -sL https://github.com/aktau/github-release/releases/download/v0.7.2/linux-amd64-github-release.tar.bz2 | tar xjvf - --strip 3
 
-./github-release release --user zeebe-io --repo zeebe-exporter-protobuf --tag ${RELEASE_VERSION} --name "Zeebe Kafka Exporter ${RELEASE_VERSION}" --description ""
+./github-release release --user zeebe-io --repo zeebe-exporter-protobuf --tag ${RELEASE_VERSION} --name "Zeebe Exporter Protobuf ${RELEASE_VERSION}" --description ""
 ./github-release upload --user zeebe-io --repo zeebe-exporter-protobuf --tag ${RELEASE_VERSION} --name "${JAR}" --file "${JAR}"
 ./github-release upload --user zeebe-io --repo zeebe-exporter-protobuf --tag ${RELEASE_VERSION} --name "${CHECKSUM}" --file "${CHECKSUM}"
 ./github-release upload --user zeebe-io --repo zeebe-exporter-protobuf --tag ${RELEASE_VERSION} --name "${UBER_JAR}" --file "${UBER_JAR}"
