@@ -33,6 +33,7 @@ import io.zeebe.exporter.record.value.JobBatchRecordValue;
 import io.zeebe.exporter.record.value.JobRecordValue;
 import io.zeebe.exporter.record.value.MessageRecordValue;
 import io.zeebe.exporter.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.exporter.record.value.TimerRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
@@ -49,6 +50,7 @@ import io.zeebe.protocol.intent.JobBatchIntent;
 import io.zeebe.protocol.intent.JobIntent;
 import io.zeebe.protocol.intent.MessageIntent;
 import io.zeebe.protocol.intent.MessageSubscriptionIntent;
+import io.zeebe.protocol.intent.TimerIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceSubscriptionIntent;
 import java.time.Duration;
@@ -215,6 +217,25 @@ public class RecordTransformTest {
   }
 
   @Test
+  public void shouldTransformTimer() {
+    // given
+    final TimerRecordValue timerRecordValue = mockTimerRecordValue();
+    final RecordMetadata recordMetadata = mockRecordMetadata(ValueType.TIMER, TimerIntent.CREATE);
+    final Record<TimerRecordValue> mockedRecord = mockRecord(timerRecordValue, recordMetadata);
+
+    // when
+    final Schema.TimerRecord timerRecord =
+        (Schema.TimerRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(timerRecord.getMetadata(), "TIMER", "CREATE");
+
+    assertThat(timerRecord.getDueDate()).isEqualTo(1000L);
+    assertThat(timerRecord.getElementInstanceKey()).isEqualTo(1L);
+    assertThat(timerRecord.getHandlerFlowNodeId()).isEqualTo("timerCatch");
+  }
+
+  @Test
   public void shouldTransformMessageSubscription() {
     // given
     final MessageSubscriptionRecordValue messageSubscriptionRecordValue =
@@ -278,6 +299,16 @@ public class RecordTransformTest {
     when(messageRecordValue.getPayloadAsMap()).thenReturn(Collections.singletonMap("foo", 23));
 
     return messageRecordValue;
+  }
+
+  private TimerRecordValue mockTimerRecordValue() {
+    final TimerRecordValue timerRecordValue = mock(TimerRecordValue.class);
+
+    when(timerRecordValue.getDueDate()).thenReturn(1000L);
+    when(timerRecordValue.getElementInstanceKey()).thenReturn(1L);
+    when(timerRecordValue.getHandlerFlowNodeId()).thenReturn("timerCatch");
+
+    return timerRecordValue;
   }
 
   private MessageSubscriptionRecordValue mockMessageSubscriptionRecordValue() {
