@@ -32,7 +32,9 @@ import io.zeebe.exporter.record.value.IncidentRecordValue;
 import io.zeebe.exporter.record.value.JobBatchRecordValue;
 import io.zeebe.exporter.record.value.JobRecordValue;
 import io.zeebe.exporter.record.value.MessageRecordValue;
+import io.zeebe.exporter.record.value.MessageSubscriptionRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.exporter.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.record.value.deployment.ResourceType;
@@ -46,7 +48,9 @@ import io.zeebe.protocol.intent.Intent;
 import io.zeebe.protocol.intent.JobBatchIntent;
 import io.zeebe.protocol.intent.JobIntent;
 import io.zeebe.protocol.intent.MessageIntent;
+import io.zeebe.protocol.intent.MessageSubscriptionIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
+import io.zeebe.protocol.intent.WorkflowInstanceSubscriptionIntent;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -210,6 +214,58 @@ public class RecordTransformTest {
     assertPayload(messageRecord.getPayload());
   }
 
+  @Test
+  public void shouldTransformMessageSubscription() {
+    // given
+    final MessageSubscriptionRecordValue messageSubscriptionRecordValue =
+        mockMessageSubscriptionRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.MESSAGE_SUBSCRIPTION, MessageSubscriptionIntent.CORRELATE);
+    final Record<MessageSubscriptionRecordValue> mockedRecord =
+        mockRecord(messageSubscriptionRecordValue, recordMetadata);
+
+    // when
+    final Schema.MessageSubscriptionRecord messageSubscriptionRecord =
+        (Schema.MessageSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(messageSubscriptionRecord.getMetadata(), "MESSAGE_SUBSCRIPTION", "CORRELATE");
+
+    assertThat(messageSubscriptionRecord.getCorrelationKey()).isEqualTo("key");
+    assertThat(messageSubscriptionRecord.getMessageName()).isEqualTo("message");
+    assertThat(messageSubscriptionRecord.getElementInstanceKey()).isEqualTo(12L);
+    assertThat(messageSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+  }
+
+  @Test
+  public void shouldTransformWorkflowInstanceSubscription() {
+    // given
+    final WorkflowInstanceSubscriptionRecordValue workflowInstanceSubscriptionRecordValue =
+        mockWorkflowInstanceSubscriptionRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(
+            ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION, WorkflowInstanceSubscriptionIntent.CORRELATE);
+    final Record<WorkflowInstanceSubscriptionRecordValue> mockedRecord =
+        mockRecord(workflowInstanceSubscriptionRecordValue, recordMetadata);
+
+    // when
+    final Schema.WorkflowInstanceSubscriptionRecord workflowInstanceSubscriptionRecord =
+        (Schema.WorkflowInstanceSubscriptionRecord)
+            RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(
+        workflowInstanceSubscriptionRecord.getMetadata(),
+        "WORKFLOW_INSTANCE_SUBSCRIPTION",
+        "CORRELATE");
+
+    assertPayload(workflowInstanceSubscriptionRecord.getPayload());
+
+    assertThat(workflowInstanceSubscriptionRecord.getMessageName()).isEqualTo("message");
+    assertThat(workflowInstanceSubscriptionRecord.getElementInstanceKey()).isEqualTo(4L);
+    assertThat(workflowInstanceSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+  }
+
   private MessageRecordValue mockMessageRecordValue() {
     final MessageRecordValue messageRecordValue = mock(MessageRecordValue.class);
 
@@ -222,6 +278,33 @@ public class RecordTransformTest {
     when(messageRecordValue.getPayloadAsMap()).thenReturn(Collections.singletonMap("foo", 23));
 
     return messageRecordValue;
+  }
+
+  private MessageSubscriptionRecordValue mockMessageSubscriptionRecordValue() {
+    final MessageSubscriptionRecordValue messageSubscriptionRecordValue =
+        mock(MessageSubscriptionRecordValue.class);
+
+    when(messageSubscriptionRecordValue.getCorrelationKey()).thenReturn("key");
+    when(messageSubscriptionRecordValue.getElementInstanceKey()).thenReturn(12L);
+    when(messageSubscriptionRecordValue.getMessageName()).thenReturn("message");
+    when(messageSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+
+    return messageSubscriptionRecordValue;
+  }
+
+  private WorkflowInstanceSubscriptionRecordValue mockWorkflowInstanceSubscriptionRecordValue() {
+    final WorkflowInstanceSubscriptionRecordValue workflowInstanceSubscriptionRecordValue =
+        mock(WorkflowInstanceSubscriptionRecordValue.class);
+
+    when(workflowInstanceSubscriptionRecordValue.getMessageName()).thenReturn("message");
+    when(workflowInstanceSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(workflowInstanceSubscriptionRecordValue.getElementInstanceKey()).thenReturn(4L);
+
+    when(workflowInstanceSubscriptionRecordValue.getPayload()).thenReturn("{\"foo\":23}");
+    when(workflowInstanceSubscriptionRecordValue.getPayloadAsMap())
+        .thenReturn(Collections.singletonMap("foo", 23));
+
+    return workflowInstanceSubscriptionRecordValue;
   }
 
   private JobBatchRecordValue mockJobBatchRecordValue() {

@@ -15,10 +15,25 @@
  */
 package io.zeebe.exporter.proto;
 
-import com.google.protobuf.*;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.ListValue;
+import com.google.protobuf.NullValue;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.Value;
 import io.zeebe.exporter.record.Record;
 import io.zeebe.exporter.record.RecordMetadata;
-import io.zeebe.exporter.record.value.*;
+import io.zeebe.exporter.record.value.DeploymentRecordValue;
+import io.zeebe.exporter.record.value.IncidentRecordValue;
+import io.zeebe.exporter.record.value.JobBatchRecordValue;
+import io.zeebe.exporter.record.value.JobRecordValue;
+import io.zeebe.exporter.record.value.MessageRecordValue;
+import io.zeebe.exporter.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.exporter.record.value.RaftRecordValue;
+import io.zeebe.exporter.record.value.TimerRecordValue;
+import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.exporter.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.record.value.job.Headers;
@@ -252,6 +267,7 @@ public final class RecordTransformer {
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMessageName(value.getMessageName())
         .setPayload(toStruct(value.getPayloadAsMap()))
+        .setMetadata(toMetadata(record))
         .build();
   }
 
