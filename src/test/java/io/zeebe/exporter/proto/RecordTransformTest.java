@@ -20,10 +20,13 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.protobuf.Empty;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.Value;
 import io.zeebe.exporter.proto.Schema.JobRecord;
+import io.zeebe.exporter.proto.Schema.RaftRecord.Member;
 import io.zeebe.exporter.record.Record;
 import io.zeebe.exporter.record.RecordMetadata;
 import io.zeebe.exporter.record.RecordValue;
@@ -33,6 +36,7 @@ import io.zeebe.exporter.record.value.JobBatchRecordValue;
 import io.zeebe.exporter.record.value.JobRecordValue;
 import io.zeebe.exporter.record.value.MessageRecordValue;
 import io.zeebe.exporter.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.exporter.record.value.RaftRecordValue;
 import io.zeebe.exporter.record.value.TimerRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
 import io.zeebe.exporter.record.value.WorkflowInstanceSubscriptionRecordValue;
@@ -40,6 +44,7 @@ import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.record.value.deployment.ResourceType;
 import io.zeebe.exporter.record.value.job.Headers;
+import io.zeebe.exporter.record.value.raft.RaftMember;
 import io.zeebe.protocol.clientapi.RecordType;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
@@ -50,6 +55,7 @@ import io.zeebe.protocol.intent.JobBatchIntent;
 import io.zeebe.protocol.intent.JobIntent;
 import io.zeebe.protocol.intent.MessageIntent;
 import io.zeebe.protocol.intent.MessageSubscriptionIntent;
+import io.zeebe.protocol.intent.RaftIntent;
 import io.zeebe.protocol.intent.TimerIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceSubscriptionIntent;
@@ -285,6 +291,96 @@ public class RecordTransformTest {
     assertThat(workflowInstanceSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(workflowInstanceSubscriptionRecord.getElementInstanceKey()).isEqualTo(4L);
     assertThat(workflowInstanceSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+  }
+
+  @Test
+  public void shouldTransformRaftRecordValue() {
+    // given
+    final RaftRecordValue raftRecordValue = mockRaftRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.RAFT, RaftIntent.MEMBER_ADDED);
+    final Record<RaftRecordValue> mockedRecord = mockRecord(raftRecordValue, recordMetadata);
+
+    // when
+    final Schema.RaftRecord raftRecord =
+        (Schema.RaftRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(raftRecord.getMetadata(), "RAFT", "MEMBER_ADDED");
+
+    assertThat(raftRecord.getMembersList()).hasSize(1);
+    final Member member = raftRecord.getMembersList().get(0);
+    assertThat(member.getNodeId()).isEqualTo(1);
+  }
+
+  @Test
+  public void shouldReturnEmptyForNOOP() {
+    // given
+    final RecordMetadata recordMetadata = mockRecordMetadata(ValueType.NOOP, Intent.UNKNOWN);
+
+    final Record mockedRecord = mock(Record.class);
+    when(mockedRecord.getMetadata()).thenReturn(recordMetadata);
+
+    // when
+    final GeneratedMessageV3 generatedMessageV3 = RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertThat(generatedMessageV3).isEqualTo(Empty.getDefaultInstance());
+  }
+
+  @Test
+  public void shouldReturnEmptyForNullValue() {
+    // given
+    final RecordMetadata recordMetadata = mockRecordMetadata(ValueType.NULL_VAL, Intent.UNKNOWN);
+
+    final Record mockedRecord = mock(Record.class);
+    when(mockedRecord.getMetadata()).thenReturn(recordMetadata);
+
+    // when
+    final GeneratedMessageV3 generatedMessageV3 = RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertThat(generatedMessageV3).isEqualTo(Empty.getDefaultInstance());
+  }
+
+  @Test
+  public void shouldReturnEmptyForSBE() {
+    // given
+    final RecordMetadata recordMetadata = mockRecordMetadata(ValueType.SBE_UNKNOWN, Intent.UNKNOWN);
+
+    final Record mockedRecord = mock(Record.class);
+    when(mockedRecord.getMetadata()).thenReturn(recordMetadata);
+
+    // when
+    final GeneratedMessageV3 generatedMessageV3 = RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertThat(generatedMessageV3).isEqualTo(Empty.getDefaultInstance());
+  }
+
+  @Test
+  public void shouldReturnEmptyForExporter() {
+    // given
+    final RecordMetadata recordMetadata = mockRecordMetadata(ValueType.EXPORTER, Intent.UNKNOWN);
+
+    final Record mockedRecord = mock(Record.class);
+    when(mockedRecord.getMetadata()).thenReturn(recordMetadata);
+
+    // when
+    final GeneratedMessageV3 generatedMessageV3 = RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertThat(generatedMessageV3).isEqualTo(Empty.getDefaultInstance());
+  }
+
+  private RaftRecordValue mockRaftRecordValue() {
+    final RaftRecordValue raftRecordValue = mock(RaftRecordValue.class);
+
+    final RaftMember raftMember = mock(RaftMember.class);
+    when(raftMember.getNodeId()).thenReturn(1);
+    when(raftRecordValue.getMembers()).thenReturn(Collections.singletonList(raftMember));
+
+    return raftRecordValue;
   }
 
   private MessageRecordValue mockMessageRecordValue() {

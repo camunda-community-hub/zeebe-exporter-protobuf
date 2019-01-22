@@ -16,6 +16,7 @@
 package io.zeebe.exporter.proto;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
@@ -71,7 +72,9 @@ public final class RecordTransformer {
   }
 
   public static GeneratedMessageV3 toProtobufMessage(Record record) {
-    return TRANSFORMERS.get(record.getMetadata().getValueType()).apply(record);
+    final ValueType valueType = record.getMetadata().getValueType();
+    final Function<Record, GeneratedMessageV3> toRecordFunc = TRANSFORMERS.get(valueType);
+    return toRecordFunc != null ? toRecordFunc.apply(record) : Empty.getDefaultInstance();
   }
 
   public static Schema.RecordId toRecordId(Record record) {
