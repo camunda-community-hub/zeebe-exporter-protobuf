@@ -15,32 +15,17 @@
  */
 package io.zeebe.exporter.proto;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Empty;
-import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.ListValue;
-import com.google.protobuf.NullValue;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
-import com.google.protobuf.Value;
+import com.google.protobuf.*;
 import io.zeebe.exporter.record.Record;
 import io.zeebe.exporter.record.RecordMetadata;
-import io.zeebe.exporter.record.value.DeploymentRecordValue;
-import io.zeebe.exporter.record.value.IncidentRecordValue;
-import io.zeebe.exporter.record.value.JobBatchRecordValue;
-import io.zeebe.exporter.record.value.JobRecordValue;
-import io.zeebe.exporter.record.value.MessageRecordValue;
-import io.zeebe.exporter.record.value.MessageSubscriptionRecordValue;
-import io.zeebe.exporter.record.value.RaftRecordValue;
-import io.zeebe.exporter.record.value.TimerRecordValue;
-import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
-import io.zeebe.exporter.record.value.WorkflowInstanceSubscriptionRecordValue;
+import io.zeebe.exporter.record.value.*;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.record.value.job.Headers;
 import io.zeebe.exporter.record.value.raft.RaftMember;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
+
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
@@ -58,17 +43,23 @@ public final class RecordTransformer {
       new EnumMap<>(ValueType.class);
 
   static {
-    TRANSFORMERS.put(ValueType.DEPLOYMENT, v -> toDeploymentRecord(v));
-    TRANSFORMERS.put(ValueType.WORKFLOW_INSTANCE, v -> toWorkflowInstanceRecord(v));
-    TRANSFORMERS.put(ValueType.JOB_BATCH, v -> toJobBatchRecord(v));
-    TRANSFORMERS.put(ValueType.JOB, v -> toJobRecord(v));
-    TRANSFORMERS.put(ValueType.INCIDENT, v -> toIncidentRecord(v));
-    TRANSFORMERS.put(ValueType.MESSAGE, v -> toMessageRecord(v));
-    TRANSFORMERS.put(ValueType.MESSAGE_SUBSCRIPTION, v -> toMessageSubscriptionRecord(v));
+    TRANSFORMERS.put(ValueType.DEPLOYMENT, RecordTransformer::toDeploymentRecord);
+    TRANSFORMERS.put(ValueType.WORKFLOW_INSTANCE, RecordTransformer::toWorkflowInstanceRecord);
+    TRANSFORMERS.put(ValueType.JOB_BATCH, RecordTransformer::toJobBatchRecord);
+    TRANSFORMERS.put(ValueType.JOB, RecordTransformer::toJobRecord);
+    TRANSFORMERS.put(ValueType.INCIDENT, RecordTransformer::toIncidentRecord);
+    TRANSFORMERS.put(ValueType.MESSAGE, RecordTransformer::toMessageRecord);
     TRANSFORMERS.put(
-        ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION, v -> toWorkflowInstanceSubscriptionRecord(v));
-    TRANSFORMERS.put(ValueType.TIMER, v -> toTimerRecord(v));
-    TRANSFORMERS.put(ValueType.RAFT, v -> toRaftRecord(v));
+        ValueType.MESSAGE_SUBSCRIPTION, RecordTransformer::toMessageSubscriptionRecord);
+    TRANSFORMERS.put(
+        ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
+        RecordTransformer::toWorkflowInstanceSubscriptionRecord);
+    TRANSFORMERS.put(ValueType.TIMER, RecordTransformer::toTimerRecord);
+    TRANSFORMERS.put(ValueType.RAFT, RecordTransformer::toRaftRecord);
+    TRANSFORMERS.put(ValueType.VARIABLE, RecordTransformer::toVariableRecord);
+    TRANSFORMERS.put(
+        ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
+        RecordTransformer::toMessageStartEventSubscriptionRecord);
   }
 
   public static GeneratedMessageV3 toProtobufMessage(Record record) {
@@ -234,6 +225,33 @@ public final class RecordTransformer {
     return builder.setMetadata(toMetadata(record)).build();
   }
 
+  public static Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
+      Record<MessageStartEventSubscriptionRecordValue> record) {
+    final MessageStartEventSubscriptionRecordValue value = record.getValue();
+    final Schema.MessageStartEventSubscriptionRecord.Builder builder =
+        Schema.MessageStartEventSubscriptionRecord.newBuilder();
+
+    builder
+        .setWorkflowKey(value.getWorkflowKey())
+        .setMessageName(value.getMessageName())
+        .setStartEventId(value.getStartEventId());
+
+    return builder.setMetadata(toMetadata(record)).build();
+  }
+
+  public static Schema.VariableRecord toVariableRecord(Record<VariableRecordValue> record) {
+    final VariableRecordValue value = record.getValue();
+    final Schema.VariableRecord.Builder builder = Schema.VariableRecord.newBuilder();
+
+    builder
+        .setScopeKey(value.getScopeKey())
+        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setName(value.getName())
+        .setValue(value.getValue());
+
+    return builder.setMetadata(toMetadata(record)).build();
+  }
+
   public static Schema.TimerRecord toTimerRecord(Record<TimerRecordValue> record) {
     final TimerRecordValue value = record.getValue();
 
@@ -252,7 +270,7 @@ public final class RecordTransformer {
     return Schema.WorkflowInstanceRecord.newBuilder()
         .setBpmnProcessId(value.getBpmnProcessId())
         .setElementId(value.getElementId())
-        .setScopeInstanceKey(value.getScopeInstanceKey())
+        .setFlowScopeKey(value.getFlowScopeKey())
         .setVersion(value.getVersion())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())

@@ -145,6 +145,15 @@ message TimerRecord {
     string handlerFlowNodeId = 4;
 }
 
+message VariableRecord {
+    RecordMetadata metadata = 1;
+
+    string name = 2;
+    string value = 3;
+    int64 scopeKey = 4;
+    int64 workflowInstanceKey = 5;
+}
+
 message WorkflowInstanceRecord {
     RecordMetadata metadata = 1;
 
@@ -153,7 +162,7 @@ message WorkflowInstanceRecord {
     int64 workflowKey = 4;
     int64 workflowInstanceKey = 5;
     string elementId = 6;
-    int64 scopeInstanceKey = 7;
+    int64 flowScopeKey = 7;
     google.protobuf.Struct payload = 8;
 }
 

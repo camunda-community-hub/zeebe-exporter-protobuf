@@ -15,31 +15,13 @@
  */
 package io.zeebe.exporter.proto;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.MapEntry.entry;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import com.google.protobuf.Empty;
-import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
-import com.google.protobuf.Value;
+import com.google.protobuf.*;
 import io.zeebe.exporter.proto.Schema.JobRecord;
 import io.zeebe.exporter.proto.Schema.RaftRecord.Member;
 import io.zeebe.exporter.record.Record;
 import io.zeebe.exporter.record.RecordMetadata;
 import io.zeebe.exporter.record.RecordValue;
-import io.zeebe.exporter.record.value.DeploymentRecordValue;
-import io.zeebe.exporter.record.value.IncidentRecordValue;
-import io.zeebe.exporter.record.value.JobBatchRecordValue;
-import io.zeebe.exporter.record.value.JobRecordValue;
-import io.zeebe.exporter.record.value.MessageRecordValue;
-import io.zeebe.exporter.record.value.MessageSubscriptionRecordValue;
-import io.zeebe.exporter.record.value.RaftRecordValue;
-import io.zeebe.exporter.record.value.TimerRecordValue;
-import io.zeebe.exporter.record.value.WorkflowInstanceRecordValue;
-import io.zeebe.exporter.record.value.WorkflowInstanceSubscriptionRecordValue;
+import io.zeebe.exporter.record.value.*;
 import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.record.value.deployment.ResourceType;
@@ -48,23 +30,20 @@ import io.zeebe.exporter.record.value.raft.RaftMember;
 import io.zeebe.protocol.clientapi.RecordType;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
-import io.zeebe.protocol.intent.DeploymentIntent;
-import io.zeebe.protocol.intent.IncidentIntent;
-import io.zeebe.protocol.intent.Intent;
-import io.zeebe.protocol.intent.JobBatchIntent;
-import io.zeebe.protocol.intent.JobIntent;
-import io.zeebe.protocol.intent.MessageIntent;
-import io.zeebe.protocol.intent.MessageSubscriptionIntent;
-import io.zeebe.protocol.intent.RaftIntent;
-import io.zeebe.protocol.intent.TimerIntent;
-import io.zeebe.protocol.intent.WorkflowInstanceIntent;
-import io.zeebe.protocol.intent.WorkflowInstanceSubscriptionIntent;
+import io.zeebe.protocol.intent.*;
+import io.zeebe.test.exporter.record.MockRecordMetadata;
+import org.junit.Test;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.MapEntry.entry;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RecordTransformTest {
 
@@ -124,7 +103,7 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getWorkflowKey()).isEqualTo(4L);
     assertThat(workflowInstance.getVersion()).isEqualTo(1);
     assertThat(workflowInstance.getWorkflowInstanceKey()).isEqualTo(1L);
-    assertThat(workflowInstance.getScopeInstanceKey()).isEqualTo(-1L);
+    assertThat(workflowInstance.getFlowScopeKey()).isEqualTo(-1L);
 
     assertPayload(workflowInstance.getPayload());
   }
@@ -314,6 +293,49 @@ public class RecordTransformTest {
   }
 
   @Test
+  public void shouldTransformVariableRecordValue() {
+    // given
+    final VariableRecordValue variableRecordValue = mockVariableRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.VARIABLE, VariableIntent.CREATED);
+    final Record<VariableRecordValue> mockedRecord =
+        mockRecord(variableRecordValue, recordMetadata);
+
+    // when
+    final Schema.VariableRecord variableRecord =
+        (Schema.VariableRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(variableRecord.getMetadata(), "VARIABLE", "CREATED");
+    assertThat(variableRecord.getName()).isEqualTo(variableRecordValue.getName());
+    assertThat(variableRecord.getScopeKey()).isEqualTo(variableRecordValue.getScopeKey());
+    assertThat(variableRecord.getValue()).isEqualTo(variableRecordValue.getValue());
+    assertThat(variableRecord.getWorkflowInstanceKey())
+        .isEqualTo(variableRecordValue.getWorkflowInstanceKey());
+  }
+
+  @Test
+  public void shouldTransformMessageStartEventSubscriptionRecordValue() {
+    // given
+    final MessageStartEventSubscriptionRecordValue value =
+        mockMessageStartEventSubscriptionRecordValue();
+    final RecordMetadata metadata =
+        mockRecordMetadata(
+            ValueType.MESSAGE_START_EVENT_SUBSCRIPTION, MessageStartEventSubscriptionIntent.OPEN);
+    final Record<MessageStartEventSubscriptionRecordValue> record = mockRecord(value, metadata);
+
+    // when
+    final Schema.MessageStartEventSubscriptionRecord transformed =
+        (Schema.MessageStartEventSubscriptionRecord) RecordTransformer.toProtobufMessage(record);
+
+    // then
+    assertMetadata(transformed.getMetadata(), "MESSAGE_START_EVENT_SUBSCRIPTION", "OPEN");
+    assertThat(transformed.getMessageName()).isEqualTo(value.getMessageName());
+    assertThat(transformed.getStartEventId()).isEqualTo(value.getStartEventId());
+    assertThat(transformed.getWorkflowKey()).isEqualTo(value.getWorkflowKey());
+  }
+
+  @Test
   public void shouldReturnEmptyForNOOP() {
     // given
     final RecordMetadata recordMetadata = mockRecordMetadata(ValueType.NOOP, Intent.UNKNOWN);
@@ -397,6 +419,17 @@ public class RecordTransformTest {
     return messageRecordValue;
   }
 
+  private MessageStartEventSubscriptionRecordValue mockMessageStartEventSubscriptionRecordValue() {
+    final MessageStartEventSubscriptionRecordValue value =
+        mock(MessageStartEventSubscriptionRecordValue.class);
+
+    when(value.getMessageName()).thenReturn("message");
+    when(value.getStartEventId()).thenReturn("start");
+    when(value.getWorkflowKey()).thenReturn(1L);
+
+    return value;
+  }
+
   private TimerRecordValue mockTimerRecordValue() {
     final TimerRecordValue timerRecordValue = mock(TimerRecordValue.class);
 
@@ -405,6 +438,17 @@ public class RecordTransformTest {
     when(timerRecordValue.getHandlerFlowNodeId()).thenReturn("timerCatch");
 
     return timerRecordValue;
+  }
+
+  private VariableRecordValue mockVariableRecordValue() {
+    final VariableRecordValue variableRecordValue = mock(VariableRecordValue.class);
+
+    when(variableRecordValue.getName()).thenReturn("var");
+    when(variableRecordValue.getScopeKey()).thenReturn(1L);
+    when(variableRecordValue.getValue()).thenReturn("true");
+    when(variableRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+
+    return variableRecordValue;
   }
 
   private MessageSubscriptionRecordValue mockMessageSubscriptionRecordValue() {
@@ -509,7 +553,7 @@ public class RecordTransformTest {
         .thenReturn(Collections.singletonMap("foo", 23));
     when(workflowInstanceRecordValue.getBpmnProcessId()).thenReturn("process");
     when(workflowInstanceRecordValue.getElementId()).thenReturn("startEvent");
-    when(workflowInstanceRecordValue.getScopeInstanceKey()).thenReturn(-1L);
+    when(workflowInstanceRecordValue.getFlowScopeKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getVersion()).thenReturn(1);
     when(workflowInstanceRecordValue.getWorkflowKey()).thenReturn(4L);
 
@@ -570,25 +614,24 @@ public class RecordTransformTest {
     assertThat(metadata.getProducerId()).isEqualTo(1);
     assertThat(metadata.getRaftTerm()).isEqualTo(3);
     assertThat(metadata.getRejectionReason()).isEqualTo("failed");
-    assertThat(metadata.getRejectionType()).isEqualTo("BAD_VALUE");
+    assertThat(metadata.getRejectionType()).isEqualTo("INVALID_ARGUMENT");
   }
 
-  private RecordMetadata mockRecordMetadata(ValueType valueType, Intent intent) {
-    final RecordMetadata recordMetadata = mock(RecordMetadata.class);
-
-    when(recordMetadata.getRecordType()).thenReturn(RecordType.COMMAND);
-    when(recordMetadata.getValueType()).thenReturn(valueType);
-    when(recordMetadata.getIntent()).thenReturn(intent);
-    when(recordMetadata.getPartitionId()).thenReturn(0);
-    when(recordMetadata.getRejectionReason()).thenReturn("failed");
-    when(recordMetadata.getRejectionType()).thenReturn(RejectionType.BAD_VALUE);
-
-    return recordMetadata;
+  private MockRecordMetadata mockRecordMetadata(ValueType valueType, Intent intent) {
+    return new MockRecordMetadata()
+        .setRecordType(RecordType.COMMAND)
+        .setValueType(valueType)
+        .setIntent(intent)
+        .setPartitionId(0)
+        .setRejectionReason("failed")
+        .setRejectionType(RejectionType.INVALID_ARGUMENT);
   }
 
-  private <Value extends RecordValue> Record<Value> mockRecord(
-      Value recordValue, RecordMetadata recordMetadata) {
-    final Record<Value> record = mock(Record.class);
+  // todo: on Zeebe release 0.16.0, MockRecord#setValue and MockRecord#setMetadata will accept
+  // normal RecordValue and RecordMetadata, so we should stop mocking here
+  private <V extends RecordValue> Record<V> mockRecord(
+      V recordValue, RecordMetadata recordMetadata) {
+    final Record record = mock(Record.class);
 
     when(record.getKey()).thenReturn(1L);
     when(record.getPosition()).thenReturn(265L);
