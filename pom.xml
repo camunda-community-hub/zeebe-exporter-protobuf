@@ -93,13 +93,14 @@
     </dependency>
 
     <dependency>
-      <groupId>io.zeebe</groupId>
-      <artifactId>zeebe-test</artifactId>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
+      <groupId>io.zeebe</groupId>
+      <artifactId>zeebe-test</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
