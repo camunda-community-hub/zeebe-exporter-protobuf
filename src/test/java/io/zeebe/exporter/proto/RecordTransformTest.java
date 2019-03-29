@@ -15,35 +15,68 @@
  */
 package io.zeebe.exporter.proto;
 
-import com.google.protobuf.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.MapEntry.entry;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.google.protobuf.Empty;
+import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.Value;
+import io.zeebe.exporter.api.record.Record;
+import io.zeebe.exporter.api.record.RecordMetadata;
+import io.zeebe.exporter.api.record.RecordValue;
+import io.zeebe.exporter.api.record.value.DeploymentRecordValue;
+import io.zeebe.exporter.api.record.value.ErrorRecordValue;
+import io.zeebe.exporter.api.record.value.IncidentRecordValue;
+import io.zeebe.exporter.api.record.value.JobBatchRecordValue;
+import io.zeebe.exporter.api.record.value.JobRecordValue;
+import io.zeebe.exporter.api.record.value.MessageRecordValue;
+import io.zeebe.exporter.api.record.value.MessageStartEventSubscriptionRecordValue;
+import io.zeebe.exporter.api.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.exporter.api.record.value.RaftRecordValue;
+import io.zeebe.exporter.api.record.value.TimerRecordValue;
+import io.zeebe.exporter.api.record.value.VariableDocumentRecordValue;
+import io.zeebe.exporter.api.record.value.VariableRecordValue;
+import io.zeebe.exporter.api.record.value.WorkflowInstanceCreationRecordValue;
+import io.zeebe.exporter.api.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.exporter.api.record.value.WorkflowInstanceSubscriptionRecordValue;
+import io.zeebe.exporter.api.record.value.deployment.DeployedWorkflow;
+import io.zeebe.exporter.api.record.value.deployment.DeploymentResource;
+import io.zeebe.exporter.api.record.value.deployment.ResourceType;
+import io.zeebe.exporter.api.record.value.job.Headers;
+import io.zeebe.exporter.api.record.value.raft.RaftMember;
 import io.zeebe.exporter.proto.Schema.JobRecord;
 import io.zeebe.exporter.proto.Schema.RaftRecord.Member;
-import io.zeebe.exporter.record.Record;
-import io.zeebe.exporter.record.RecordMetadata;
-import io.zeebe.exporter.record.RecordValue;
-import io.zeebe.exporter.record.value.*;
-import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
-import io.zeebe.exporter.record.value.deployment.DeploymentResource;
-import io.zeebe.exporter.record.value.deployment.ResourceType;
-import io.zeebe.exporter.record.value.job.Headers;
-import io.zeebe.exporter.record.value.raft.RaftMember;
+import io.zeebe.protocol.VariableDocumentUpdateSemantic;
 import io.zeebe.protocol.clientapi.RecordType;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
-import io.zeebe.protocol.intent.*;
+import io.zeebe.protocol.intent.DeploymentIntent;
+import io.zeebe.protocol.intent.ErrorIntent;
+import io.zeebe.protocol.intent.IncidentIntent;
+import io.zeebe.protocol.intent.Intent;
+import io.zeebe.protocol.intent.JobBatchIntent;
+import io.zeebe.protocol.intent.JobIntent;
+import io.zeebe.protocol.intent.MessageIntent;
+import io.zeebe.protocol.intent.MessageStartEventSubscriptionIntent;
+import io.zeebe.protocol.intent.MessageSubscriptionIntent;
+import io.zeebe.protocol.intent.RaftIntent;
+import io.zeebe.protocol.intent.TimerIntent;
+import io.zeebe.protocol.intent.VariableDocumentIntent;
+import io.zeebe.protocol.intent.VariableIntent;
+import io.zeebe.protocol.intent.WorkflowInstanceCreationIntent;
+import io.zeebe.protocol.intent.WorkflowInstanceIntent;
+import io.zeebe.protocol.intent.WorkflowInstanceSubscriptionIntent;
 import io.zeebe.test.exporter.record.MockRecordMetadata;
-import org.junit.Test;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.MapEntry.entry;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.Test;
 
 public class RecordTransformTest {
 
@@ -87,7 +120,7 @@ public class RecordTransformTest {
     final WorkflowInstanceRecordValue workflowInstanceRecordValue =
         mockWorkflowInstanceRecordValue();
     final RecordMetadata recordMetadata =
-        mockRecordMetadata(ValueType.WORKFLOW_INSTANCE, WorkflowInstanceIntent.CREATE);
+        mockRecordMetadata(ValueType.WORKFLOW_INSTANCE, WorkflowInstanceIntent.ELEMENT_ACTIVATED);
     final Record<WorkflowInstanceRecordValue> mockedRecord =
         mockRecord(workflowInstanceRecordValue, recordMetadata);
 
@@ -96,7 +129,7 @@ public class RecordTransformTest {
         (Schema.WorkflowInstanceRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(workflowInstance.getMetadata(), "WORKFLOW_INSTANCE", "CREATE");
+    assertMetadata(workflowInstance.getMetadata(), "WORKFLOW_INSTANCE", "ELEMENT_ACTIVATED");
 
     assertThat(workflowInstance.getBpmnProcessId()).isEqualTo("process");
     assertThat(workflowInstance.getElementId()).isEqualTo("startEvent");
@@ -104,8 +137,31 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getVersion()).isEqualTo(1);
     assertThat(workflowInstance.getWorkflowInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstance.getFlowScopeKey()).isEqualTo(-1L);
+  }
 
-    assertPayload(workflowInstance.getPayload());
+  @Test
+  public void shouldTransformWorkflowInstanceCreation() {
+    // given
+    final WorkflowInstanceCreationRecordValue workflowInstanceCreationRecordValue =
+        mockWorkflowInstanceCreationRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(
+            ValueType.WORKFLOW_INSTANCE_CREATION, WorkflowInstanceCreationIntent.CREATED);
+    final Record<WorkflowInstanceCreationRecordValue> mockedRecord =
+        mockRecord(workflowInstanceCreationRecordValue, recordMetadata);
+
+    // when
+    final Schema.WorkflowInstanceCreationRecord workflowInstanceCreation =
+        (Schema.WorkflowInstanceCreationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(workflowInstanceCreation.getMetadata(), "WORKFLOW_INSTANCE_CREATION", "CREATED");
+
+    assertThat(workflowInstanceCreation.getBpmnProcessId()).isEqualTo("process");
+    assertThat(workflowInstanceCreation.getWorkflowKey()).isEqualTo(4L);
+    assertThat(workflowInstanceCreation.getVersion()).isEqualTo(1);
+    assertThat(workflowInstanceCreation.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertVariables(workflowInstanceCreation.getVariables());
   }
 
   @Test
@@ -141,7 +197,7 @@ public class RecordTransformTest {
     assertMetadata(jobBatchRecord.getMetadata(), "JOB_BATCH", "ACTIVATE");
 
     assertThat(jobBatchRecord.getJobKeysList()).containsExactly(5L);
-    assertThat(jobBatchRecord.getAmount()).isEqualTo(1);
+    assertThat(jobBatchRecord.getMaxJobsToActivate()).isEqualTo(1);
     assertThat(jobBatchRecord.getTimeout()).isEqualTo(1_000L);
     assertThat(jobBatchRecord.getType()).isEqualTo("jobType");
     assertThat(jobBatchRecord.getWorker()).isEqualTo("myveryownworker");
@@ -198,7 +254,7 @@ public class RecordTransformTest {
     assertThat(messageRecord.getName()).isEqualTo("message");
     assertThat(messageRecord.getTimeToLive()).isEqualTo(1000L);
 
-    assertPayload(messageRecord.getPayload());
+    assertVariables(messageRecord.getVariables());
   }
 
   @Test
@@ -218,6 +274,7 @@ public class RecordTransformTest {
     assertThat(timerRecord.getDueDate()).isEqualTo(1000L);
     assertThat(timerRecord.getElementInstanceKey()).isEqualTo(1L);
     assertThat(timerRecord.getHandlerFlowNodeId()).isEqualTo("timerCatch");
+    assertThat(timerRecord.getWorkflowInstanceKey()).isEqualTo(2L);
   }
 
   @Test
@@ -265,7 +322,7 @@ public class RecordTransformTest {
         "WORKFLOW_INSTANCE_SUBSCRIPTION",
         "CORRELATE");
 
-    assertPayload(workflowInstanceSubscriptionRecord.getPayload());
+    assertVariables(workflowInstanceSubscriptionRecord.getVariables());
 
     assertThat(workflowInstanceSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(workflowInstanceSubscriptionRecord.getElementInstanceKey()).isEqualTo(4L);
@@ -315,6 +372,28 @@ public class RecordTransformTest {
   }
 
   @Test
+  public void shouldTransformVariableDocumentRecordValue() {
+    // given
+    final VariableDocumentRecordValue variableDocumentRecordValue =
+        mockVariableDocumentRecordValue();
+    final RecordMetadata recordMetadata =
+        mockRecordMetadata(ValueType.VARIABLE_DOCUMENT, VariableDocumentIntent.UPDATED);
+    final Record<VariableDocumentRecordValue> mockedRecord =
+        mockRecord(variableDocumentRecordValue, recordMetadata);
+
+    // when
+    final Schema.VariableDocumentRecord variableRecord =
+        (Schema.VariableDocumentRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(variableRecord.getMetadata(), "VARIABLE_DOCUMENT", "UPDATED");
+    assertThat(variableRecord.getScopeKey()).isEqualTo(variableDocumentRecordValue.getScopeKey());
+    assertThat(variableRecord.getUpdateSemantics())
+        .isEqualTo(variableDocumentRecordValue.getUpdateSemantics().name());
+    assertVariables(variableRecord.getDocument());
+  }
+
+  @Test
   public void shouldTransformMessageStartEventSubscriptionRecordValue() {
     // given
     final MessageStartEventSubscriptionRecordValue value =
@@ -333,6 +412,25 @@ public class RecordTransformTest {
     assertThat(transformed.getMessageName()).isEqualTo(value.getMessageName());
     assertThat(transformed.getStartEventId()).isEqualTo(value.getStartEventId());
     assertThat(transformed.getWorkflowKey()).isEqualTo(value.getWorkflowKey());
+  }
+
+  @Test
+  public void shouldTransformErrorRecordValue() {
+    // given
+    final ErrorRecordValue value = mockErrorRecordValue();
+    final RecordMetadata metadata = mockRecordMetadata(ValueType.ERROR, ErrorIntent.CREATED);
+    final Record<ErrorRecordValue> record = mockRecord(value, metadata);
+
+    // when
+    final Schema.ErrorRecord transformed =
+        (Schema.ErrorRecord) RecordTransformer.toProtobufMessage(record);
+
+    // then
+    assertMetadata(transformed.getMetadata(), "ERROR", "CREATED");
+    assertThat(transformed.getExceptionMessage()).isEqualTo(value.getExceptionMessage());
+    assertThat(transformed.getStacktrace()).isEqualTo(value.getStacktrace());
+    assertThat(transformed.getErrorEventPosition()).isEqualTo(value.getErrorEventPosition());
+    assertThat(transformed.getWorkflowInstanceKey()).isEqualTo(value.getWorkflowInstanceKey());
   }
 
   @Test
@@ -413,8 +511,8 @@ public class RecordTransformTest {
     when(messageRecordValue.getName()).thenReturn("message");
     when(messageRecordValue.getTimeToLive()).thenReturn(1000L);
 
-    when(messageRecordValue.getPayload()).thenReturn("{\"foo\":23}");
-    when(messageRecordValue.getPayloadAsMap()).thenReturn(Collections.singletonMap("foo", 23));
+    when(messageRecordValue.getVariables()).thenReturn("{\"foo\":23}");
+    when(messageRecordValue.getVariablesAsMap()).thenReturn(Collections.singletonMap("foo", 23));
 
     return messageRecordValue;
   }
@@ -436,6 +534,7 @@ public class RecordTransformTest {
     when(timerRecordValue.getDueDate()).thenReturn(1000L);
     when(timerRecordValue.getElementInstanceKey()).thenReturn(1L);
     when(timerRecordValue.getHandlerFlowNodeId()).thenReturn("timerCatch");
+    when(timerRecordValue.getWorkflowInstanceKey()).thenReturn(2L);
 
     return timerRecordValue;
   }
@@ -447,6 +546,17 @@ public class RecordTransformTest {
     when(variableRecordValue.getScopeKey()).thenReturn(1L);
     when(variableRecordValue.getValue()).thenReturn("true");
     when(variableRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+
+    return variableRecordValue;
+  }
+
+  private VariableDocumentRecordValue mockVariableDocumentRecordValue() {
+    final VariableDocumentRecordValue variableRecordValue = mock(VariableDocumentRecordValue.class);
+
+    when(variableRecordValue.getScopeKey()).thenReturn(1L);
+    when(variableRecordValue.getUpdateSemantics())
+        .thenReturn(VariableDocumentUpdateSemantic.PROPAGATE);
+    when(variableRecordValue.getDocument()).thenReturn(Collections.singletonMap("foo", 23));
 
     return variableRecordValue;
   }
@@ -471,8 +581,8 @@ public class RecordTransformTest {
     when(workflowInstanceSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
     when(workflowInstanceSubscriptionRecordValue.getElementInstanceKey()).thenReturn(4L);
 
-    when(workflowInstanceSubscriptionRecordValue.getPayload()).thenReturn("{\"foo\":23}");
-    when(workflowInstanceSubscriptionRecordValue.getPayloadAsMap())
+    when(workflowInstanceSubscriptionRecordValue.getVariables()).thenReturn("{\"foo\":23}");
+    when(workflowInstanceSubscriptionRecordValue.getVariablesAsMap())
         .thenReturn(Collections.singletonMap("foo", 23));
 
     return workflowInstanceSubscriptionRecordValue;
@@ -484,7 +594,7 @@ public class RecordTransformTest {
     when(jobBatchRecordValue.getJobKeys()).thenReturn(Collections.singletonList(5L));
     final List<JobRecordValue> jobRecordValues = Collections.singletonList(mockJobRecordValue());
     when(jobBatchRecordValue.getJobs()).thenReturn(jobRecordValues);
-    when(jobBatchRecordValue.getAmount()).thenReturn(1);
+    when(jobBatchRecordValue.getMaxJobsToActivate()).thenReturn(1);
     when(jobBatchRecordValue.getTimeout()).thenReturn(Duration.ofMillis(1000));
     when(jobBatchRecordValue.getType()).thenReturn("jobType");
     when(jobBatchRecordValue.getWorker()).thenReturn("myveryownworker");
@@ -502,8 +612,8 @@ public class RecordTransformTest {
     when(jobRecordValue.getWorker()).thenReturn("myveryownworker");
 
     when(jobRecordValue.getCustomHeaders()).thenReturn(Collections.singletonMap("foo", "bar"));
-    when(jobRecordValue.getPayload()).thenReturn("{\"foo\":23}");
-    when(jobRecordValue.getPayloadAsMap()).thenReturn(Collections.singletonMap("foo", 23));
+    when(jobRecordValue.getVariables()).thenReturn("{\"foo\":23}");
+    when(jobRecordValue.getVariablesAsMap()).thenReturn(Collections.singletonMap("foo", 23));
 
     final Headers jobHeaders = mock(Headers.class);
 
@@ -548,9 +658,6 @@ public class RecordTransformTest {
         mock(WorkflowInstanceRecordValue.class);
 
     when(workflowInstanceRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
-    when(workflowInstanceRecordValue.getPayload()).thenReturn("{\"foo\":23}");
-    when(workflowInstanceRecordValue.getPayloadAsMap())
-        .thenReturn(Collections.singletonMap("foo", 23));
     when(workflowInstanceRecordValue.getBpmnProcessId()).thenReturn("process");
     when(workflowInstanceRecordValue.getElementId()).thenReturn("startEvent");
     when(workflowInstanceRecordValue.getFlowScopeKey()).thenReturn(-1L);
@@ -558,6 +665,20 @@ public class RecordTransformTest {
     when(workflowInstanceRecordValue.getWorkflowKey()).thenReturn(4L);
 
     return workflowInstanceRecordValue;
+  }
+
+  private WorkflowInstanceCreationRecordValue mockWorkflowInstanceCreationRecordValue() {
+    final WorkflowInstanceCreationRecordValue workflowInstanceCreationRecordValue =
+        mock(WorkflowInstanceCreationRecordValue.class);
+
+    when(workflowInstanceCreationRecordValue.getBpmnProcessId()).thenReturn("process");
+    when(workflowInstanceCreationRecordValue.getVersion()).thenReturn(1);
+    when(workflowInstanceCreationRecordValue.getKey()).thenReturn(4L);
+    when(workflowInstanceCreationRecordValue.getInstanceKey()).thenReturn(1L);
+    when(workflowInstanceCreationRecordValue.getVariables())
+        .thenReturn(Collections.singletonMap("foo", 23));
+
+    return workflowInstanceCreationRecordValue;
   }
 
   private IncidentRecordValue mockIncidentRecordValue() {
@@ -576,7 +697,17 @@ public class RecordTransformTest {
     return incidentRecordValue;
   }
 
-  private void assertPayload(Struct payload) {
+  private ErrorRecordValue mockErrorRecordValue() {
+    final ErrorRecordValue errorRecordValue = mock(ErrorRecordValue.class);
+
+    when(errorRecordValue.getExceptionMessage()).thenReturn("exceptionMessage");
+    when(errorRecordValue.getStacktrace()).thenReturn("stacktrace");
+    when(errorRecordValue.getErrorEventPosition()).thenReturn(123L);
+    when(errorRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    return errorRecordValue;
+  }
+
+  private void assertVariables(Struct payload) {
     assertThat(payload.getFieldsCount()).isEqualTo(1);
     assertThat(payload.getFieldsMap())
         .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
@@ -595,7 +726,7 @@ public class RecordTransformTest {
     assertThat(jobRecord.getCustomHeaders().getFieldsCount()).isEqualTo(1);
     assertThat(jobRecord.getCustomHeaders().getFieldsMap())
         .containsExactly(entry("foo", Value.newBuilder().setStringValue("bar").build()));
-    assertPayload(jobRecord.getPayload());
+    assertVariables(jobRecord.getVariables());
 
     assertThat(jobRecord.getDeadline()).isEqualTo(Timestamp.newBuilder().setSeconds(123).build());
     assertThat(jobRecord.getErrorMessage()).isEqualTo("this is an error msg");

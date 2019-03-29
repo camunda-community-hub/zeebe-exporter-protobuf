@@ -42,10 +42,10 @@
     <version.log4j>2.11.1</version.log4j>
     <version.mockito>2.23.4</version.mockito>
 
-    <version.protobuf>3.5.1</version.protobuf>
-    <version.protoc>3.5.1</version.protoc>
+    <version.protobuf>3.7.0</version.protobuf>
+    <version.protoc>3.7.0</version.protoc>
     <version.slf4j>1.7.25</version.slf4j>
-    <version.zeebe>0.15.0</version.zeebe>
+    <version.zeebe>0.17.0</version.zeebe>
 
     <!-- plugin version -->
     <plugin.version.checkstyle>3.0.0</plugin.version.checkstyle>
@@ -66,7 +66,7 @@
     <dependencies>
       <dependency>
         <groupId>io.zeebe</groupId>
-        <artifactId>zb-bom</artifactId>
+        <artifactId>zeebe-bom</artifactId>
         <version>${version.zeebe}</version>
         <scope>import</scope>
         <type>pom</type>
@@ -89,7 +89,7 @@
   <dependencies>
     <dependency>
       <groupId>io.zeebe</groupId>
-      <artifactId>zb-exporter-api</artifactId>
+      <artifactId>zeebe-exporter-api</artifactId>
     </dependency>
 
     <dependency>
@@ -195,7 +195,7 @@
         <dependencies>
           <dependency>
             <groupId>io.zeebe</groupId>
-            <artifactId>zb-build-tools</artifactId>
+            <artifactId>zeebe-build-tools</artifactId>
             <version>${version.zeebe}</version>
           </dependency>
         </dependencies>

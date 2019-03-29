@@ -15,17 +15,37 @@
  */
 package io.zeebe.exporter.proto;
 
-import com.google.protobuf.*;
-import io.zeebe.exporter.record.Record;
-import io.zeebe.exporter.record.RecordMetadata;
-import io.zeebe.exporter.record.value.*;
-import io.zeebe.exporter.record.value.deployment.DeployedWorkflow;
-import io.zeebe.exporter.record.value.deployment.DeploymentResource;
-import io.zeebe.exporter.record.value.job.Headers;
-import io.zeebe.exporter.record.value.raft.RaftMember;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
+import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.ListValue;
+import com.google.protobuf.NullValue;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.Value;
+import io.zeebe.exporter.api.record.Record;
+import io.zeebe.exporter.api.record.RecordMetadata;
+import io.zeebe.exporter.api.record.value.DeploymentRecordValue;
+import io.zeebe.exporter.api.record.value.ErrorRecordValue;
+import io.zeebe.exporter.api.record.value.IncidentRecordValue;
+import io.zeebe.exporter.api.record.value.JobBatchRecordValue;
+import io.zeebe.exporter.api.record.value.JobRecordValue;
+import io.zeebe.exporter.api.record.value.MessageRecordValue;
+import io.zeebe.exporter.api.record.value.MessageStartEventSubscriptionRecordValue;
+import io.zeebe.exporter.api.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.exporter.api.record.value.RaftRecordValue;
+import io.zeebe.exporter.api.record.value.TimerRecordValue;
+import io.zeebe.exporter.api.record.value.VariableDocumentRecordValue;
+import io.zeebe.exporter.api.record.value.VariableRecordValue;
+import io.zeebe.exporter.api.record.value.WorkflowInstanceCreationRecordValue;
+import io.zeebe.exporter.api.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.exporter.api.record.value.WorkflowInstanceSubscriptionRecordValue;
+import io.zeebe.exporter.api.record.value.deployment.DeployedWorkflow;
+import io.zeebe.exporter.api.record.value.deployment.DeploymentResource;
+import io.zeebe.exporter.api.record.value.job.Headers;
+import io.zeebe.exporter.api.record.value.raft.RaftMember;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
-
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
@@ -60,6 +80,10 @@ public final class RecordTransformer {
     TRANSFORMERS.put(
         ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
         RecordTransformer::toMessageStartEventSubscriptionRecord);
+    TRANSFORMERS.put(
+        ValueType.WORKFLOW_INSTANCE_CREATION, RecordTransformer::toWorkflowInstanceCreationRecord);
+    TRANSFORMERS.put(ValueType.VARIABLE_DOCUMENT, RecordTransformer::toVariableDocumentRecord);
+    TRANSFORMERS.put(ValueType.ERROR, RecordTransformer::toErrorRecord);
   }
 
   public static GeneratedMessageV3 toProtobufMessage(Record record) {
@@ -160,7 +184,7 @@ public final class RecordTransformer {
         .setRetries(value.getRetries())
         .setType(value.getType())
         .setWorker(value.getWorker())
-        .setPayload(toStruct(value.getPayloadAsMap()))
+        .setVariables(toStruct(value.getVariablesAsMap()))
         .setCustomHeaders(toStruct(value.getCustomHeaders()))
         .setHeaders(toJobRecordHeaders(value.getHeaders()));
   }
@@ -180,7 +204,7 @@ public final class RecordTransformer {
     }
 
     return builder
-        .setAmount(value.getAmount())
+        .setMaxJobsToActivate(value.getMaxJobsToActivate())
         .setTimeout(value.getTimeout().toMillis())
         .setType(value.getType())
         .setWorker(value.getWorker())
@@ -196,7 +220,7 @@ public final class RecordTransformer {
         .setMessageId(value.getMessageId())
         .setName(value.getName())
         .setTimeToLive(value.getTimeToLive())
-        .setPayload(toStruct(value.getPayloadAsMap()))
+        .setVariables(toStruct(value.getVariablesAsMap()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -259,6 +283,7 @@ public final class RecordTransformer {
         .setDueDate(value.getDueDate())
         .setElementInstanceKey(value.getElementInstanceKey())
         .setHandlerFlowNodeId(value.getHandlerFlowNodeId())
+        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -274,7 +299,6 @@ public final class RecordTransformer {
         .setVersion(value.getVersion())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
-        .setPayload(toStruct(value.getPayloadAsMap()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -287,7 +311,45 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMessageName(value.getMessageName())
-        .setPayload(toStruct(value.getPayloadAsMap()))
+        .setVariables(toStruct(value.getVariablesAsMap()))
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  public static Schema.WorkflowInstanceCreationRecord toWorkflowInstanceCreationRecord(
+      Record<WorkflowInstanceCreationRecordValue> record) {
+    final WorkflowInstanceCreationRecordValue value = record.getValue();
+
+    return Schema.WorkflowInstanceCreationRecord.newBuilder()
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setVersion(value.getVersion())
+        .setWorkflowKey(value.getKey())
+        .setWorkflowInstanceKey(value.getInstanceKey())
+        .setVariables(toStruct(value.getVariables()))
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  public static Schema.VariableDocumentRecord toVariableDocumentRecord(
+      Record<VariableDocumentRecordValue> record) {
+    final VariableDocumentRecordValue value = record.getValue();
+
+    return Schema.VariableDocumentRecord.newBuilder()
+        .setScopeKey(value.getScopeKey())
+        .setUpdateSemantics(value.getUpdateSemantics().name())
+        .setDocument(toStruct(value.getDocument()))
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  public static Schema.ErrorRecord toErrorRecord(Record<ErrorRecordValue> record) {
+    final ErrorRecordValue value = record.getValue();
+
+    return Schema.ErrorRecord.newBuilder()
+        .setExceptionMessage(value.getExceptionMessage())
+        .setStacktrace(value.getStacktrace())
+        .setErrorEventPosition(value.getErrorEventPosition())
+        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
   }

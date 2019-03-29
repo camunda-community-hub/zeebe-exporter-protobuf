@@ -55,6 +55,15 @@ message DeploymentRecord {
     repeated Workflow workflows = 3;
 }
 
+message ErrorRecord {
+    RecordMetadata metadata = 1;
+
+    string exceptionMessage = 2;
+    string stacktrace = 3;
+    int64 errorEventPosition = 4;
+    int64 workflowInstanceKey = 5;
+}
+
 message IncidentRecord {
     RecordMetadata metadata = 1;
 
@@ -86,7 +95,7 @@ message JobRecord {
     int32 retries = 6;
     google.protobuf.Timestamp deadline = 7;
     string errorMessage = 8;
-    google.protobuf.Struct payload = 9;
+    google.protobuf.Struct variables = 9;
 }
 
 message JobBatchRecord {
@@ -95,7 +104,7 @@ message JobBatchRecord {
     string type = 2;
     string worker = 3;
     int64 timeout = 4;
-    int32 amount = 5;
+    int32 maxJobsToActivate = 5;
     repeated int64 jobKeys = 6;
     repeated JobRecord jobs = 7;
 }
@@ -107,7 +116,7 @@ message MessageRecord {
     string correlationKey = 3;
     string messageId = 4;
     int64 timeToLive = 5;
-    google.protobuf.Struct payload = 6;
+    google.protobuf.Struct variables = 6;
 }
 
 message MessageSubscriptionRecord {
@@ -143,6 +152,7 @@ message TimerRecord {
     int64 elementInstanceKey = 2;
     int64 dueDate = 3;
     string handlerFlowNodeId = 4;
+    int64 workflowInstanceKey = 5;
 }
 
 message VariableRecord {
@@ -154,6 +164,14 @@ message VariableRecord {
     int64 workflowInstanceKey = 5;
 }
 
+message VariableDocumentRecord {
+    RecordMetadata metadata = 1;
+
+    int64 scopeKey = 2;
+    string updateSemantics = 3;
+    google.protobuf.Struct document = 4;
+}
+
 message WorkflowInstanceRecord {
     RecordMetadata metadata = 1;
 
@@ -163,7 +181,16 @@ message WorkflowInstanceRecord {
     int64 workflowInstanceKey = 5;
     string elementId = 6;
     int64 flowScopeKey = 7;
-    google.protobuf.Struct payload = 8;
+}
+
+message WorkflowInstanceCreationRecord {
+		RecordMetadata metadata = 1;
+
+		string bpmnProcessId = 2;
+    int32 version = 3;
+    int64 workflowKey = 4;
+    int64 workflowInstanceKey = 5;    
+    google.protobuf.Struct variables = 6;
 }
 
 message WorkflowInstanceSubscriptionRecord {
@@ -172,5 +199,5 @@ message WorkflowInstanceSubscriptionRecord {
     int64 workflowInstanceKey = 2;
     int64 elementInstanceKey = 3;
     string messageName = 4;
-    google.protobuf.Struct payload = 5;
+    google.protobuf.Struct variables = 5;
 }
