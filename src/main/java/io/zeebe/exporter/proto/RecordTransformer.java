@@ -33,7 +33,6 @@ import io.zeebe.exporter.api.record.value.JobRecordValue;
 import io.zeebe.exporter.api.record.value.MessageRecordValue;
 import io.zeebe.exporter.api.record.value.MessageStartEventSubscriptionRecordValue;
 import io.zeebe.exporter.api.record.value.MessageSubscriptionRecordValue;
-import io.zeebe.exporter.api.record.value.RaftRecordValue;
 import io.zeebe.exporter.api.record.value.TimerRecordValue;
 import io.zeebe.exporter.api.record.value.VariableDocumentRecordValue;
 import io.zeebe.exporter.api.record.value.VariableRecordValue;
@@ -43,9 +42,8 @@ import io.zeebe.exporter.api.record.value.WorkflowInstanceSubscriptionRecordValu
 import io.zeebe.exporter.api.record.value.deployment.DeployedWorkflow;
 import io.zeebe.exporter.api.record.value.deployment.DeploymentResource;
 import io.zeebe.exporter.api.record.value.job.Headers;
-import io.zeebe.exporter.api.record.value.raft.RaftMember;
-import io.zeebe.protocol.clientapi.RejectionType;
-import io.zeebe.protocol.clientapi.ValueType;
+import io.zeebe.protocol.RejectionType;
+import io.zeebe.protocol.ValueType;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
@@ -75,7 +73,6 @@ public final class RecordTransformer {
         ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
         RecordTransformer::toWorkflowInstanceSubscriptionRecord);
     TRANSFORMERS.put(ValueType.TIMER, RecordTransformer::toTimerRecord);
-    TRANSFORMERS.put(ValueType.RAFT, RecordTransformer::toRaftRecord);
     TRANSFORMERS.put(ValueType.VARIABLE, RecordTransformer::toVariableRecord);
     TRANSFORMERS.put(
         ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
@@ -107,7 +104,6 @@ public final class RecordTransformer {
             .setValueType(metadata.getValueType().name())
             .setKey(record.getKey())
             .setProducerId(record.getProducerId())
-            .setRaftTerm(record.getRaftTerm())
             .setRecordType(metadata.getRecordType().name())
             .setSourceRecordPosition(record.getSourceRecordPosition())
             .setPosition(record.getPosition())
@@ -166,6 +162,7 @@ public final class RecordTransformer {
         .setErrorType(value.getErrorType())
         .setJobKey(value.getJobKey())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setWorkflowKey(value.getWorkflowKey())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -236,17 +233,6 @@ public final class RecordTransformer {
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
-  }
-
-  public static Schema.RaftRecord toRaftRecord(Record<RaftRecordValue> record) {
-    final RaftRecordValue value = record.getValue();
-    final Schema.RaftRecord.Builder builder = Schema.RaftRecord.newBuilder();
-
-    for (final RaftMember member : value.getMembers()) {
-      builder.addMembers(toRaftRecordMember(member));
-    }
-
-    return builder.setMetadata(toMetadata(record)).build();
   }
 
   public static Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
@@ -352,10 +338,6 @@ public final class RecordTransformer {
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
-  }
-
-  public static Schema.RaftRecord.Member toRaftRecordMember(RaftMember member) {
-    return Schema.RaftRecord.Member.newBuilder().setNodeId(member.getNodeId()).build();
   }
 
   public static Schema.JobRecord.Headers toJobRecordHeaders(Headers headers) {

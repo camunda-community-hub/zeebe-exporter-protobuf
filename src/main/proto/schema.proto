@@ -22,18 +22,17 @@ message RecordId {
 message RecordMetadata {
     int32 partitionId = 1;
     int64 position = 2;
-    int32 raftTerm = 3;
-    int64 key = 4;
-    google.protobuf.Timestamp timestamp = 5;
+    int64 key = 3;
+    google.protobuf.Timestamp timestamp = 4;
 
-    string recordType = 6;
-    string intent = 7;
-    string valueType = 8;
-    int64 sourceRecordPosition = 9;
-    int32 producerId = 10;
+    string recordType = 5;
+    string intent = 6;
+    string valueType = 7;
+    int64 sourceRecordPosition = 8;
+    int32 producerId = 9;
 
-    string rejectionType = 11;
-    string rejectionReason = 12;
+    string rejectionType = 10;
+    string rejectionReason = 11;
 }
 
 message DeploymentRecord {
@@ -74,6 +73,7 @@ message IncidentRecord {
     string elementId = 6;
     int64 elementInstanceKey = 7;
     int64 jobKey = 8;
+    int64 workflowKey = 9;
 }
 
 message JobRecord {
@@ -134,16 +134,6 @@ message MessageStartEventSubscriptionRecord {
     int64 workflowKey = 2;
     string startEventId = 3;
     string messageName = 4;
-}
-
-// could be flattened
-message RaftRecord {
-    message Member {
-        int32 nodeId = 1;
-    }
-
-    RecordMetadata metadata = 1;
-    repeated Member members = 2;
 }
 
 message TimerRecord {
