@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
   <name>Zeebe Exporter Protobuf Schema</name>
@@ -17,7 +19,7 @@
     <artifactId>camunda-release-parent</artifactId>
     <version>2.5</version>
     <!-- do not remove empty tag - http://jira.codehaus.org/browse/MNG-4687 -->
-    <relativePath />
+    <relativePath/>
   </parent>
 
   <properties>
@@ -292,6 +294,37 @@
 
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <properties>
+        <plugin.version.gpg>1.6</plugin.version.gpg>
+        <gpg.passphrase>${env.GPG_PASS}</gpg.passphrase>
+        <resume>false</resume>
+        <tag>${env.RELEASE_VERSION}</tag>
+        <releaseVersion>${env.RELEASE_VERSION}</releaseVersion>
+        <developmentVersion>${env.DEVELOPMENT_VERSION}</developmentVersion>
+        <arguments>-s .ci/settings.xml -DskipTests</arguments>
+      </properties>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <configuration>
+                <gpgArguments>
+                  <arg>--pinentry-mode</arg>
+                  <arg>loopback</arg>
+                </gpgArguments>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+  </profiles>
 
   <repositories>
     <repository>
