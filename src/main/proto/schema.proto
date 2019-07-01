@@ -20,19 +20,42 @@ message RecordId {
 // message becomes a full fledged record. Also cuts down how much properties need to be duplicated if we want to have
 // flat records.
 message RecordMetadata {
+
+    enum ValueType {
+        JOB = 0;
+        DEPLOYMENT = 1;
+        WORKFLOW_INSTANCE = 2;
+        INCIDENT = 3;
+        MESSAGE = 4;
+        MESSAGE_SUBSCRIPTION = 5;
+        WORKFLOW_INSTANCE_SUBSCRIPTION = 6;
+        JOB_BATCH = 7;
+        TIMER = 8;
+        MESSAGE_START_EVENT_SUBSCRIPTION = 9;
+        VARIABLE = 10;
+        VARIABLE_DOCUMENT = 11;
+        WORKFLOW_INSTANCE_CREATION = 12;
+        ERROR = 13;
+    }
+
+    enum RecordType {
+        EVENT = 0;
+        COMMAND = 1;
+        COMMAND_REJECTION = 2;
+    }
+
     int32 partitionId = 1;
     int64 position = 2;
     int64 key = 3;
     google.protobuf.Timestamp timestamp = 4;
 
-    string recordType = 5;
+    RecordType recordType = 5;
     string intent = 6;
-    string valueType = 7;
+    ValueType valueType = 7;
     int64 sourceRecordPosition = 8;
-    int32 producerId = 9;
 
-    string rejectionType = 10;
-    string rejectionReason = 11;
+    string rejectionType = 9;
+    string rejectionReason = 10;
 }
 
 message DeploymentRecord {
@@ -51,7 +74,7 @@ message DeploymentRecord {
 
     RecordMetadata metadata = 1;
     repeated Resource resources = 2;
-    repeated Workflow workflows = 3;
+    repeated Workflow deployedWorkflows = 3;
 }
 
 message ErrorRecord {
@@ -59,6 +82,7 @@ message ErrorRecord {
 
     string exceptionMessage = 2;
     string stacktrace = 3;
+
     int64 errorEventPosition = 4;
     int64 workflowInstanceKey = 5;
 }
@@ -68,6 +92,7 @@ message IncidentRecord {
 
     string errorType = 2;
     string errorMessage = 3;
+
     string bpmnProcessId = 4;
     int64 workflowInstanceKey = 5;
     string elementId = 6;
@@ -77,25 +102,24 @@ message IncidentRecord {
 }
 
 message JobRecord {
-    message Headers {
-        string elementId = 1;
-        int64 elementInstanceKey = 2;
-        string bpmnProcessId = 3;
-        int32 workflowDefinitionVersion = 4;
-        int64 workflowInstanceKey = 5;
-        int64 workflowKey = 6;
-    }
-
     RecordMetadata metadata = 1;
 
     string type = 2;
-    Headers headers = 3;
-    google.protobuf.Struct customHeaders = 4;
-    string worker = 5;
-    int32 retries = 6;
-    google.protobuf.Timestamp deadline = 7;
-    string errorMessage = 8;
-    google.protobuf.Struct variables = 9;
+
+    string worker = 3;
+    int32 retries = 4;
+    google.protobuf.Timestamp deadline = 5;
+    string errorMessage = 6;
+
+    google.protobuf.Struct customHeaders = 7;
+    google.protobuf.Struct variables = 8;
+
+    string elementId = 9;
+    int64 elementInstanceKey = 10;
+    string bpmnProcessId = 11;
+    int32 workflowDefinitionVersion = 12;
+    int64 workflowInstanceKey = 13;
+    int64 workflowKey = 14;
 }
 
 message JobBatchRecord {
@@ -141,8 +165,11 @@ message TimerRecord {
 
     int64 elementInstanceKey = 2;
     int64 dueDate = 3;
-    string handlerFlowNodeId = 4;
-    int64 workflowInstanceKey = 5;
+    int32 repetitions = 4;
+
+    string targetFlowNodeId = 5;
+    int64 workflowInstanceKey = 6;
+    int64 workflowKey = 7;
 }
 
 message VariableRecord {
@@ -152,14 +179,21 @@ message VariableRecord {
     string value = 3;
     int64 scopeKey = 4;
     int64 workflowInstanceKey = 5;
+    int64 workflowKey = 6;
 }
 
 message VariableDocumentRecord {
+
+    enum UpdateSemantics {
+        LOCAL = 0;
+        PROPAGATE = 1;
+    }
+
     RecordMetadata metadata = 1;
 
     int64 scopeKey = 2;
-    string updateSemantics = 3;
-    google.protobuf.Struct document = 4;
+    UpdateSemantics updateSemantics = 3;
+    google.protobuf.Struct variables = 4;
 }
 
 message WorkflowInstanceRecord {
@@ -174,9 +208,9 @@ message WorkflowInstanceRecord {
 }
 
 message WorkflowInstanceCreationRecord {
-		RecordMetadata metadata = 1;
+    RecordMetadata metadata = 1;
 
-		string bpmnProcessId = 2;
+    string bpmnProcessId = 2;
     int32 version = 3;
     int64 workflowKey = 4;
     int64 workflowInstanceKey = 5;    
