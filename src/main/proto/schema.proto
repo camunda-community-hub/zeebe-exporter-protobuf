@@ -6,7 +6,6 @@ option java_package = "io.zeebe.exporter.proto";
 
 // Makes use of so called "well known types". Arguable if it's a good idea
 // see https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
 // Convenience message for systems which use a key/id system for each record
@@ -47,7 +46,7 @@ message RecordMetadata {
     int32 partitionId = 1;
     int64 position = 2;
     int64 key = 3;
-    google.protobuf.Timestamp timestamp = 4;
+    int64 timestamp = 4;
 
     RecordType recordType = 5;
     string intent = 6;
@@ -99,6 +98,7 @@ message IncidentRecord {
     int64 elementInstanceKey = 7;
     int64 jobKey = 8;
     int64 workflowKey = 9;
+    int64 variableScopeKey = 10;
 }
 
 message JobRecord {
@@ -108,7 +108,7 @@ message JobRecord {
 
     string worker = 3;
     int32 retries = 4;
-    google.protobuf.Timestamp deadline = 5;
+    int64 deadline = 5;
     string errorMessage = 6;
 
     google.protobuf.Struct customHeaders = 7;
@@ -131,6 +131,7 @@ message JobBatchRecord {
     int32 maxJobsToActivate = 5;
     repeated int64 jobKeys = 6;
     repeated JobRecord jobs = 7;
+    bool truncated = 8;
 }
 
 message MessageRecord {
@@ -197,6 +198,22 @@ message VariableDocumentRecord {
 }
 
 message WorkflowInstanceRecord {
+    enum BpmnElementType {
+        UNSPECIFIED = 0;
+        PROCESS = 1;
+        SUB_PROCESS = 2;
+        START_EVENT = 3;
+        INTERMEDIATE_CATCH_EVENT = 4;
+        BOUNDARY_EVENT = 5;
+        END_EVENT = 6;
+        SERVICE_TASK = 7;
+        RECEIVE_TASK = 8;
+        EXCLUSIVE_GATEWAY = 9;
+        PARALLEL_GATEWAY = 10;
+        EVENT_BASED_GATEWAY = 11;
+        SEQUENCE_FLOW = 12;
+    }
+
     RecordMetadata metadata = 1;
 
     string bpmnProcessId = 2;
@@ -205,6 +222,8 @@ message WorkflowInstanceRecord {
     int64 workflowInstanceKey = 5;
     string elementId = 6;
     int64 flowScopeKey = 7;
+    BpmnElementType bpmnElementType = 8;
+
 }
 
 message WorkflowInstanceCreationRecord {

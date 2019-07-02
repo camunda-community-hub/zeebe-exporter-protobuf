@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.Value;
 import io.zeebe.exporter.proto.Schema.JobRecord;
 import io.zeebe.protocol.record.*;
@@ -30,16 +29,12 @@ import io.zeebe.protocol.record.value.*;
 import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
 import io.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.zeebe.protocol.record.value.deployment.ResourceType;
-import io.zeebe.test.exporter.record.MockRecordMetadata;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 
 public class RecordTransformTest {
-
-  private static final Instant DEADLINE = Instant.parse("2019-07-01T06:00:24.034Z");
 
   @Test
   public void shouldTransformDeployment() {
@@ -98,6 +93,8 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getVersion()).isEqualTo(1);
     assertThat(workflowInstance.getWorkflowInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstance.getFlowScopeKey()).isEqualTo(-1L);
+    assertThat(workflowInstance.getBpmnElementType())
+        .isEqualTo(Schema.WorkflowInstanceRecord.BpmnElementType.START_EVENT);
   }
 
   @Test
@@ -160,6 +157,7 @@ public class RecordTransformTest {
     assertThat(jobBatchRecord.getTimeout()).isEqualTo(1_000L);
     assertThat(jobBatchRecord.getType()).isEqualTo("jobType");
     assertThat(jobBatchRecord.getWorker()).isEqualTo("myveryownworker");
+    assertThat(jobBatchRecord.getTruncated()).isTrue();
 
     assertThat(jobBatchRecord.getJobsList()).hasSize(1);
     final JobRecord jobRecord = jobBatchRecord.getJobsList().get(0);
@@ -185,6 +183,7 @@ public class RecordTransformTest {
     assertThat(incidentRecord.getElementInstanceKey()).isEqualTo(1L);
     assertThat(incidentRecord.getWorkflowInstanceKey()).isEqualTo(1L);
     assertThat(incidentRecord.getWorkflowKey()).isEqualTo(32L);
+    assertThat(incidentRecord.getVariableScopeKey()).isEqualTo(1L);
 
     assertThat(incidentRecord.getErrorMessage()).isEqualTo("failed");
     assertThat(incidentRecord.getErrorType()).isEqualTo(ErrorType.JOB_NO_RETRIES.name());
@@ -469,6 +468,7 @@ public class RecordTransformTest {
     when(jobBatchRecordValue.getTimeout()).thenReturn(1000L);
     when(jobBatchRecordValue.getType()).thenReturn("jobType");
     when(jobBatchRecordValue.getWorker()).thenReturn("myveryownworker");
+    when(jobBatchRecordValue.isTruncated()).thenReturn(true);
 
     return jobBatchRecordValue;
   }
@@ -476,7 +476,7 @@ public class RecordTransformTest {
   private JobRecordValue mockJobRecordValue() {
     final JobRecordValue jobRecordValue = mock(JobRecordValue.class);
 
-    when(jobRecordValue.getDeadline()).thenReturn(DEADLINE.toEpochMilli());
+    when(jobRecordValue.getDeadline()).thenReturn(1000L);
     when(jobRecordValue.getErrorMessage()).thenReturn("this is an error msg");
     when(jobRecordValue.getRetries()).thenReturn(3);
     when(jobRecordValue.getType()).thenReturn("jobType");
@@ -529,6 +529,7 @@ public class RecordTransformTest {
     when(workflowInstanceRecordValue.getFlowScopeKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getVersion()).thenReturn(1);
     when(workflowInstanceRecordValue.getWorkflowKey()).thenReturn(4L);
+    when(workflowInstanceRecordValue.getBpmnElementType()).thenReturn(BpmnElementType.START_EVENT);
 
     return workflowInstanceRecordValue;
   }
@@ -555,6 +556,7 @@ public class RecordTransformTest {
     when(incidentRecordValue.getElementId()).thenReturn("gateway");
     when(incidentRecordValue.getElementInstanceKey()).thenReturn(1L);
     when(incidentRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(incidentRecordValue.getVariableScopeKey()).thenReturn(1L);
 
     when(incidentRecordValue.getErrorMessage()).thenReturn("failed");
     when(incidentRecordValue.getErrorType()).thenReturn(ErrorType.JOB_NO_RETRIES);
@@ -593,12 +595,7 @@ public class RecordTransformTest {
         .containsExactly(entry("foo", Value.newBuilder().setStringValue("bar").build()));
     assertVariables(jobRecord.getVariables());
 
-    assertThat(jobRecord.getDeadline())
-        .isEqualTo(
-            Timestamp.newBuilder()
-                .setSeconds(DEADLINE.getEpochSecond())
-                .setNanos(DEADLINE.getNano())
-                .build());
+    assertThat(jobRecord.getDeadline()).isEqualTo(1000L);
     assertThat(jobRecord.getErrorMessage()).isEqualTo("this is an error msg");
     assertThat(jobRecord.getRetries()).isEqualTo(3);
     assertThat(jobRecord.getType()).isEqualTo("jobType");
@@ -616,16 +613,7 @@ public class RecordTransformTest {
     assertThat(metadata.getPosition()).isEqualTo(265L);
     assertThat(metadata.getRejectionReason()).isEqualTo("failed");
     assertThat(metadata.getRejectionType()).isEqualTo("INVALID_ARGUMENT");
-  }
-
-  private MockRecordMetadata mockRecordMetadata(final ValueType valueType, final Intent intent) {
-    return new MockRecordMetadata()
-        .setRecordType(RecordType.COMMAND)
-        .setValueType(valueType)
-        .setIntent(intent)
-        .setPartitionId(0)
-        .setRejectionReason("failed")
-        .setRejectionType(RejectionType.INVALID_ARGUMENT);
+    assertThat(metadata.getTimestamp()).isEqualTo(2000L);
   }
 
   private <V extends RecordValue> Record<V> mockRecord(

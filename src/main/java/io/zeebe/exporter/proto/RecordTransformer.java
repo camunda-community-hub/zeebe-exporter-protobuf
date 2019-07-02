@@ -21,14 +21,12 @@ import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.Value;
 import io.zeebe.protocol.record.Record;
 import io.zeebe.protocol.record.ValueType;
 import io.zeebe.protocol.record.value.*;
 import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
 import io.zeebe.protocol.record.value.deployment.DeploymentResource;
-import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -89,7 +87,7 @@ public final class RecordTransformer {
             .setRecordType(Schema.RecordMetadata.RecordType.valueOf(record.getRecordType().name()))
             .setSourceRecordPosition(record.getSourceRecordPosition())
             .setPosition(record.getPosition())
-            .setTimestamp(toTimestamp(record.getTimestamp()));
+            .setTimestamp(record.getTimestamp());
 
     if (record.getRejectionType() != null) {
       builder.setRejectionType(record.getRejectionType().name());
@@ -145,6 +143,7 @@ public final class RecordTransformer {
         .setJobKey(value.getJobKey())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
+        .setVariableScopeKey(value.getVariableScopeKey())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -155,10 +154,8 @@ public final class RecordTransformer {
   }
 
   public static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
-    final long deadline = value.getDeadline();
-
     return Schema.JobRecord.newBuilder()
-        .setDeadline(deadline == -1L ? Timestamp.newBuilder().build() : toTimestamp(deadline))
+        .setDeadline(value.getDeadline())
         .setErrorMessage(value.getErrorMessage())
         .setRetries(value.getRetries())
         .setType(value.getType())
@@ -192,6 +189,7 @@ public final class RecordTransformer {
         .setTimeout(value.getTimeout())
         .setType(value.getType())
         .setWorker(value.getWorker())
+        .setTruncated(value.isTruncated())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -275,6 +273,7 @@ public final class RecordTransformer {
         .setVersion(value.getVersion())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
+        .setBpmnElementType(Schema.WorkflowInstanceRecord.BpmnElementType.valueOf(value.getBpmnElementType().name()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -329,15 +328,6 @@ public final class RecordTransformer {
         .setErrorEventPosition(value.getErrorEventPosition())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMetadata(toMetadata(record))
-        .build();
-  }
-
-  public static Timestamp toTimestamp(long timestamp) {
-    final Instant instant = Instant.ofEpochMilli(timestamp);
-
-    return Timestamp.newBuilder()
-        .setSeconds(instant.getEpochSecond())
-        .setNanos(instant.getNano())
         .build();
   }
 
