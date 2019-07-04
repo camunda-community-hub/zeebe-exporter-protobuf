@@ -273,7 +273,9 @@ public final class RecordTransformer {
         .setVersion(value.getVersion())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
-        .setBpmnElementType(Schema.WorkflowInstanceRecord.BpmnElementType.valueOf(value.getBpmnElementType().name()))
+        .setBpmnElementType(
+            Schema.WorkflowInstanceRecord.BpmnElementType.valueOf(
+                value.getBpmnElementType().name()))
         .setMetadata(toMetadata(record))
         .build();
   }
