@@ -21,30 +21,12 @@ import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.Value;
-import io.zeebe.exporter.api.record.Record;
-import io.zeebe.exporter.api.record.RecordMetadata;
-import io.zeebe.exporter.api.record.value.DeploymentRecordValue;
-import io.zeebe.exporter.api.record.value.ErrorRecordValue;
-import io.zeebe.exporter.api.record.value.IncidentRecordValue;
-import io.zeebe.exporter.api.record.value.JobBatchRecordValue;
-import io.zeebe.exporter.api.record.value.JobRecordValue;
-import io.zeebe.exporter.api.record.value.MessageRecordValue;
-import io.zeebe.exporter.api.record.value.MessageStartEventSubscriptionRecordValue;
-import io.zeebe.exporter.api.record.value.MessageSubscriptionRecordValue;
-import io.zeebe.exporter.api.record.value.TimerRecordValue;
-import io.zeebe.exporter.api.record.value.VariableDocumentRecordValue;
-import io.zeebe.exporter.api.record.value.VariableRecordValue;
-import io.zeebe.exporter.api.record.value.WorkflowInstanceCreationRecordValue;
-import io.zeebe.exporter.api.record.value.WorkflowInstanceRecordValue;
-import io.zeebe.exporter.api.record.value.WorkflowInstanceSubscriptionRecordValue;
-import io.zeebe.exporter.api.record.value.deployment.DeployedWorkflow;
-import io.zeebe.exporter.api.record.value.deployment.DeploymentResource;
-import io.zeebe.exporter.api.record.value.job.Headers;
-import io.zeebe.protocol.RejectionType;
-import io.zeebe.protocol.ValueType;
-import java.time.Instant;
+import io.zeebe.protocol.record.Record;
+import io.zeebe.protocol.record.ValueType;
+import io.zeebe.protocol.record.value.*;
+import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
+import io.zeebe.protocol.record.value.deployment.DeploymentResource;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -84,34 +66,32 @@ public final class RecordTransformer {
   }
 
   public static GeneratedMessageV3 toProtobufMessage(Record record) {
-    final ValueType valueType = record.getMetadata().getValueType();
+    final ValueType valueType = record.getValueType();
     final Function<Record, GeneratedMessageV3> toRecordFunc = TRANSFORMERS.get(valueType);
     return toRecordFunc != null ? toRecordFunc.apply(record) : Empty.getDefaultInstance();
   }
 
   public static Schema.RecordId toRecordId(Record record) {
     return Schema.RecordId.newBuilder()
-        .setPartitionId(record.getMetadata().getPartitionId())
+        .setPartitionId(record.getPartitionId())
         .setPosition(record.getPosition())
         .build();
   }
 
   public static Schema.RecordMetadata toMetadata(Record record) {
-    final RecordMetadata metadata = record.getMetadata();
     final Schema.RecordMetadata.Builder builder =
         Schema.RecordMetadata.newBuilder()
-            .setIntent(metadata.getIntent().name())
-            .setValueType(metadata.getValueType().name())
+            .setIntent(record.getIntent().name())
+            .setValueType(Schema.RecordMetadata.ValueType.valueOf(record.getValueType().name()))
             .setKey(record.getKey())
-            .setProducerId(record.getProducerId())
-            .setRecordType(metadata.getRecordType().name())
+            .setRecordType(Schema.RecordMetadata.RecordType.valueOf(record.getRecordType().name()))
             .setSourceRecordPosition(record.getSourceRecordPosition())
             .setPosition(record.getPosition())
-            .setTimestamp(toTimestamp(record.getTimestamp()));
+            .setTimestamp(record.getTimestamp());
 
-    if (metadata.getRejectionType() != RejectionType.NULL_VAL) {
-      builder.setRejectionType(metadata.getRejectionType().name());
-      builder.setRejectionReason(metadata.getRejectionReason());
+    if (record.getRejectionType() != null) {
+      builder.setRejectionType(record.getRejectionType().name());
+      builder.setRejectionReason(record.getRejectionReason());
     }
 
     return builder.build();
@@ -126,7 +106,7 @@ public final class RecordTransformer {
     }
 
     for (final DeployedWorkflow workflow : record.getValue().getDeployedWorkflows()) {
-      builder.addWorkflows(toDeploymentRecordWorkflow(workflow));
+      builder.addDeployedWorkflows(toDeploymentRecordWorkflow(workflow));
     }
 
     return builder.build();
@@ -159,10 +139,11 @@ public final class RecordTransformer {
         .setElementId(value.getElementId())
         .setElementInstanceKey(value.getElementInstanceKey())
         .setErrorMessage(value.getErrorMessage())
-        .setErrorType(value.getErrorType())
+        .setErrorType(value.getErrorType().name())
         .setJobKey(value.getJobKey())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
+        .setVariableScopeKey(value.getVariableScopeKey())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -173,17 +154,20 @@ public final class RecordTransformer {
   }
 
   public static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
-    final Instant deadline = value.getDeadline();
-
     return Schema.JobRecord.newBuilder()
-        .setDeadline(deadline == null ? Timestamp.newBuilder().build() : toTimestamp(deadline))
+        .setDeadline(value.getDeadline())
         .setErrorMessage(value.getErrorMessage())
         .setRetries(value.getRetries())
         .setType(value.getType())
         .setWorker(value.getWorker())
-        .setVariables(toStruct(value.getVariablesAsMap()))
+        .setVariables(toStruct(value.getVariables()))
         .setCustomHeaders(toStruct(value.getCustomHeaders()))
-        .setHeaders(toJobRecordHeaders(value.getHeaders()));
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setElementId(value.getElementId())
+        .setElementInstanceKey(value.getElementInstanceKey())
+        .setWorkflowDefinitionVersion(value.getWorkflowDefinitionVersion())
+        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setWorkflowKey(value.getWorkflowKey());
   }
 
   public static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
@@ -202,9 +186,10 @@ public final class RecordTransformer {
 
     return builder
         .setMaxJobsToActivate(value.getMaxJobsToActivate())
-        .setTimeout(value.getTimeout().toMillis())
+        .setTimeout(value.getTimeout())
         .setType(value.getType())
         .setWorker(value.getWorker())
+        .setTruncated(value.isTruncated())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -217,7 +202,7 @@ public final class RecordTransformer {
         .setMessageId(value.getMessageId())
         .setName(value.getName())
         .setTimeToLive(value.getTimeToLive())
-        .setVariables(toStruct(value.getVariablesAsMap()))
+        .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -256,6 +241,7 @@ public final class RecordTransformer {
     builder
         .setScopeKey(value.getScopeKey())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setWorkflowKey(value.getWorkflowKey())
         .setName(value.getName())
         .setValue(value.getValue());
 
@@ -267,9 +253,11 @@ public final class RecordTransformer {
 
     return Schema.TimerRecord.newBuilder()
         .setDueDate(value.getDueDate())
+        .setRepetitions(value.getRepetitions())
         .setElementInstanceKey(value.getElementInstanceKey())
-        .setHandlerFlowNodeId(value.getHandlerFlowNodeId())
+        .setTargetFlowNodeId(value.getTargetElementId())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setWorkflowKey(value.getWorkflowKey())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -285,6 +273,7 @@ public final class RecordTransformer {
         .setVersion(value.getVersion())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
+        .setBpmnElementType(Schema.WorkflowInstanceRecord.BpmnElementType.valueOf(value.getBpmnElementType().name()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -297,7 +286,7 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMessageName(value.getMessageName())
-        .setVariables(toStruct(value.getVariablesAsMap()))
+        .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -309,8 +298,8 @@ public final class RecordTransformer {
     return Schema.WorkflowInstanceCreationRecord.newBuilder()
         .setBpmnProcessId(value.getBpmnProcessId())
         .setVersion(value.getVersion())
-        .setWorkflowKey(value.getKey())
-        .setWorkflowInstanceKey(value.getInstanceKey())
+        .setWorkflowKey(value.getWorkflowKey())
+        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
@@ -322,8 +311,10 @@ public final class RecordTransformer {
 
     return Schema.VariableDocumentRecord.newBuilder()
         .setScopeKey(value.getScopeKey())
-        .setUpdateSemantics(value.getUpdateSemantics().name())
-        .setDocument(toStruct(value.getDocument()))
+        .setUpdateSemantics(
+            Schema.VariableDocumentRecord.UpdateSemantics.valueOf(
+                value.getUpdateSemantics().name()))
+        .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -337,24 +328,6 @@ public final class RecordTransformer {
         .setErrorEventPosition(value.getErrorEventPosition())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMetadata(toMetadata(record))
-        .build();
-  }
-
-  public static Schema.JobRecord.Headers toJobRecordHeaders(Headers headers) {
-    return Schema.JobRecord.Headers.newBuilder()
-        .setBpmnProcessId(headers.getBpmnProcessId())
-        .setElementId(headers.getElementId())
-        .setElementInstanceKey(headers.getElementInstanceKey())
-        .setWorkflowDefinitionVersion(headers.getWorkflowDefinitionVersion())
-        .setWorkflowInstanceKey(headers.getWorkflowInstanceKey())
-        .setWorkflowKey(headers.getWorkflowKey())
-        .build();
-  }
-
-  public static Timestamp toTimestamp(Instant instant) {
-    return Timestamp.newBuilder()
-        .setSeconds(instant.getEpochSecond())
-        .setNanos(instant.getNano())
         .build();
   }
 
