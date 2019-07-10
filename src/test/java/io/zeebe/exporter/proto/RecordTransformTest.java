@@ -36,6 +36,12 @@ import org.junit.Test;
 
 public class RecordTransformTest {
 
+  public static final long KEY = 200;
+  public static final int PARTITION_ID = 1;
+  public static final long POSITION = 300L;
+  public static final long TIMESTAMP = 1000L;
+  public static final long SOURCE_POSITION = 100L;
+
   @Test
   public void shouldTransformDeployment() {
     // given
@@ -608,12 +614,13 @@ public class RecordTransformTest {
     assertThat(metadata.getValueType())
         .isEqualTo(Schema.RecordMetadata.ValueType.valueOf(valueType));
     assertThat(metadata.getIntent()).isEqualTo(intent);
-    assertThat(metadata.getKey()).isEqualTo(1);
-    assertThat(metadata.getPartitionId()).isEqualTo(0);
-    assertThat(metadata.getPosition()).isEqualTo(265L);
+    assertThat(metadata.getKey()).isEqualTo(KEY);
+    assertThat(metadata.getPartitionId()).isEqualTo(PARTITION_ID);
+    assertThat(metadata.getPosition()).isEqualTo(POSITION);
+    assertThat(metadata.getSourceRecordPosition()).isEqualTo(SOURCE_POSITION);
     assertThat(metadata.getRejectionReason()).isEqualTo("failed");
     assertThat(metadata.getRejectionType()).isEqualTo("INVALID_ARGUMENT");
-    assertThat(metadata.getTimestamp()).isEqualTo(2000L);
+    assertThat(metadata.getTimestamp()).isEqualTo(TIMESTAMP);
   }
 
   private <V extends RecordValue> Record<V> mockRecord(
@@ -621,10 +628,11 @@ public class RecordTransformTest {
 
     final Record record = mock(Record.class);
 
-    when(record.getKey()).thenReturn(1L);
-    when(record.getPosition()).thenReturn(265L);
-    when(record.getSourceRecordPosition()).thenReturn(-1L);
-    when(record.getTimestamp()).thenReturn(2000L);
+    when(record.getKey()).thenReturn(KEY);
+    when(record.getPosition()).thenReturn(POSITION);
+    when(record.getSourceRecordPosition()).thenReturn(SOURCE_POSITION);
+    when(record.getTimestamp()).thenReturn(TIMESTAMP);
+    when(record.getPartitionId()).thenReturn(PARTITION_ID);
 
     when(record.getRejectionReason()).thenReturn("failed");
     when(record.getRejectionType()).thenReturn(RejectionType.INVALID_ARGUMENT);

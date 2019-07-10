@@ -87,7 +87,8 @@ public final class RecordTransformer {
             .setRecordType(Schema.RecordMetadata.RecordType.valueOf(record.getRecordType().name()))
             .setSourceRecordPosition(record.getSourceRecordPosition())
             .setPosition(record.getPosition())
-            .setTimestamp(record.getTimestamp());
+            .setTimestamp(record.getTimestamp())
+            .setPartitionId(record.getPartitionId());
 
     if (record.getRejectionType() != null) {
       builder.setRejectionType(record.getRejectionType().name());
