@@ -212,6 +212,7 @@ message WorkflowInstanceRecord {
         PARALLEL_GATEWAY = 10;
         EVENT_BASED_GATEWAY = 11;
         SEQUENCE_FLOW = 12;
+        MULTI_INSTANCE_BODY = 13;
     }
 
     RecordMetadata metadata = 1;
