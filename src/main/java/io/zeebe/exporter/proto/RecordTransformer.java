@@ -24,7 +24,21 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.zeebe.protocol.record.Record;
 import io.zeebe.protocol.record.ValueType;
-import io.zeebe.protocol.record.value.*;
+import io.zeebe.protocol.record.value.DeploymentRecordValue;
+import io.zeebe.protocol.record.value.ErrorRecordValue;
+import io.zeebe.protocol.record.value.IncidentRecordValue;
+import io.zeebe.protocol.record.value.JobBatchRecordValue;
+import io.zeebe.protocol.record.value.JobRecordValue;
+import io.zeebe.protocol.record.value.MessageRecordValue;
+import io.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
+import io.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.protocol.record.value.TimerRecordValue;
+import io.zeebe.protocol.record.value.VariableDocumentRecordValue;
+import io.zeebe.protocol.record.value.VariableRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceCreationRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceResultRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
 import io.zeebe.protocol.record.value.deployment.DeploymentResource;
 import java.util.EnumMap;
@@ -37,7 +51,6 @@ import java.util.function.Function;
  * to create any of the protocol values, and I don't want to rewrite that.
  */
 public final class RecordTransformer {
-  private RecordTransformer() {}
 
   private static final EnumMap<ValueType, Function<Record, GeneratedMessageV3>> TRANSFORMERS =
       new EnumMap<>(ValueType.class);
@@ -63,7 +76,11 @@ public final class RecordTransformer {
         ValueType.WORKFLOW_INSTANCE_CREATION, RecordTransformer::toWorkflowInstanceCreationRecord);
     TRANSFORMERS.put(ValueType.VARIABLE_DOCUMENT, RecordTransformer::toVariableDocumentRecord);
     TRANSFORMERS.put(ValueType.ERROR, RecordTransformer::toErrorRecord);
+    TRANSFORMERS.put(
+        ValueType.WORKFLOW_INSTANCE_RESULT, RecordTransformer::toWorkflowInstanceResultRecord);
   }
+
+  private RecordTransformer() {}
 
   public static GeneratedMessageV3 toProtobufMessage(Record record) {
     final ValueType valueType = record.getValueType();
@@ -71,14 +88,14 @@ public final class RecordTransformer {
     return toRecordFunc != null ? toRecordFunc.apply(record) : Empty.getDefaultInstance();
   }
 
-  public static Schema.RecordId toRecordId(Record record) {
+  private static Schema.RecordId toRecordId(Record record) {
     return Schema.RecordId.newBuilder()
         .setPartitionId(record.getPartitionId())
         .setPosition(record.getPosition())
         .build();
   }
 
-  public static Schema.RecordMetadata toMetadata(Record record) {
+  private static Schema.RecordMetadata toMetadata(Record record) {
     final Schema.RecordMetadata.Builder builder =
         Schema.RecordMetadata.newBuilder()
             .setIntent(record.getIntent().name())
@@ -98,7 +115,7 @@ public final class RecordTransformer {
     return builder.build();
   }
 
-  public static Schema.DeploymentRecord toDeploymentRecord(Record<DeploymentRecordValue> record) {
+  private static Schema.DeploymentRecord toDeploymentRecord(Record<DeploymentRecordValue> record) {
     final Schema.DeploymentRecord.Builder builder =
         Schema.DeploymentRecord.newBuilder().setMetadata(toMetadata(record));
 
@@ -113,7 +130,7 @@ public final class RecordTransformer {
     return builder.build();
   }
 
-  public static Schema.DeploymentRecord.Resource toDeploymentRecordResource(
+  private static Schema.DeploymentRecord.Resource toDeploymentRecordResource(
       DeploymentResource resource) {
     return Schema.DeploymentRecord.Resource.newBuilder()
         .setResource(ByteString.copyFrom(resource.getResource()))
@@ -122,7 +139,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.DeploymentRecord.Workflow toDeploymentRecordWorkflow(
+  private static Schema.DeploymentRecord.Workflow toDeploymentRecordWorkflow(
       DeployedWorkflow workflow) {
     return Schema.DeploymentRecord.Workflow.newBuilder()
         .setBpmnProcessId(workflow.getBpmnProcessId())
@@ -132,7 +149,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.IncidentRecord toIncidentRecord(Record<IncidentRecordValue> record) {
+  private static Schema.IncidentRecord toIncidentRecord(Record<IncidentRecordValue> record) {
     final IncidentRecordValue value = record.getValue();
 
     return Schema.IncidentRecord.newBuilder()
@@ -149,12 +166,12 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.JobRecord toJobRecord(Record<JobRecordValue> record) {
+  private static Schema.JobRecord toJobRecord(Record<JobRecordValue> record) {
     final Schema.JobRecord.Builder builder = toJobRecord(record.getValue());
     return builder.setMetadata(toMetadata(record)).build();
   }
 
-  public static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
+  private static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
     return Schema.JobRecord.newBuilder()
         .setDeadline(value.getDeadline())
         .setErrorMessage(value.getErrorMessage())
@@ -171,7 +188,7 @@ public final class RecordTransformer {
         .setWorkflowKey(value.getWorkflowKey());
   }
 
-  public static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
+  private static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
     final JobBatchRecordValue value = record.getValue();
     final Schema.JobBatchRecord.Builder builder = Schema.JobBatchRecord.newBuilder();
 
@@ -195,7 +212,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.MessageRecord toMessageRecord(Record<MessageRecordValue> record) {
+  private static Schema.MessageRecord toMessageRecord(Record<MessageRecordValue> record) {
     final MessageRecordValue value = record.getValue();
 
     return Schema.MessageRecord.newBuilder()
@@ -208,7 +225,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.MessageSubscriptionRecord toMessageSubscriptionRecord(
+  private static Schema.MessageSubscriptionRecord toMessageSubscriptionRecord(
       Record<MessageSubscriptionRecordValue> record) {
     final MessageSubscriptionRecordValue value = record.getValue();
 
@@ -221,7 +238,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
+  private static Schema.MessageStartEventSubscriptionRecord toMessageStartEventSubscriptionRecord(
       Record<MessageStartEventSubscriptionRecordValue> record) {
     final MessageStartEventSubscriptionRecordValue value = record.getValue();
     final Schema.MessageStartEventSubscriptionRecord.Builder builder =
@@ -235,7 +252,7 @@ public final class RecordTransformer {
     return builder.setMetadata(toMetadata(record)).build();
   }
 
-  public static Schema.VariableRecord toVariableRecord(Record<VariableRecordValue> record) {
+  private static Schema.VariableRecord toVariableRecord(Record<VariableRecordValue> record) {
     final VariableRecordValue value = record.getValue();
     final Schema.VariableRecord.Builder builder = Schema.VariableRecord.newBuilder();
 
@@ -249,7 +266,7 @@ public final class RecordTransformer {
     return builder.setMetadata(toMetadata(record)).build();
   }
 
-  public static Schema.TimerRecord toTimerRecord(Record<TimerRecordValue> record) {
+  private static Schema.TimerRecord toTimerRecord(Record<TimerRecordValue> record) {
     final TimerRecordValue value = record.getValue();
 
     return Schema.TimerRecord.newBuilder()
@@ -263,7 +280,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.WorkflowInstanceRecord toWorkflowInstanceRecord(
+  private static Schema.WorkflowInstanceRecord toWorkflowInstanceRecord(
       Record<WorkflowInstanceRecordValue> record) {
     final WorkflowInstanceRecordValue value = record.getValue();
 
@@ -277,11 +294,13 @@ public final class RecordTransformer {
         .setBpmnElementType(
             Schema.WorkflowInstanceRecord.BpmnElementType.valueOf(
                 value.getBpmnElementType().name()))
+        .setParentWorkflowInstanceKey(value.getParentWorkflowInstanceKey())
+        .setParentElementInstanceKey(value.getParentElementInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
   }
 
-  public static Schema.WorkflowInstanceSubscriptionRecord toWorkflowInstanceSubscriptionRecord(
+  private static Schema.WorkflowInstanceSubscriptionRecord toWorkflowInstanceSubscriptionRecord(
       Record<WorkflowInstanceSubscriptionRecordValue> record) {
     final WorkflowInstanceSubscriptionRecordValue value = record.getValue();
 
@@ -294,7 +313,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.WorkflowInstanceCreationRecord toWorkflowInstanceCreationRecord(
+  private static Schema.WorkflowInstanceCreationRecord toWorkflowInstanceCreationRecord(
       Record<WorkflowInstanceCreationRecordValue> record) {
     final WorkflowInstanceCreationRecordValue value = record.getValue();
 
@@ -308,7 +327,21 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.VariableDocumentRecord toVariableDocumentRecord(
+  private static Schema.WorkflowInstanceResultRecord toWorkflowInstanceResultRecord(
+      Record<WorkflowInstanceResultRecordValue> record) {
+    final WorkflowInstanceResultRecordValue value = record.getValue();
+
+    return Schema.WorkflowInstanceResultRecord.newBuilder()
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setVersion(value.getVersion())
+        .setWorkflowKey(value.getWorkflowKey())
+        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setVariables(toStruct(value.getVariables()))
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.VariableDocumentRecord toVariableDocumentRecord(
       Record<VariableDocumentRecordValue> record) {
     final VariableDocumentRecordValue value = record.getValue();
 
@@ -322,7 +355,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Schema.ErrorRecord toErrorRecord(Record<ErrorRecordValue> record) {
+  private static Schema.ErrorRecord toErrorRecord(Record<ErrorRecordValue> record) {
     final ErrorRecordValue value = record.getValue();
 
     return Schema.ErrorRecord.newBuilder()
@@ -334,7 +367,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  public static Struct toStruct(Map<?, ?> map) {
+  private static Struct toStruct(Map<?, ?> map) {
     final Struct.Builder builder = Struct.newBuilder();
 
     for (final Map.Entry<?, ?> entry : map.entrySet()) {
@@ -344,7 +377,7 @@ public final class RecordTransformer {
     return builder.build();
   }
 
-  public static Value toValue(Object object) {
+  private static Value toValue(Object object) {
     final Value.Builder builder = Value.newBuilder();
 
     if (object == null) {

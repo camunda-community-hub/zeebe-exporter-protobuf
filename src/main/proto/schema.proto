@@ -10,8 +10,8 @@ import "google/protobuf/struct.proto";
 
 // Convenience message for systems which use a key/id system for each record
 message RecordId {
-    int32 partitionId = 1;
-    int64 position = 2;
+  int32 partitionId = 1;
+  int64 position = 2;
 }
 
 // Packs all non-value info into a single field; the idea here is so we can embed the *Record messages into other
@@ -20,228 +20,242 @@ message RecordId {
 // flat records.
 message RecordMetadata {
 
-    enum ValueType {
-        JOB = 0;
-        DEPLOYMENT = 1;
-        WORKFLOW_INSTANCE = 2;
-        INCIDENT = 3;
-        MESSAGE = 4;
-        MESSAGE_SUBSCRIPTION = 5;
-        WORKFLOW_INSTANCE_SUBSCRIPTION = 6;
-        JOB_BATCH = 7;
-        TIMER = 8;
-        MESSAGE_START_EVENT_SUBSCRIPTION = 9;
-        VARIABLE = 10;
-        VARIABLE_DOCUMENT = 11;
-        WORKFLOW_INSTANCE_CREATION = 12;
-        ERROR = 13;
-    }
+  enum ValueType {
+    JOB = 0;
+    DEPLOYMENT = 1;
+    WORKFLOW_INSTANCE = 2;
+    INCIDENT = 3;
+    MESSAGE = 4;
+    MESSAGE_SUBSCRIPTION = 5;
+    WORKFLOW_INSTANCE_SUBSCRIPTION = 6;
+    JOB_BATCH = 7;
+    TIMER = 8;
+    MESSAGE_START_EVENT_SUBSCRIPTION = 9;
+    VARIABLE = 10;
+    VARIABLE_DOCUMENT = 11;
+    WORKFLOW_INSTANCE_CREATION = 12;
+    ERROR = 13;
+    WORKFLOW_INSTANCE_RESULT = 14;
+  }
 
-    enum RecordType {
-        EVENT = 0;
-        COMMAND = 1;
-        COMMAND_REJECTION = 2;
-    }
+  enum RecordType {
+    EVENT = 0;
+    COMMAND = 1;
+    COMMAND_REJECTION = 2;
+  }
 
-    int32 partitionId = 1;
-    int64 position = 2;
-    int64 key = 3;
-    int64 timestamp = 4;
+  int32 partitionId = 1;
+  int64 position = 2;
+  int64 key = 3;
+  int64 timestamp = 4;
 
-    RecordType recordType = 5;
-    string intent = 6;
-    ValueType valueType = 7;
-    int64 sourceRecordPosition = 8;
+  RecordType recordType = 5;
+  string intent = 6;
+  ValueType valueType = 7;
+  int64 sourceRecordPosition = 8;
 
-    string rejectionType = 9;
-    string rejectionReason = 10;
+  string rejectionType = 9;
+  string rejectionReason = 10;
 }
 
 message DeploymentRecord {
-    message Resource {
-        bytes resource = 1;
-        string resourceType = 2;
-        string resourceName = 3;
-    }
+  message Resource {
+    bytes resource = 1;
+    string resourceType = 2;
+    string resourceName = 3;
+  }
 
-    message Workflow {
-        string bpmnProcessId = 1;
-        int32 version = 2;
-        int64 workflowKey = 3;
-        string resourceName = 5;
-    }
+  message Workflow {
+    string bpmnProcessId = 1;
+    int32 version = 2;
+    int64 workflowKey = 3;
+    string resourceName = 5;
+  }
 
-    RecordMetadata metadata = 1;
-    repeated Resource resources = 2;
-    repeated Workflow deployedWorkflows = 3;
+  RecordMetadata metadata = 1;
+  repeated Resource resources = 2;
+  repeated Workflow deployedWorkflows = 3;
 }
 
 message ErrorRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string exceptionMessage = 2;
-    string stacktrace = 3;
+  string exceptionMessage = 2;
+  string stacktrace = 3;
 
-    int64 errorEventPosition = 4;
-    int64 workflowInstanceKey = 5;
+  int64 errorEventPosition = 4;
+  int64 workflowInstanceKey = 5;
 }
 
 message IncidentRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string errorType = 2;
-    string errorMessage = 3;
+  string errorType = 2;
+  string errorMessage = 3;
 
-    string bpmnProcessId = 4;
-    int64 workflowInstanceKey = 5;
-    string elementId = 6;
-    int64 elementInstanceKey = 7;
-    int64 jobKey = 8;
-    int64 workflowKey = 9;
-    int64 variableScopeKey = 10;
+  string bpmnProcessId = 4;
+  int64 workflowInstanceKey = 5;
+  string elementId = 6;
+  int64 elementInstanceKey = 7;
+  int64 jobKey = 8;
+  int64 workflowKey = 9;
+  int64 variableScopeKey = 10;
 }
 
 message JobRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string type = 2;
+  string type = 2;
 
-    string worker = 3;
-    int32 retries = 4;
-    int64 deadline = 5;
-    string errorMessage = 6;
+  string worker = 3;
+  int32 retries = 4;
+  int64 deadline = 5;
+  string errorMessage = 6;
 
-    google.protobuf.Struct customHeaders = 7;
-    google.protobuf.Struct variables = 8;
+  google.protobuf.Struct customHeaders = 7;
+  google.protobuf.Struct variables = 8;
 
-    string elementId = 9;
-    int64 elementInstanceKey = 10;
-    string bpmnProcessId = 11;
-    int32 workflowDefinitionVersion = 12;
-    int64 workflowInstanceKey = 13;
-    int64 workflowKey = 14;
+  string elementId = 9;
+  int64 elementInstanceKey = 10;
+  string bpmnProcessId = 11;
+  int32 workflowDefinitionVersion = 12;
+  int64 workflowInstanceKey = 13;
+  int64 workflowKey = 14;
 }
 
 message JobBatchRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string type = 2;
-    string worker = 3;
-    int64 timeout = 4;
-    int32 maxJobsToActivate = 5;
-    repeated int64 jobKeys = 6;
-    repeated JobRecord jobs = 7;
-    bool truncated = 8;
+  string type = 2;
+  string worker = 3;
+  int64 timeout = 4;
+  int32 maxJobsToActivate = 5;
+  repeated int64 jobKeys = 6;
+  repeated JobRecord jobs = 7;
+  bool truncated = 8;
 }
 
 message MessageRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string name = 2;
-    string correlationKey = 3;
-    string messageId = 4;
-    int64 timeToLive = 5;
-    google.protobuf.Struct variables = 6;
+  string name = 2;
+  string correlationKey = 3;
+  string messageId = 4;
+  int64 timeToLive = 5;
+  google.protobuf.Struct variables = 6;
 }
 
 message MessageSubscriptionRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    int64 workflowInstanceKey = 2;
-    int64 elementInstanceKey = 3;
-    string messageName = 4;
-    string correlationKey = 5;
+  int64 workflowInstanceKey = 2;
+  int64 elementInstanceKey = 3;
+  string messageName = 4;
+  string correlationKey = 5;
 }
 
 message MessageStartEventSubscriptionRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    int64 workflowKey = 2;
-    string startEventId = 3;
-    string messageName = 4;
+  int64 workflowKey = 2;
+  string startEventId = 3;
+  string messageName = 4;
 }
 
 message TimerRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    int64 elementInstanceKey = 2;
-    int64 dueDate = 3;
-    int32 repetitions = 4;
+  int64 elementInstanceKey = 2;
+  int64 dueDate = 3;
+  int32 repetitions = 4;
 
-    string targetFlowNodeId = 5;
-    int64 workflowInstanceKey = 6;
-    int64 workflowKey = 7;
+  string targetFlowNodeId = 5;
+  int64 workflowInstanceKey = 6;
+  int64 workflowKey = 7;
 }
 
 message VariableRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string name = 2;
-    string value = 3;
-    int64 scopeKey = 4;
-    int64 workflowInstanceKey = 5;
-    int64 workflowKey = 6;
+  string name = 2;
+  string value = 3;
+  int64 scopeKey = 4;
+  int64 workflowInstanceKey = 5;
+  int64 workflowKey = 6;
 }
 
 message VariableDocumentRecord {
 
-    enum UpdateSemantics {
-        LOCAL = 0;
-        PROPAGATE = 1;
-    }
+  enum UpdateSemantics {
+    LOCAL = 0;
+    PROPAGATE = 1;
+  }
 
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    int64 scopeKey = 2;
-    UpdateSemantics updateSemantics = 3;
-    google.protobuf.Struct variables = 4;
+  int64 scopeKey = 2;
+  UpdateSemantics updateSemantics = 3;
+  google.protobuf.Struct variables = 4;
 }
 
 message WorkflowInstanceRecord {
-    enum BpmnElementType {
-        UNSPECIFIED = 0;
-        PROCESS = 1;
-        SUB_PROCESS = 2;
-        START_EVENT = 3;
-        INTERMEDIATE_CATCH_EVENT = 4;
-        BOUNDARY_EVENT = 5;
-        END_EVENT = 6;
-        SERVICE_TASK = 7;
-        RECEIVE_TASK = 8;
-        EXCLUSIVE_GATEWAY = 9;
-        PARALLEL_GATEWAY = 10;
-        EVENT_BASED_GATEWAY = 11;
-        SEQUENCE_FLOW = 12;
-        MULTI_INSTANCE_BODY = 13;
-    }
+  enum BpmnElementType {
+    UNSPECIFIED = 0;
+    PROCESS = 1;
+    SUB_PROCESS = 2;
+    START_EVENT = 3;
+    INTERMEDIATE_CATCH_EVENT = 4;
+    BOUNDARY_EVENT = 5;
+    END_EVENT = 6;
+    SERVICE_TASK = 7;
+    RECEIVE_TASK = 8;
+    EXCLUSIVE_GATEWAY = 9;
+    PARALLEL_GATEWAY = 10;
+    EVENT_BASED_GATEWAY = 11;
+    SEQUENCE_FLOW = 12;
+    MULTI_INSTANCE_BODY = 13;
+    CALL_ACTIVITY = 14;
+  }
 
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string bpmnProcessId = 2;
-    int32 version = 3;
-    int64 workflowKey = 4;
-    int64 workflowInstanceKey = 5;
-    string elementId = 6;
-    int64 flowScopeKey = 7;
-    BpmnElementType bpmnElementType = 8;
+  string bpmnProcessId = 2;
+  int32 version = 3;
+  int64 workflowKey = 4;
+  int64 workflowInstanceKey = 5;
+  string elementId = 6;
+  int64 flowScopeKey = 7;
+  BpmnElementType bpmnElementType = 8;
+  int64 parentWorkflowInstanceKey = 9;
+  int64 parentElementInstanceKey = 10;
 
 }
 
 message WorkflowInstanceCreationRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    string bpmnProcessId = 2;
-    int32 version = 3;
-    int64 workflowKey = 4;
-    int64 workflowInstanceKey = 5;    
-    google.protobuf.Struct variables = 6;
+  string bpmnProcessId = 2;
+  int32 version = 3;
+  int64 workflowKey = 4;
+  int64 workflowInstanceKey = 5;
+  google.protobuf.Struct variables = 6;
+}
+
+message WorkflowInstanceResultRecord {
+  RecordMetadata metadata = 1;
+
+  string bpmnProcessId = 2;
+  int32 version = 3;
+  int64 workflowKey = 4;
+  int64 workflowInstanceKey = 5;
+  google.protobuf.Struct variables = 6;
 }
 
 message WorkflowInstanceSubscriptionRecord {
-    RecordMetadata metadata = 1;
+  RecordMetadata metadata = 1;
 
-    int64 workflowInstanceKey = 2;
-    int64 elementInstanceKey = 3;
-    string messageName = 4;
-    google.protobuf.Struct variables = 5;
+  int64 workflowInstanceKey = 2;
+  int64 elementInstanceKey = 3;
+  string messageName = 4;
+  google.protobuf.Struct variables = 5;
 }
