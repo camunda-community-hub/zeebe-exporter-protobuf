@@ -23,15 +23,56 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.zeebe.exporter.proto.Schema.JobRecord;
-import io.zeebe.protocol.record.*;
-import io.zeebe.protocol.record.intent.*;
-import io.zeebe.protocol.record.value.*;
+import io.zeebe.exporter.proto.Schema.RecordMetadata;
+import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
+import io.zeebe.exporter.proto.Schema.WorkflowInstanceRecord;
+import io.zeebe.protocol.record.Record;
+import io.zeebe.protocol.record.RecordType;
+import io.zeebe.protocol.record.RecordValue;
+import io.zeebe.protocol.record.RejectionType;
+import io.zeebe.protocol.record.ValueType;
+import io.zeebe.protocol.record.intent.DeploymentIntent;
+import io.zeebe.protocol.record.intent.ErrorIntent;
+import io.zeebe.protocol.record.intent.IncidentIntent;
+import io.zeebe.protocol.record.intent.Intent;
+import io.zeebe.protocol.record.intent.JobBatchIntent;
+import io.zeebe.protocol.record.intent.JobIntent;
+import io.zeebe.protocol.record.intent.MessageIntent;
+import io.zeebe.protocol.record.intent.MessageStartEventSubscriptionIntent;
+import io.zeebe.protocol.record.intent.MessageSubscriptionIntent;
+import io.zeebe.protocol.record.intent.TimerIntent;
+import io.zeebe.protocol.record.intent.VariableDocumentIntent;
+import io.zeebe.protocol.record.intent.VariableIntent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceCreationIntent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceResultIntent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceSubscriptionIntent;
+import io.zeebe.protocol.record.value.BpmnElementType;
+import io.zeebe.protocol.record.value.DeploymentRecordValue;
+import io.zeebe.protocol.record.value.ErrorRecordValue;
+import io.zeebe.protocol.record.value.ErrorType;
+import io.zeebe.protocol.record.value.IncidentRecordValue;
+import io.zeebe.protocol.record.value.JobBatchRecordValue;
+import io.zeebe.protocol.record.value.JobRecordValue;
+import io.zeebe.protocol.record.value.MessageRecordValue;
+import io.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
+import io.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
+import io.zeebe.protocol.record.value.TimerRecordValue;
+import io.zeebe.protocol.record.value.VariableDocumentRecordValue;
+import io.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
+import io.zeebe.protocol.record.value.VariableRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceCreationRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceResultRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
 import io.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.zeebe.protocol.record.value.deployment.ResourceType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class RecordTransformTest {
@@ -101,6 +142,8 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getFlowScopeKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getBpmnElementType())
         .isEqualTo(Schema.WorkflowInstanceRecord.BpmnElementType.START_EVENT);
+    assertThat(workflowInstance.getParentWorkflowInstanceKey()).isEqualTo(-1L);
+    assertThat(workflowInstance.getParentElementInstanceKey()).isEqualTo(-1L);
   }
 
   @Test
@@ -126,6 +169,30 @@ public class RecordTransformTest {
     assertThat(workflowInstanceCreation.getVersion()).isEqualTo(1);
     assertThat(workflowInstanceCreation.getWorkflowInstanceKey()).isEqualTo(1L);
     assertVariables(workflowInstanceCreation.getVariables());
+  }
+
+  @Test
+  public void shouldTransformWorkflowInstanceResult() {
+    // given
+    final WorkflowInstanceResultRecordValue recordValue = mockWorkflowInstanceResultRecordValue();
+    final Record<WorkflowInstanceResultRecordValue> mockedRecord =
+        mockRecord(
+            recordValue,
+            ValueType.WORKFLOW_INSTANCE_RESULT,
+            WorkflowInstanceResultIntent.COMPLETED);
+
+    // when
+    final Schema.WorkflowInstanceResultRecord workflowInstanceResult =
+        (Schema.WorkflowInstanceResultRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(workflowInstanceResult.getMetadata(), "WORKFLOW_INSTANCE_RESULT", "COMPLETED");
+
+    assertThat(workflowInstanceResult.getBpmnProcessId()).isEqualTo("process");
+    assertThat(workflowInstanceResult.getWorkflowKey()).isEqualTo(4L);
+    assertThat(workflowInstanceResult.getVersion()).isEqualTo(1);
+    assertThat(workflowInstanceResult.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertVariables(workflowInstanceResult.getVariables());
   }
 
   @Test
@@ -378,6 +445,60 @@ public class RecordTransformTest {
     assertThat(transformed.getWorkflowInstanceKey()).isEqualTo(value.getWorkflowInstanceKey());
   }
 
+  @Test
+  public void shouldTransformBpmnElementType() {
+
+    final List<String> bpmnElementTypes =
+        Arrays.stream(BpmnElementType.values())
+            .map(BpmnElementType::name)
+            .collect(Collectors.toList());
+
+    assertThat(WorkflowInstanceRecord.BpmnElementType.values())
+        .extracting(WorkflowInstanceRecord.BpmnElementType::name)
+        .containsAll(bpmnElementTypes);
+  }
+
+  @Test
+  public void shouldTransformRecordType() {
+
+    final List<String> recordTypes =
+        Arrays.stream(RecordType.values())
+            .filter(t -> t != RecordType.NULL_VAL && t != RecordType.SBE_UNKNOWN)
+            .map(RecordType::name)
+            .collect(Collectors.toList());
+
+    assertThat(RecordMetadata.RecordType.values())
+        .extracting(RecordMetadata.RecordType::name)
+        .containsAll(recordTypes);
+  }
+
+  @Test
+  public void shouldTransformValueType() {
+
+    final List<String> valueTypes =
+        Arrays.stream(ValueType.values())
+            .filter(t -> t != ValueType.NULL_VAL && t != ValueType.SBE_UNKNOWN)
+            .map(ValueType::name)
+            .collect(Collectors.toList());
+
+    assertThat(RecordMetadata.ValueType.values())
+        .extracting(RecordMetadata.ValueType::name)
+        .containsAll(valueTypes);
+  }
+
+  @Test
+  public void shouldTransformUpdateSemantics() {
+
+    final List<String> updateSemantics =
+        Arrays.stream(VariableDocumentUpdateSemantic.values())
+            .map(VariableDocumentUpdateSemantic::name)
+            .collect(Collectors.toList());
+
+    assertThat(UpdateSemantics.values())
+        .extracting(UpdateSemantics::name)
+        .containsAll(updateSemantics);
+  }
+
   private MessageRecordValue mockMessageRecordValue() {
     final MessageRecordValue messageRecordValue = mock(MessageRecordValue.class);
 
@@ -536,6 +657,8 @@ public class RecordTransformTest {
     when(workflowInstanceRecordValue.getVersion()).thenReturn(1);
     when(workflowInstanceRecordValue.getWorkflowKey()).thenReturn(4L);
     when(workflowInstanceRecordValue.getBpmnElementType()).thenReturn(BpmnElementType.START_EVENT);
+    when(workflowInstanceRecordValue.getParentWorkflowInstanceKey()).thenReturn(-1L);
+    when(workflowInstanceRecordValue.getParentElementInstanceKey()).thenReturn(-1L);
 
     return workflowInstanceRecordValue;
   }
@@ -552,6 +675,19 @@ public class RecordTransformTest {
         .thenReturn(Collections.singletonMap("foo", 23));
 
     return workflowInstanceCreationRecordValue;
+  }
+
+  private WorkflowInstanceResultRecordValue mockWorkflowInstanceResultRecordValue() {
+    final WorkflowInstanceResultRecordValue recordValue =
+        mock(WorkflowInstanceResultRecordValue.class);
+
+    when(recordValue.getBpmnProcessId()).thenReturn("process");
+    when(recordValue.getVersion()).thenReturn(1);
+    when(recordValue.getWorkflowKey()).thenReturn(4L);
+    when(recordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(recordValue.getVariables()).thenReturn(Collections.singletonMap("foo", 23));
+
+    return recordValue;
   }
 
   private IncidentRecordValue mockIncidentRecordValue() {
