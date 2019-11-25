@@ -60,7 +60,7 @@
     <plugin.version.shade>3.2.1</plugin.version.shade>
 
     <!-- maven extensions -->
-    <extension.version.os-maven-plugin>1.6.1</extension.version.os-maven-plugin>
+    <extension.version.os-maven-plugin>1.6.2</extension.version.os-maven-plugin>
   </properties>
 
   <dependencyManagement>
