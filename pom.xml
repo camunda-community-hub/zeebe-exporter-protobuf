@@ -39,7 +39,7 @@
     <!-- project dependencies -->
     <version.assertj>3.14.0</version.assertj>
 
-    <version.junit>4.12</version.junit>
+    <version.junit>4.13</version.junit>
     <version.log4j>2.11.1</version.log4j>
     <version.mockito>3.2.4</version.mockito>
 
