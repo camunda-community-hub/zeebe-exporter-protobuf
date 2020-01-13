@@ -21,27 +21,29 @@ message RecordId {
 message RecordMetadata {
 
   enum ValueType {
-    JOB = 0;
-    DEPLOYMENT = 1;
-    WORKFLOW_INSTANCE = 2;
-    INCIDENT = 3;
-    MESSAGE = 4;
-    MESSAGE_SUBSCRIPTION = 5;
-    WORKFLOW_INSTANCE_SUBSCRIPTION = 6;
-    JOB_BATCH = 7;
-    TIMER = 8;
-    MESSAGE_START_EVENT_SUBSCRIPTION = 9;
-    VARIABLE = 10;
-    VARIABLE_DOCUMENT = 11;
-    WORKFLOW_INSTANCE_CREATION = 12;
-    ERROR = 13;
-    WORKFLOW_INSTANCE_RESULT = 14;
+    UNKNOWN_VALUE_TYPE = 0;
+    JOB = 1;
+    DEPLOYMENT = 2;
+    WORKFLOW_INSTANCE = 3;
+    INCIDENT = 4;
+    MESSAGE = 5;
+    MESSAGE_SUBSCRIPTION = 6;
+    WORKFLOW_INSTANCE_SUBSCRIPTION = 7;
+    JOB_BATCH = 8;
+    TIMER = 9;
+    MESSAGE_START_EVENT_SUBSCRIPTION = 10;
+    VARIABLE = 11;
+    VARIABLE_DOCUMENT = 12;
+    WORKFLOW_INSTANCE_CREATION = 13;
+    ERROR = 14;
+    WORKFLOW_INSTANCE_RESULT = 15;
   }
 
   enum RecordType {
-    EVENT = 0;
-    COMMAND = 1;
-    COMMAND_REJECTION = 2;
+    UNKNOWN_RECORD_TYPE = 0;
+    EVENT = 1;
+    COMMAND = 2;
+    COMMAND_REJECTION = 3;
   }
 
   int32 partitionId = 1;
@@ -187,8 +189,9 @@ message VariableRecord {
 message VariableDocumentRecord {
 
   enum UpdateSemantics {
-    LOCAL = 0;
-    PROPAGATE = 1;
+    UNKNOWN_UPDATE_SEMANTICS = 0;
+    LOCAL = 1;
+    PROPAGATE = 2;
   }
 
   RecordMetadata metadata = 1;
@@ -200,21 +203,22 @@ message VariableDocumentRecord {
 
 message WorkflowInstanceRecord {
   enum BpmnElementType {
-    UNSPECIFIED = 0;
-    PROCESS = 1;
-    SUB_PROCESS = 2;
-    START_EVENT = 3;
-    INTERMEDIATE_CATCH_EVENT = 4;
-    BOUNDARY_EVENT = 5;
-    END_EVENT = 6;
-    SERVICE_TASK = 7;
-    RECEIVE_TASK = 8;
-    EXCLUSIVE_GATEWAY = 9;
-    PARALLEL_GATEWAY = 10;
-    EVENT_BASED_GATEWAY = 11;
-    SEQUENCE_FLOW = 12;
-    MULTI_INSTANCE_BODY = 13;
-    CALL_ACTIVITY = 14;
+    UNKNOWN_BPMN_ELEMENT_TYPE = 0;
+    UNSPECIFIED = 1;
+    PROCESS = 2;
+    SUB_PROCESS = 3;
+    START_EVENT = 4;
+    INTERMEDIATE_CATCH_EVENT = 5;
+    BOUNDARY_EVENT = 6;
+    END_EVENT = 7;
+    SERVICE_TASK = 8;
+    RECEIVE_TASK = 9;
+    EXCLUSIVE_GATEWAY = 10;
+    PARALLEL_GATEWAY = 11;
+    EVENT_BASED_GATEWAY = 12;
+    SEQUENCE_FLOW = 13;
+    MULTI_INSTANCE_BODY = 14;
+    CALL_ACTIVITY = 15;
   }
 
   RecordMetadata metadata = 1;

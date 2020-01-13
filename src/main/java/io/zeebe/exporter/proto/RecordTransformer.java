@@ -22,8 +22,14 @@ import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
+import io.zeebe.exporter.proto.Schema.RecordMetadata;
+import io.zeebe.exporter.proto.Schema.VariableDocumentRecord;
+import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
+import io.zeebe.exporter.proto.Schema.WorkflowInstanceRecord;
 import io.zeebe.protocol.record.Record;
+import io.zeebe.protocol.record.RecordType;
 import io.zeebe.protocol.record.ValueType;
+import io.zeebe.protocol.record.value.BpmnElementType;
 import io.zeebe.protocol.record.value.DeploymentRecordValue;
 import io.zeebe.protocol.record.value.ErrorRecordValue;
 import io.zeebe.protocol.record.value.IncidentRecordValue;
@@ -34,6 +40,7 @@ import io.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
 import io.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
 import io.zeebe.protocol.record.value.TimerRecordValue;
 import io.zeebe.protocol.record.value.VariableDocumentRecordValue;
+import io.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
 import io.zeebe.protocol.record.value.VariableRecordValue;
 import io.zeebe.protocol.record.value.WorkflowInstanceCreationRecordValue;
 import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
@@ -54,6 +61,32 @@ public final class RecordTransformer {
 
   private static final EnumMap<ValueType, Function<Record, GeneratedMessageV3>> TRANSFORMERS =
       new EnumMap<>(ValueType.class);
+
+  private static final EnumMap<ValueType, RecordMetadata.ValueType> VALUE_TYPE_MAPPING =
+      new EnumMap<>(ValueType.class);
+
+  private static final EnumMap<RecordType, RecordMetadata.RecordType> RECORD_TYPE_MAPPING =
+      new EnumMap<>(
+          Map.of(
+              RecordType.COMMAND,
+              RecordMetadata.RecordType.COMMAND,
+              RecordType.COMMAND_REJECTION,
+              RecordMetadata.RecordType.COMMAND_REJECTION,
+              RecordType.EVENT,
+              RecordMetadata.RecordType.EVENT));
+
+  private static final EnumMap<BpmnElementType, WorkflowInstanceRecord.BpmnElementType>
+      BPMN_ELEMENT_TYPE_MAPPING = new EnumMap<>(BpmnElementType.class);
+
+  private static final EnumMap<
+          VariableDocumentUpdateSemantic, VariableDocumentRecord.UpdateSemantics>
+      UPDATE_SEMANTICS_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  VariableDocumentUpdateSemantic.LOCAL,
+                  UpdateSemantics.LOCAL,
+                  VariableDocumentUpdateSemantic.PROPAGATE,
+                  UpdateSemantics.PROPAGATE));
 
   static {
     TRANSFORMERS.put(ValueType.DEPLOYMENT, RecordTransformer::toDeploymentRecord);
@@ -78,6 +111,62 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.ERROR, RecordTransformer::toErrorRecord);
     TRANSFORMERS.put(
         ValueType.WORKFLOW_INSTANCE_RESULT, RecordTransformer::toWorkflowInstanceResultRecord);
+
+    VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
+    VALUE_TYPE_MAPPING.put(ValueType.ERROR, RecordMetadata.ValueType.ERROR);
+    VALUE_TYPE_MAPPING.put(ValueType.INCIDENT, RecordMetadata.ValueType.INCIDENT);
+    VALUE_TYPE_MAPPING.put(ValueType.JOB, RecordMetadata.ValueType.JOB);
+    VALUE_TYPE_MAPPING.put(ValueType.JOB_BATCH, RecordMetadata.ValueType.JOB_BATCH);
+    VALUE_TYPE_MAPPING.put(ValueType.MESSAGE, RecordMetadata.ValueType.MESSAGE);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
+        RecordMetadata.ValueType.MESSAGE_START_EVENT_SUBSCRIPTION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.MESSAGE_SUBSCRIPTION, RecordMetadata.ValueType.MESSAGE_SUBSCRIPTION);
+    VALUE_TYPE_MAPPING.put(ValueType.TIMER, RecordMetadata.ValueType.TIMER);
+    VALUE_TYPE_MAPPING.put(ValueType.VARIABLE, RecordMetadata.ValueType.VARIABLE);
+    VALUE_TYPE_MAPPING.put(ValueType.VARIABLE_DOCUMENT, RecordMetadata.ValueType.VARIABLE_DOCUMENT);
+    VALUE_TYPE_MAPPING.put(ValueType.WORKFLOW_INSTANCE, RecordMetadata.ValueType.WORKFLOW_INSTANCE);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.WORKFLOW_INSTANCE_CREATION, RecordMetadata.ValueType.WORKFLOW_INSTANCE_CREATION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.WORKFLOW_INSTANCE_RESULT, RecordMetadata.ValueType.WORKFLOW_INSTANCE_RESULT);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
+        RecordMetadata.ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION);
+
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.BOUNDARY_EVENT, WorkflowInstanceRecord.BpmnElementType.BOUNDARY_EVENT);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.CALL_ACTIVITY, WorkflowInstanceRecord.BpmnElementType.CALL_ACTIVITY);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.END_EVENT, WorkflowInstanceRecord.BpmnElementType.END_EVENT);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.EVENT_BASED_GATEWAY,
+        WorkflowInstanceRecord.BpmnElementType.EVENT_BASED_GATEWAY);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.EXCLUSIVE_GATEWAY,
+        WorkflowInstanceRecord.BpmnElementType.EXCLUSIVE_GATEWAY);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.INTERMEDIATE_CATCH_EVENT,
+        WorkflowInstanceRecord.BpmnElementType.INTERMEDIATE_CATCH_EVENT);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.MULTI_INSTANCE_BODY,
+        WorkflowInstanceRecord.BpmnElementType.MULTI_INSTANCE_BODY);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.PARALLEL_GATEWAY, WorkflowInstanceRecord.BpmnElementType.PARALLEL_GATEWAY);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.PROCESS, WorkflowInstanceRecord.BpmnElementType.PROCESS);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.RECEIVE_TASK, WorkflowInstanceRecord.BpmnElementType.RECEIVE_TASK);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.SEQUENCE_FLOW, WorkflowInstanceRecord.BpmnElementType.SEQUENCE_FLOW);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.SERVICE_TASK, WorkflowInstanceRecord.BpmnElementType.SERVICE_TASK);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.START_EVENT, WorkflowInstanceRecord.BpmnElementType.START_EVENT);
+    BPMN_ELEMENT_TYPE_MAPPING.put(
+        BpmnElementType.SUB_PROCESS, WorkflowInstanceRecord.BpmnElementType.SUB_PROCESS);
   }
 
   private RecordTransformer() {}
@@ -99,9 +188,9 @@ public final class RecordTransformer {
     final Schema.RecordMetadata.Builder builder =
         Schema.RecordMetadata.newBuilder()
             .setIntent(record.getIntent().name())
-            .setValueType(Schema.RecordMetadata.ValueType.valueOf(record.getValueType().name()))
+            .setValueType(toValueType(record.getValueType()))
             .setKey(record.getKey())
-            .setRecordType(Schema.RecordMetadata.RecordType.valueOf(record.getRecordType().name()))
+            .setRecordType(toRecordType(record.getRecordType()))
             .setSourceRecordPosition(record.getSourceRecordPosition())
             .setPosition(record.getPosition())
             .setTimestamp(record.getTimestamp())
@@ -113,6 +202,15 @@ public final class RecordTransformer {
     }
 
     return builder.build();
+  }
+
+  private static Schema.RecordMetadata.ValueType toValueType(ValueType valueType) {
+    return VALUE_TYPE_MAPPING.getOrDefault(valueType, RecordMetadata.ValueType.UNKNOWN_VALUE_TYPE);
+  }
+
+  private static Schema.RecordMetadata.RecordType toRecordType(RecordType recordType) {
+    return RECORD_TYPE_MAPPING.getOrDefault(
+        recordType, RecordMetadata.RecordType.UNKNOWN_RECORD_TYPE);
   }
 
   private static Schema.DeploymentRecord toDeploymentRecord(Record<DeploymentRecordValue> record) {
@@ -291,13 +389,17 @@ public final class RecordTransformer {
         .setVersion(value.getVersion())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setWorkflowKey(value.getWorkflowKey())
-        .setBpmnElementType(
-            Schema.WorkflowInstanceRecord.BpmnElementType.valueOf(
-                value.getBpmnElementType().name()))
+        .setBpmnElementType(toBpmnElementType(value.getBpmnElementType()))
         .setParentWorkflowInstanceKey(value.getParentWorkflowInstanceKey())
         .setParentElementInstanceKey(value.getParentElementInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
+  }
+
+  private static Schema.WorkflowInstanceRecord.BpmnElementType toBpmnElementType(
+      BpmnElementType type) {
+    return BPMN_ELEMENT_TYPE_MAPPING.getOrDefault(
+        type, WorkflowInstanceRecord.BpmnElementType.UNKNOWN_BPMN_ELEMENT_TYPE);
   }
 
   private static Schema.WorkflowInstanceSubscriptionRecord toWorkflowInstanceSubscriptionRecord(
@@ -347,12 +449,16 @@ public final class RecordTransformer {
 
     return Schema.VariableDocumentRecord.newBuilder()
         .setScopeKey(value.getScopeKey())
-        .setUpdateSemantics(
-            Schema.VariableDocumentRecord.UpdateSemantics.valueOf(
-                value.getUpdateSemantics().name()))
+        .setUpdateSemantics(toUpdateSemantics(value.getUpdateSemantics()))
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
+  }
+
+  private static Schema.VariableDocumentRecord.UpdateSemantics toUpdateSemantics(
+      VariableDocumentUpdateSemantic updateSemantics) {
+    return UPDATE_SEMANTICS_MAPPING.getOrDefault(
+        updateSemantics, UpdateSemantics.UNKNOWN_UPDATE_SEMANTICS);
   }
 
   private static Schema.ErrorRecord toErrorRecord(Record<ErrorRecordValue> record) {
