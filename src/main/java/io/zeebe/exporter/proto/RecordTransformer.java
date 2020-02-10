@@ -332,6 +332,8 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setMessageName(value.getMessageName())
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setMessageKey(value.getMessageKey())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -345,7 +347,8 @@ public final class RecordTransformer {
     builder
         .setWorkflowKey(value.getWorkflowKey())
         .setMessageName(value.getMessageName())
-        .setStartEventId(value.getStartEventId());
+        .setStartEventId(value.getStartEventId())
+        .setBpmnProcessId(value.getBpmnProcessId());
 
     return builder.setMetadata(toMetadata(record)).build();
   }
@@ -411,6 +414,8 @@ public final class RecordTransformer {
         .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
         .setMessageName(value.getMessageName())
         .setVariables(toStruct(value.getVariables()))
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setMessageKey(value.getMessageKey())
         .setMetadata(toMetadata(record))
         .build();
   }

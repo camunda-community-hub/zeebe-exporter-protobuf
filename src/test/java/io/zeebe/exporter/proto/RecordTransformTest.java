@@ -311,13 +311,9 @@ public class RecordTransformTest {
   @Test
   public void shouldTransformMessageSubscription() {
     // given
-    final MessageSubscriptionRecordValue messageSubscriptionRecordValue =
-        mockMessageSubscriptionRecordValue();
+    final MessageSubscriptionRecordValue value = mockMessageSubscriptionRecordValue();
     final Record<MessageSubscriptionRecordValue> mockedRecord =
-        mockRecord(
-            messageSubscriptionRecordValue,
-            ValueType.MESSAGE_SUBSCRIPTION,
-            MessageSubscriptionIntent.CORRELATE);
+        mockRecord(value, ValueType.MESSAGE_SUBSCRIPTION, MessageSubscriptionIntent.CORRELATE);
 
     // when
     final Schema.MessageSubscriptionRecord messageSubscriptionRecord =
@@ -330,16 +326,18 @@ public class RecordTransformTest {
     assertThat(messageSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(messageSubscriptionRecord.getElementInstanceKey()).isEqualTo(12L);
     assertThat(messageSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(messageSubscriptionRecord.getBpmnProcessId()).isEqualTo(value.getBpmnProcessId());
+    assertThat(messageSubscriptionRecord.getMessageKey()).isEqualTo(value.getMessageKey());
   }
 
   @Test
   public void shouldTransformWorkflowInstanceSubscription() {
     // given
-    final WorkflowInstanceSubscriptionRecordValue workflowInstanceSubscriptionRecordValue =
+    final WorkflowInstanceSubscriptionRecordValue value =
         mockWorkflowInstanceSubscriptionRecordValue();
     final Record<WorkflowInstanceSubscriptionRecordValue> mockedRecord =
         mockRecord(
-            workflowInstanceSubscriptionRecordValue,
+            value,
             ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
             WorkflowInstanceSubscriptionIntent.CORRELATE);
 
@@ -359,6 +357,9 @@ public class RecordTransformTest {
     assertThat(workflowInstanceSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(workflowInstanceSubscriptionRecord.getElementInstanceKey()).isEqualTo(4L);
     assertThat(workflowInstanceSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(workflowInstanceSubscriptionRecord.getBpmnProcessId())
+        .isEqualTo(value.getBpmnProcessId());
+    assertThat(workflowInstanceSubscriptionRecord.getMessageKey()).isEqualTo(value.getMessageKey());
   }
 
   @Test
@@ -425,6 +426,7 @@ public class RecordTransformTest {
     assertThat(transformed.getMessageName()).isEqualTo(value.getMessageName());
     assertThat(transformed.getStartEventId()).isEqualTo(value.getStartEventId());
     assertThat(transformed.getWorkflowKey()).isEqualTo(value.getWorkflowKey());
+    assertThat(transformed.getBpmnProcessId()).isEqualTo(value.getBpmnProcessId());
   }
 
   @Test
@@ -519,6 +521,7 @@ public class RecordTransformTest {
     when(value.getMessageName()).thenReturn("message");
     when(value.getStartEventId()).thenReturn("start");
     when(value.getWorkflowKey()).thenReturn(1L);
+    when(value.getBpmnProcessId()).thenReturn("bpmnProcessId");
 
     return value;
   }
@@ -567,6 +570,8 @@ public class RecordTransformTest {
     when(messageSubscriptionRecordValue.getElementInstanceKey()).thenReturn(12L);
     when(messageSubscriptionRecordValue.getMessageName()).thenReturn("message");
     when(messageSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(messageSubscriptionRecordValue.getBpmnProcessId()).thenReturn("bpmnProcessId");
+    when(messageSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
 
     return messageSubscriptionRecordValue;
   }
@@ -578,6 +583,8 @@ public class RecordTransformTest {
     when(workflowInstanceSubscriptionRecordValue.getMessageName()).thenReturn("message");
     when(workflowInstanceSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
     when(workflowInstanceSubscriptionRecordValue.getElementInstanceKey()).thenReturn(4L);
+    when(workflowInstanceSubscriptionRecordValue.getBpmnProcessId()).thenReturn("bpmnProcessId");
+    when(workflowInstanceSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
 
     when(workflowInstanceSubscriptionRecordValue.getVariables())
         .thenReturn(Collections.singletonMap("foo", 23));

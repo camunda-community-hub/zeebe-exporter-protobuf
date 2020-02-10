@@ -154,6 +154,8 @@ message MessageSubscriptionRecord {
   int64 elementInstanceKey = 3;
   string messageName = 4;
   string correlationKey = 5;
+  string bpmnProcessId = 6;
+  int64 messageKey = 7;
 }
 
 message MessageStartEventSubscriptionRecord {
@@ -162,6 +164,7 @@ message MessageStartEventSubscriptionRecord {
   int64 workflowKey = 2;
   string startEventId = 3;
   string messageName = 4;
+  string bpmnProcessId = 5;
 }
 
 message TimerRecord {
@@ -262,4 +265,6 @@ message WorkflowInstanceSubscriptionRecord {
   int64 elementInstanceKey = 3;
   string messageName = 4;
   google.protobuf.Struct variables = 5;
+  string bpmnProcessId = 6;
+  int64 messageKey = 7;
 }
