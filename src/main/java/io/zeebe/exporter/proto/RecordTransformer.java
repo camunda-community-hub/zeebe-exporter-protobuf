@@ -15,6 +15,7 @@
  */
 package io.zeebe.exporter.proto;
 
+import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import com.google.protobuf.GeneratedMessageV3;
@@ -177,11 +178,18 @@ public final class RecordTransformer {
     return toRecordFunc != null ? toRecordFunc.apply(record) : Empty.getDefaultInstance();
   }
 
-  private static Schema.RecordId toRecordId(Record record) {
+  public static Schema.RecordId toRecordId(Record record) {
     return Schema.RecordId.newBuilder()
         .setPartitionId(record.getPartitionId())
         .setPosition(record.getPosition())
         .build();
+  }
+
+  public static Schema.Record toGenericRecord(Record record) {
+    final var protobufRecord = toProtobufMessage(record);
+    final var anyRecord = Any.pack(protobufRecord);
+
+    return Schema.Record.newBuilder().setRecord(anyRecord).build();
   }
 
   private static Schema.RecordMetadata toMetadata(Record record) {

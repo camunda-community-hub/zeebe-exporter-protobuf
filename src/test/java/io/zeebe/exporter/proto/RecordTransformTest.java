@@ -20,6 +20,7 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.zeebe.exporter.proto.Schema.JobRecord;
@@ -499,6 +500,24 @@ public class RecordTransformTest {
     assertThat(UpdateSemantics.values())
         .extracting(UpdateSemantics::name)
         .containsAll(updateSemantics);
+  }
+
+  @Test
+  public void shouldTransformToGenericRecord() throws InvalidProtocolBufferException {
+    // given
+    final var recordValue = mockJobRecordValue();
+    final var record = mockRecord(recordValue, ValueType.JOB, JobIntent.CREATED);
+
+    final var expectedProtobufRecord = RecordTransformer.toProtobufMessage(record);
+
+    // when
+    final var genericProtobufRecord = RecordTransformer.toGenericRecord(record);
+
+    // then
+    assertThat(genericProtobufRecord.getRecord().is(Schema.JobRecord.class)).isTrue();
+
+    final var unpackedRecord = genericProtobufRecord.getRecord().unpack(JobRecord.class);
+    assertThat(unpackedRecord).isEqualTo(expectedProtobufRecord);
   }
 
   private MessageRecordValue mockMessageRecordValue() {

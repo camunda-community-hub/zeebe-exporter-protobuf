@@ -8,10 +8,17 @@ option java_package = "io.zeebe.exporter.proto";
 // see https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
 import "google/protobuf/struct.proto";
 
+import "google/protobuf/any.proto";
+
 // Convenience message for systems which use a key/id system for each record
 message RecordId {
   int32 partitionId = 1;
   int64 position = 2;
+}
+
+// Convenience message for packing any kind of record
+message Record {
+  google.protobuf.Any record = 1;
 }
 
 // Packs all non-value info into a single field; the idea here is so we can embed the *Record messages into other
