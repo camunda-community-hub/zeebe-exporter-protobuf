@@ -1,38 +1,15 @@
-def buildName = "${env.JOB_BASE_NAME.replaceAll("%2F", "-").replaceAll("\\.", "-").take(20)}-${env.BUILD_ID}"
+#!/usr/bin/env groovy
+
+@Library(["camunda-ci", "zeebe-jenkins-shared-library"]) _
 
 pipeline {
 
   agent {
     kubernetes {
       cloud 'zeebe-ci'
-      label "zeebe-ci-build_${buildName}"
+      label "${utils.envPrefix()}ci-zeebe-build_${env.JOB_BASE_NAME.take(20)}-${env.BUILD_ID}"
       defaultContainer 'jnlp'
-      yaml '''\
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    agent: zeebe-ci-build
-spec:
-  nodeSelector:
-    cloud.google.com/gke-nodepool: agents-n1-standard-32-netssd-preempt
-  tolerations:
-    - key: "agents-n1-standard-32-netssd-preempt"
-      operator: "Exists"
-      effect: "NoSchedule"
-  containers:
-    - name: maven
-      image: maven:3.6.0-jdk-11
-      command: ["cat"]
-      tty: true
-      resources:
-        limits:
-          cpu: 1
-          memory: 2Gi
-        requests:
-          cpu: 1
-          memory: 2Gi
-'''
+      yaml libraryResource("zeebe/podspecs/${utils.isProdJenkins() ? 'maven11SmallAgent.yml' : 'maven11SmallAgentStage.yml'}")
     }
   }
 
@@ -77,7 +54,7 @@ spec:
 
       post {
         always {
-            junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
+          junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
         }
       }
     }
@@ -110,13 +87,13 @@ spec:
         container('maven') {
           sshagent(['camunda-jenkins-github-ssh']) {
             configFileProvider([configFile(fileId: 'maven-nexus-settings-zeebe', variable: 'MAVEN_SETTINGS_XML')]) {
-                sh 'gpg -q --import ${GPG_PUB_KEY} '
-                sh 'gpg -q --allow-secret-key-import --import --no-tty --batch --yes ${GPG_SEC_KEY}'
-                sh 'git config --global user.email "ci@camunda.com"'
-                sh 'git config --global user.name "camunda-jenkins"'
-                sh 'mkdir ~/.ssh/ && ssh-keyscan github.com >> ~/.ssh/known_hosts'
-                sh 'mvn -B -s $MAVEN_SETTINGS_XML -DskipTests source:jar javadoc:jar release:prepare release:perform -Prelease'
-                sh '.ci/scripts/github-release.sh'
+              sh 'gpg -q --import ${GPG_PUB_KEY} '
+              sh 'gpg -q --allow-secret-key-import --import --no-tty --batch --yes ${GPG_SEC_KEY}'
+              sh 'git config --global user.email "ci@camunda.com"'
+              sh 'git config --global user.name "camunda-jenkins"'
+              sh 'mkdir ~/.ssh/ && ssh-keyscan github.com >> ~/.ssh/known_hosts'
+              sh 'mvn -B -s $MAVEN_SETTINGS_XML -DskipTests source:jar javadoc:jar release:prepare release:perform -Prelease'
+              sh '.ci/scripts/github-release.sh'
             }
           }
         }
@@ -125,14 +102,14 @@ spec:
   }
 
   post {
-      always {
-          // Retrigger the build if the node disconnected
-          script {
-              if (nodeDisconnected()) {
-                  build job: currentBuild.projectName, propagate: false, quietPeriod: 60, wait: false
-              }
-          }
+    always {
+      // Retrigger the build if the node disconnected
+      script {
+        if (nodeDisconnected()) {
+          build job: currentBuild.projectName, propagate: false, quietPeriod: 60, wait: false
+        }
       }
+    }
   }
 }
 
