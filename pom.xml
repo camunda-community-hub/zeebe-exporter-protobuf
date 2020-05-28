@@ -43,7 +43,7 @@
     <version.log4j>2.11.1</version.log4j>
     <version.mockito>3.3.3</version.mockito>
 
-    <version.protobuf>3.12.1</version.protobuf>
+    <version.protobuf>3.12.2</version.protobuf>
     <version.protoc>3.9.1</version.protoc>
     <version.slf4j>1.7.25</version.slf4j>
     <version.zeebe>0.23.2</version.zeebe>
