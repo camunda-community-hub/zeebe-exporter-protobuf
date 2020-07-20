@@ -41,7 +41,7 @@
 
     <version.junit>4.13</version.junit>
     <version.log4j>2.11.1</version.log4j>
-    <version.mockito>3.4.3</version.mockito>
+    <version.mockito>3.4.4</version.mockito>
 
     <version.protobuf>3.12.2</version.protobuf>
     <version.protoc>3.9.1</version.protoc>
