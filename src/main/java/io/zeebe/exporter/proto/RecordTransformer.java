@@ -15,14 +15,22 @@
  */
 package io.zeebe.exporter.proto;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
+
 import io.zeebe.exporter.proto.Schema.RecordMetadata;
 import io.zeebe.exporter.proto.Schema.VariableDocumentRecord;
 import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
@@ -49,10 +57,6 @@ import io.zeebe.protocol.record.value.WorkflowInstanceResultRecordValue;
 import io.zeebe.protocol.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
 import io.zeebe.protocol.record.value.deployment.DeploymentResource;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * As a one class god factory...not great but keeping it around since it has all the code necessary
@@ -526,5 +530,39 @@ public final class RecordTransformer {
     }
 
     return builder.build();
+  }
+
+
+  private static final List<Class<? extends com.google.protobuf.Message>> RECORD_MESSAGE_TYPES;
+
+  static {
+    RECORD_MESSAGE_TYPES = new ArrayList<>();
+    RECORD_MESSAGE_TYPES.add(Schema.DeploymentRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.JobRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.JobBatchRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.ErrorRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.VariableRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.VariableDocumentRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.MessageStartEventSubscriptionRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.MessageSubscriptionRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.MessageRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.WorkflowInstanceRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.WorkflowInstanceCreationRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.WorkflowInstanceResultRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.WorkflowInstanceSubscriptionRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.TimerRecord.class);
+    RECORD_MESSAGE_TYPES.add(Schema.IncidentRecord.class);
+  }
+
+  /**
+   * Unpack the record from the Schema.Record any wrapper into proto specific records, for example Schema.DeploymentRecord, Schema.JobRecord
+   */
+  public com.google.protobuf.Message unpackRecord(Schema.Record record) throws InvalidProtocolBufferException {
+    for (Class<? extends com.google.protobuf.Message> type : RECORD_MESSAGE_TYPES) {
+      if (record.getRecord().is(type)) {
+        return record.getRecord().unpack(type);
+      }
+    }
+    throw new IllegalArgumentException(String.format("Unrecognised record type, expected one of %s, but was %s", RECORD_MESSAGE_TYPES, record.getRecord()));
   }
 }

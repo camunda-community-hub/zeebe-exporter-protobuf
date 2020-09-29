@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.zeebe.exporter.proto.Schema.JobRecord;
@@ -69,10 +70,14 @@ import io.zeebe.protocol.record.value.WorkflowInstanceSubscriptionRecordValue;
 import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
 import io.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.zeebe.protocol.record.value.deployment.ResourceType;
+import junit.framework.Assert;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -805,5 +810,93 @@ public class RecordTransformTest {
     when(record.getValue()).thenReturn(recordValue);
 
     return record;
+  }
+
+
+  @Test
+  public void shouldUnpackAllRecordTypes() throws Exception {
+
+    // given
+    
+    Map<Class<? extends Message>, Record<?>> records = new HashMap<>();
+
+    final DeploymentRecordValue deploymentRecordValue = mockDeploymentRecordValue();
+    final Record<DeploymentRecordValue> deploymentRecord = mockRecord(deploymentRecordValue, ValueType.DEPLOYMENT, DeploymentIntent.CREATE);
+    records.put(Schema.DeploymentRecord.class, deploymentRecord);
+
+    final JobRecordValue jobRecordValue = mockJobRecordValue();
+    final Record<JobRecordValue> jobRecord = mockRecord(jobRecordValue, ValueType.JOB, JobIntent.CREATE);
+    records.put(Schema.JobRecord.class, jobRecord);
+
+    final JobBatchRecordValue jobBatchRecordValue = mockJobBatchRecordValue();
+    final Record<JobBatchRecordValue> jobBatchRecord = mockRecord(jobBatchRecordValue, ValueType.JOB_BATCH, JobBatchIntent.ACTIVATE);
+    records.put(Schema.JobBatchRecord.class, jobBatchRecord);
+
+    final ErrorRecordValue errorRecordValue = mockErrorRecordValue();
+    final Record<ErrorRecordValue> errorRecord = mockRecord(errorRecordValue, ValueType.ERROR, ErrorIntent.CREATED);
+    records.put(Schema.ErrorRecord.class, errorRecord);
+
+    final VariableRecordValue variableRecordValue = mockVariableRecordValue();
+    final Record<VariableRecordValue> variableRecord = mockRecord(variableRecordValue, ValueType.VARIABLE, VariableIntent.CREATED);
+    records.put(Schema.VariableRecord.class, variableRecord);
+
+    final VariableDocumentRecordValue variableDocumentRecordValue = mockVariableDocumentRecordValue();
+    final Record<VariableDocumentRecordValue> variableDocumentRecord = mockRecord(variableDocumentRecordValue, ValueType.VARIABLE_DOCUMENT, VariableDocumentIntent.UPDATE);
+    records.put(Schema.VariableDocumentRecord.class, variableDocumentRecord);
+
+    final MessageStartEventSubscriptionRecordValue messageStartEventSubscriptionRecordValue = mockMessageStartEventSubscriptionRecordValue();
+    final Record<MessageStartEventSubscriptionRecordValue> messageStartEventSubscriptionRecord = mockRecord(messageStartEventSubscriptionRecordValue, ValueType.MESSAGE_START_EVENT_SUBSCRIPTION, MessageStartEventSubscriptionIntent.CLOSE);
+    records.put(Schema.MessageStartEventSubscriptionRecord.class, messageStartEventSubscriptionRecord);
+
+    final MessageSubscriptionRecordValue messageSubscriptionRecordValue = mockMessageSubscriptionRecordValue();
+    final Record<MessageSubscriptionRecordValue> messageSubscriptionRecord = mockRecord(messageSubscriptionRecordValue, ValueType.MESSAGE_SUBSCRIPTION, MessageSubscriptionIntent.OPEN);
+    records.put(Schema.MessageSubscriptionRecord.class, messageSubscriptionRecord);
+
+    final MessageRecordValue messageRecordValue = mockMessageRecordValue();
+    final Record<MessageRecordValue> messageRecord = mockRecord(messageRecordValue, ValueType.MESSAGE, MessageIntent.DELETE);
+    records.put(Schema.MessageRecord.class, messageRecord);
+
+    final WorkflowInstanceRecordValue workflowInstanceRecordValue = mockWorkflowInstanceRecordValue();
+    final Record<WorkflowInstanceRecordValue> workflowInstanceRecord = mockRecord(workflowInstanceRecordValue, ValueType.WORKFLOW_INSTANCE, WorkflowInstanceIntent.ELEMENT_ACTIVATED);
+    records.put(Schema.WorkflowInstanceRecord.class, workflowInstanceRecord);
+
+    final WorkflowInstanceCreationRecordValue workflowInstanceCreationRecordValue = mockWorkflowInstanceCreationRecordValue();
+    final Record<WorkflowInstanceCreationRecordValue> workflowInstanceCreationRecord = mockRecord(workflowInstanceCreationRecordValue, ValueType.WORKFLOW_INSTANCE_CREATION, WorkflowInstanceCreationIntent.CREATE);
+    records.put(Schema.WorkflowInstanceCreationRecord.class, workflowInstanceCreationRecord);
+
+    final WorkflowInstanceResultRecordValue workflowInstanceResultRecordValue = mockWorkflowInstanceResultRecordValue();
+    final Record<WorkflowInstanceResultRecordValue> workflowInstanceResultRecord = mockRecord(workflowInstanceResultRecordValue, ValueType.WORKFLOW_INSTANCE_RESULT, WorkflowInstanceResultIntent.COMPLETED);
+    records.put(Schema.WorkflowInstanceResultRecord.class, workflowInstanceResultRecord);
+
+    final WorkflowInstanceSubscriptionRecordValue workflowInstanceSubscriptionRecordValue = mockWorkflowInstanceSubscriptionRecordValue();
+    final Record<WorkflowInstanceSubscriptionRecordValue> workflowInstanceSubscriptionRecord = mockRecord(workflowInstanceSubscriptionRecordValue, ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION, WorkflowInstanceSubscriptionIntent.CLOSE);
+    records.put(Schema.WorkflowInstanceSubscriptionRecord.class, workflowInstanceSubscriptionRecord);
+
+    final TimerRecordValue timerRecordValue = mockTimerRecordValue();
+    final Record<TimerRecordValue> timerRecord = mockRecord(timerRecordValue, ValueType.TIMER, TimerIntent.CREATE);
+    records.put(Schema.TimerRecord.class, timerRecord);
+
+    final IncidentRecordValue incidentRecordValue = mockIncidentRecordValue();
+    final Record<IncidentRecordValue> incidentRecord = mockRecord(incidentRecordValue, ValueType.INCIDENT, IncidentIntent.CREATE);
+    records.put(Schema.IncidentRecord.class, incidentRecord);
+
+
+
+    for (Map.Entry<Class<? extends Message>, Record<?>> entry : records.entrySet()) {
+      var clzz = entry.getKey();
+      var record = entry.getValue();
+      
+      //given
+      final var expectedProtobufRecord = RecordTransformer.toProtobufMessage(record);
+
+      // when
+      final var genericProtobufRecord = RecordTransformer.toGenericRecord(record);
+  
+      // then
+  
+      final var unpackedRecord = genericProtobufRecord.getRecord().unpack(clzz);
+      assertThat(unpackedRecord).isEqualTo(expectedProtobufRecord);
+
+    }
   }
 }
