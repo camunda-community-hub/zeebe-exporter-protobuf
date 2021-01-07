@@ -46,7 +46,7 @@
     <version.protobuf>3.14.0</version.protobuf>
     <version.protoc>3.9.1</version.protoc>
     <version.slf4j>1.7.25</version.slf4j>
-    <version.zeebe>0.25.3</version.zeebe>
+    <version.zeebe>0.26.0</version.zeebe>
 
     <!-- plugin version -->
     <plugin.version.checkstyle>3.1.1</plugin.version.checkstyle>
