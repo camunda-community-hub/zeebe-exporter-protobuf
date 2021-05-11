@@ -15,6 +15,7 @@
  */
 package io.zeebe.exporter.proto;
 
+import static java.util.function.Predicate.not;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Mockito.mock;
@@ -23,56 +24,62 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import io.zeebe.exporter.proto.Schema.JobRecord;
-import io.zeebe.exporter.proto.Schema.RecordMetadata;
-import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
-import io.zeebe.exporter.proto.Schema.WorkflowInstanceRecord;
-import io.zeebe.protocol.record.Record;
-import io.zeebe.protocol.record.RecordType;
-import io.zeebe.protocol.record.RecordValue;
-import io.zeebe.protocol.record.RejectionType;
-import io.zeebe.protocol.record.ValueType;
-import io.zeebe.protocol.record.intent.DeploymentIntent;
-import io.zeebe.protocol.record.intent.ErrorIntent;
-import io.zeebe.protocol.record.intent.IncidentIntent;
-import io.zeebe.protocol.record.intent.Intent;
-import io.zeebe.protocol.record.intent.JobBatchIntent;
-import io.zeebe.protocol.record.intent.JobIntent;
-import io.zeebe.protocol.record.intent.MessageIntent;
-import io.zeebe.protocol.record.intent.MessageStartEventSubscriptionIntent;
-import io.zeebe.protocol.record.intent.MessageSubscriptionIntent;
-import io.zeebe.protocol.record.intent.TimerIntent;
-import io.zeebe.protocol.record.intent.VariableDocumentIntent;
-import io.zeebe.protocol.record.intent.VariableIntent;
-import io.zeebe.protocol.record.intent.WorkflowInstanceCreationIntent;
-import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
-import io.zeebe.protocol.record.intent.WorkflowInstanceResultIntent;
-import io.zeebe.protocol.record.intent.WorkflowInstanceSubscriptionIntent;
-import io.zeebe.protocol.record.value.BpmnElementType;
-import io.zeebe.protocol.record.value.DeploymentRecordValue;
-import io.zeebe.protocol.record.value.ErrorRecordValue;
-import io.zeebe.protocol.record.value.ErrorType;
-import io.zeebe.protocol.record.value.IncidentRecordValue;
-import io.zeebe.protocol.record.value.JobBatchRecordValue;
-import io.zeebe.protocol.record.value.JobRecordValue;
-import io.zeebe.protocol.record.value.MessageRecordValue;
-import io.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
-import io.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
-import io.zeebe.protocol.record.value.TimerRecordValue;
-import io.zeebe.protocol.record.value.VariableDocumentRecordValue;
-import io.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
-import io.zeebe.protocol.record.value.VariableRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceCreationRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceResultRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceSubscriptionRecordValue;
-import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
-import io.zeebe.protocol.record.value.deployment.DeploymentResource;
-import io.zeebe.protocol.record.value.deployment.ResourceType;
+import io.camunda.zeebe.exporter.proto.RecordTransformer;
+import io.camunda.zeebe.exporter.proto.Schema;
+import io.camunda.zeebe.exporter.proto.Schema.JobRecord;
+import io.camunda.zeebe.exporter.proto.Schema.RecordMetadata;
+import io.camunda.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
+import io.camunda.zeebe.protocol.record.Record;
+import io.camunda.zeebe.protocol.record.RecordType;
+import io.camunda.zeebe.protocol.record.RecordValue;
+import io.camunda.zeebe.protocol.record.RejectionType;
+import io.camunda.zeebe.protocol.record.ValueType;
+import io.camunda.zeebe.protocol.record.intent.DeploymentDistributionIntent;
+import io.camunda.zeebe.protocol.record.intent.DeploymentIntent;
+import io.camunda.zeebe.protocol.record.intent.ErrorIntent;
+import io.camunda.zeebe.protocol.record.intent.IncidentIntent;
+import io.camunda.zeebe.protocol.record.intent.Intent;
+import io.camunda.zeebe.protocol.record.intent.JobBatchIntent;
+import io.camunda.zeebe.protocol.record.intent.JobIntent;
+import io.camunda.zeebe.protocol.record.intent.MessageIntent;
+import io.camunda.zeebe.protocol.record.intent.MessageStartEventSubscriptionIntent;
+import io.camunda.zeebe.protocol.record.intent.MessageSubscriptionIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessEventIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessMessageSubscriptionIntent;
+import io.camunda.zeebe.protocol.record.intent.TimerIntent;
+import io.camunda.zeebe.protocol.record.intent.VariableDocumentIntent;
+import io.camunda.zeebe.protocol.record.intent.VariableIntent;
+import io.camunda.zeebe.protocol.record.value.BpmnElementType;
+import io.camunda.zeebe.protocol.record.value.DeploymentDistributionRecordValue;
+import io.camunda.zeebe.protocol.record.value.DeploymentRecordValue;
+import io.camunda.zeebe.protocol.record.value.ErrorRecordValue;
+import io.camunda.zeebe.protocol.record.value.ErrorType;
+import io.camunda.zeebe.protocol.record.value.IncidentRecordValue;
+import io.camunda.zeebe.protocol.record.value.JobBatchRecordValue;
+import io.camunda.zeebe.protocol.record.value.JobRecordValue;
+import io.camunda.zeebe.protocol.record.value.MessageRecordValue;
+import io.camunda.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
+import io.camunda.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessMessageSubscriptionRecordValue;
+import io.camunda.zeebe.protocol.record.value.TimerRecordValue;
+import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
+import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
+import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
+import io.camunda.zeebe.protocol.record.value.deployment.Process;
+import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -104,96 +111,116 @@ public class RecordTransformTest {
     final Schema.DeploymentRecord.Resource resource = resourcesList.get(0);
     assertThat(resource.getResource().toStringUtf8()).isEqualTo("resourceContent");
     assertThat(resource.getResourceName()).isEqualTo("process.bpmn");
-    assertThat(resource.getResourceType()).isEqualTo("BPMN_XML");
 
-    final List<Schema.DeploymentRecord.Workflow> workflowsList =
-        deployment.getDeployedWorkflowsList();
-    assertThat(workflowsList).hasSize(1);
+    final List<Schema.DeploymentRecord.ProcessMetadata> processMetadataList =
+        deployment.getProcessMetadataList();
+    assertThat(processMetadataList).hasSize(1);
 
-    final Schema.DeploymentRecord.Workflow workflow = workflowsList.get(0);
-    assertThat(workflow.getBpmnProcessId()).isEqualTo("process");
-    assertThat(workflow.getResourceName()).isEqualTo("process.bpmn");
-    assertThat(workflow.getWorkflowKey()).isEqualTo(4L);
-    assertThat(workflow.getVersion()).isEqualTo(1);
+    final Schema.DeploymentRecord.ProcessMetadata processMetadata = processMetadataList.get(0);
+    assertThat(processMetadata.getBpmnProcessId()).isEqualTo("process");
+    assertThat(processMetadata.getResourceName()).isEqualTo("process.bpmn");
+    assertThat(processMetadata.getProcessDefinitionKey()).isEqualTo(4L);
+    assertThat(processMetadata.getVersion()).isEqualTo(1);
+    assertThat(processMetadata.getChecksum()).isEqualTo("checksum");
+  }
+
+  @Test
+  public void shouldTransformDeploymentDistribution() {
+    // given
+    final DeploymentDistributionRecordValue deploymentDistributionRecordValue =
+        mockDeploymentDistributionRecordValue();
+    final Record<DeploymentDistributionRecordValue> mockedRecord =
+        mockRecord(
+            deploymentDistributionRecordValue,
+            ValueType.DEPLOYMENT_DISTRIBUTION,
+            DeploymentDistributionIntent.DISTRIBUTING);
+
+    // when
+    final Schema.DeploymentDistributionRecord deploymentDistribution =
+        (Schema.DeploymentDistributionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(deploymentDistribution.getMetadata(), "DEPLOYMENT_DISTRIBUTION", "DISTRIBUTING");
+
+    assertThat(deploymentDistribution.getPartitionId())
+        .isEqualTo(deploymentDistributionRecordValue.getPartitionId());
+  }
+
+  @Test
+  public void shouldTransformProcess() {
+    // given
+    final var recordValue = mockProcessRecordValue();
+    final Record<Process> mockedRecord =
+        mockRecord(recordValue, ValueType.PROCESS, ProcessIntent.CREATED);
+
+    // when
+    final var transformedRecord =
+        (Schema.ProcessRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "PROCESS", "CREATED");
+
+    assertThat(transformedRecord.getResource().toStringUtf8()).isEqualTo("resourceContent");
+    assertThat(transformedRecord.getResourceName()).isEqualTo(recordValue.getResourceName());
+    assertThat(transformedRecord.getBpmnProcessId()).isEqualTo(recordValue.getBpmnProcessId());
+    assertThat(transformedRecord.getChecksum()).isEqualTo("checksum");
+    assertThat(transformedRecord.getProcessDefinitionKey())
+        .isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getVersion()).isEqualTo(recordValue.getVersion());
   }
 
   @Test
   public void shouldTransformWorkflowInstance() {
     // given
-    final WorkflowInstanceRecordValue workflowInstanceRecordValue =
-        mockWorkflowInstanceRecordValue();
-    final Record<WorkflowInstanceRecordValue> mockedRecord =
+    final ProcessInstanceRecordValue workflowInstanceRecordValue = mockProcessInstanceRecordValue();
+    final Record<ProcessInstanceRecordValue> mockedRecord =
         mockRecord(
             workflowInstanceRecordValue,
-            ValueType.WORKFLOW_INSTANCE,
-            WorkflowInstanceIntent.ELEMENT_ACTIVATED);
+            ValueType.PROCESS_INSTANCE,
+            ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
-    final Schema.WorkflowInstanceRecord workflowInstance =
-        (Schema.WorkflowInstanceRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+    final Schema.ProcessInstanceRecord workflowInstance =
+        (Schema.ProcessInstanceRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(workflowInstance.getMetadata(), "WORKFLOW_INSTANCE", "ELEMENT_ACTIVATED");
+    assertMetadata(workflowInstance.getMetadata(), "PROCESS_INSTANCE", "ELEMENT_ACTIVATED");
 
     assertThat(workflowInstance.getBpmnProcessId()).isEqualTo("process");
     assertThat(workflowInstance.getElementId()).isEqualTo("startEvent");
-    assertThat(workflowInstance.getWorkflowKey()).isEqualTo(4L);
+    assertThat(workflowInstance.getProcessDefinitionKey()).isEqualTo(4L);
     assertThat(workflowInstance.getVersion()).isEqualTo(1);
-    assertThat(workflowInstance.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(workflowInstance.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstance.getFlowScopeKey()).isEqualTo(-1L);
-    assertThat(workflowInstance.getBpmnElementType())
-        .isEqualTo(Schema.WorkflowInstanceRecord.BpmnElementType.START_EVENT);
-    assertThat(workflowInstance.getParentWorkflowInstanceKey()).isEqualTo(-1L);
+    assertThat(workflowInstance.getBpmnElementType()).isEqualTo("START_EVENT");
+    assertThat(workflowInstance.getParentProcessInstanceKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getParentElementInstanceKey()).isEqualTo(-1L);
   }
 
   @Test
   public void shouldTransformWorkflowInstanceCreation() {
     // given
-    final WorkflowInstanceCreationRecordValue workflowInstanceCreationRecordValue =
+    final ProcessInstanceCreationRecordValue workflowInstanceCreationRecordValue =
         mockWorkflowInstanceCreationRecordValue();
-    final Record<WorkflowInstanceCreationRecordValue> mockedRecord =
+    final Record<ProcessInstanceCreationRecordValue> mockedRecord =
         mockRecord(
             workflowInstanceCreationRecordValue,
-            ValueType.WORKFLOW_INSTANCE_CREATION,
-            WorkflowInstanceCreationIntent.CREATED);
+            ValueType.PROCESS_INSTANCE_CREATION,
+            ProcessInstanceCreationIntent.CREATED);
 
     // when
-    final Schema.WorkflowInstanceCreationRecord workflowInstanceCreation =
-        (Schema.WorkflowInstanceCreationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+    final Schema.ProcessInstanceCreationRecord workflowInstanceCreation =
+        (Schema.ProcessInstanceCreationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(workflowInstanceCreation.getMetadata(), "WORKFLOW_INSTANCE_CREATION", "CREATED");
+    assertMetadata(workflowInstanceCreation.getMetadata(), "PROCESS_INSTANCE_CREATION", "CREATED");
 
     assertThat(workflowInstanceCreation.getBpmnProcessId()).isEqualTo("process");
-    assertThat(workflowInstanceCreation.getWorkflowKey()).isEqualTo(4L);
+    assertThat(workflowInstanceCreation.getProcessDefinitionKey())
+        .isEqualTo(workflowInstanceCreationRecordValue.getProcessDefinitionKey());
     assertThat(workflowInstanceCreation.getVersion()).isEqualTo(1);
-    assertThat(workflowInstanceCreation.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(workflowInstanceCreation.getProcessInstanceKey()).isEqualTo(1L);
     assertVariables(workflowInstanceCreation.getVariables());
-  }
-
-  @Test
-  public void shouldTransformWorkflowInstanceResult() {
-    // given
-    final WorkflowInstanceResultRecordValue recordValue = mockWorkflowInstanceResultRecordValue();
-    final Record<WorkflowInstanceResultRecordValue> mockedRecord =
-        mockRecord(
-            recordValue,
-            ValueType.WORKFLOW_INSTANCE_RESULT,
-            WorkflowInstanceResultIntent.COMPLETED);
-
-    // when
-    final Schema.WorkflowInstanceResultRecord workflowInstanceResult =
-        (Schema.WorkflowInstanceResultRecord) RecordTransformer.toProtobufMessage(mockedRecord);
-
-    // then
-    assertMetadata(workflowInstanceResult.getMetadata(), "WORKFLOW_INSTANCE_RESULT", "COMPLETED");
-
-    assertThat(workflowInstanceResult.getBpmnProcessId()).isEqualTo("process");
-    assertThat(workflowInstanceResult.getWorkflowKey()).isEqualTo(4L);
-    assertThat(workflowInstanceResult.getVersion()).isEqualTo(1);
-    assertThat(workflowInstanceResult.getWorkflowInstanceKey()).isEqualTo(1L);
-    assertVariables(workflowInstanceResult.getVariables());
   }
 
   @Test
@@ -201,14 +228,14 @@ public class RecordTransformTest {
     // given
     final JobRecordValue jobRecordValue = mockJobRecordValue();
     final Record<JobRecordValue> mockedRecord =
-        mockRecord(jobRecordValue, ValueType.JOB, JobIntent.CREATE);
+        mockRecord(jobRecordValue, ValueType.JOB, JobIntent.CREATED);
 
     // when
     final Schema.JobRecord jobRecord =
         (Schema.JobRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(jobRecord.getMetadata(), "JOB", "CREATE");
+    assertMetadata(jobRecord.getMetadata(), "JOB", "CREATED");
     assertJobRecord(jobRecord);
   }
 
@@ -217,14 +244,14 @@ public class RecordTransformTest {
     // given
     final JobBatchRecordValue jobBatchRecordValue = mockJobBatchRecordValue();
     final Record<JobBatchRecordValue> mockedRecord =
-        mockRecord(jobBatchRecordValue, ValueType.JOB_BATCH, JobBatchIntent.ACTIVATE);
+        mockRecord(jobBatchRecordValue, ValueType.JOB_BATCH, JobBatchIntent.ACTIVATED);
 
     // when
     final Schema.JobBatchRecord jobBatchRecord =
         (Schema.JobBatchRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(jobBatchRecord.getMetadata(), "JOB_BATCH", "ACTIVATE");
+    assertMetadata(jobBatchRecord.getMetadata(), "JOB_BATCH", "ACTIVATED");
 
     assertThat(jobBatchRecord.getJobKeysList()).containsExactly(5L);
     assertThat(jobBatchRecord.getMaxJobsToActivate()).isEqualTo(1);
@@ -243,20 +270,20 @@ public class RecordTransformTest {
     // given
     final IncidentRecordValue incidentRecordValue = mockIncidentRecordValue();
     final Record<IncidentRecordValue> mockedRecord =
-        mockRecord(incidentRecordValue, ValueType.INCIDENT, IncidentIntent.CREATE);
+        mockRecord(incidentRecordValue, ValueType.INCIDENT, IncidentIntent.CREATED);
 
     // when
     final Schema.IncidentRecord incidentRecord =
         (Schema.IncidentRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(incidentRecord.getMetadata(), "INCIDENT", "CREATE");
+    assertMetadata(incidentRecord.getMetadata(), "INCIDENT", "CREATED");
 
     assertThat(incidentRecord.getBpmnProcessId()).isEqualTo("process");
     assertThat(incidentRecord.getElementId()).isEqualTo("gateway");
     assertThat(incidentRecord.getElementInstanceKey()).isEqualTo(1L);
-    assertThat(incidentRecord.getWorkflowInstanceKey()).isEqualTo(1L);
-    assertThat(incidentRecord.getWorkflowKey()).isEqualTo(32L);
+    assertThat(incidentRecord.getProcessInstanceKey()).isEqualTo(1L);
+    assertThat(incidentRecord.getProcessDefinitionKey()).isEqualTo(32L);
     assertThat(incidentRecord.getVariableScopeKey()).isEqualTo(1L);
 
     assertThat(incidentRecord.getErrorMessage()).isEqualTo("failed");
@@ -270,14 +297,14 @@ public class RecordTransformTest {
     // given
     final MessageRecordValue messageRecordValue = mockMessageRecordValue();
     final Record<MessageRecordValue> mockedRecord =
-        mockRecord(messageRecordValue, ValueType.MESSAGE, MessageIntent.PUBLISH);
+        mockRecord(messageRecordValue, ValueType.MESSAGE, MessageIntent.PUBLISHED);
 
     // when
     final Schema.MessageRecord messageRecord =
         (Schema.MessageRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(messageRecord.getMetadata(), "MESSAGE", "PUBLISH");
+    assertMetadata(messageRecord.getMetadata(), "MESSAGE", "PUBLISHED");
 
     assertThat(messageRecord.getCorrelationKey()).isEqualTo("key");
     assertThat(messageRecord.getMessageId()).isEqualTo("msgId");
@@ -292,21 +319,21 @@ public class RecordTransformTest {
     // given
     final TimerRecordValue timerRecordValue = mockTimerRecordValue();
     final Record<TimerRecordValue> mockedRecord =
-        mockRecord(timerRecordValue, ValueType.TIMER, TimerIntent.CREATE);
+        mockRecord(timerRecordValue, ValueType.TIMER, TimerIntent.CREATED);
 
     // when
     final Schema.TimerRecord timerRecord =
         (Schema.TimerRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(timerRecord.getMetadata(), "TIMER", "CREATE");
+    assertMetadata(timerRecord.getMetadata(), "TIMER", "CREATED");
 
     assertThat(timerRecord.getDueDate()).isEqualTo(1000L);
     assertThat(timerRecord.getRepetitions()).isEqualTo(1);
     assertThat(timerRecord.getElementInstanceKey()).isEqualTo(1L);
-    assertThat(timerRecord.getTargetFlowNodeId()).isEqualTo("timerCatch");
-    assertThat(timerRecord.getWorkflowInstanceKey()).isEqualTo(2L);
-    assertThat(timerRecord.getWorkflowKey()).isEqualTo(3L);
+    assertThat(timerRecord.getTargetElementId()).isEqualTo("timerCatch");
+    assertThat(timerRecord.getProcessInstanceKey()).isEqualTo(2L);
+    assertThat(timerRecord.getProcessDefinitionKey()).isEqualTo(3L);
   }
 
   @Test
@@ -314,53 +341,58 @@ public class RecordTransformTest {
     // given
     final MessageSubscriptionRecordValue value = mockMessageSubscriptionRecordValue();
     final Record<MessageSubscriptionRecordValue> mockedRecord =
-        mockRecord(value, ValueType.MESSAGE_SUBSCRIPTION, MessageSubscriptionIntent.CORRELATE);
+        mockRecord(value, ValueType.MESSAGE_SUBSCRIPTION, MessageSubscriptionIntent.CORRELATED);
 
     // when
     final Schema.MessageSubscriptionRecord messageSubscriptionRecord =
         (Schema.MessageSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(messageSubscriptionRecord.getMetadata(), "MESSAGE_SUBSCRIPTION", "CORRELATE");
+    assertMetadata(messageSubscriptionRecord.getMetadata(), "MESSAGE_SUBSCRIPTION", "CORRELATED");
 
     assertThat(messageSubscriptionRecord.getCorrelationKey()).isEqualTo("key");
     assertThat(messageSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(messageSubscriptionRecord.getElementInstanceKey()).isEqualTo(12L);
-    assertThat(messageSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(messageSubscriptionRecord.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(messageSubscriptionRecord.getBpmnProcessId()).isEqualTo(value.getBpmnProcessId());
     assertThat(messageSubscriptionRecord.getMessageKey()).isEqualTo(value.getMessageKey());
+
+    assertVariables(messageSubscriptionRecord.getVariables());
   }
 
   @Test
-  public void shouldTransformWorkflowInstanceSubscription() {
+  public void shouldTransformProcessMessageSubscription() {
     // given
-    final WorkflowInstanceSubscriptionRecordValue value =
-        mockWorkflowInstanceSubscriptionRecordValue();
-    final Record<WorkflowInstanceSubscriptionRecordValue> mockedRecord =
+    final ProcessMessageSubscriptionRecordValue value = mockProcessMessageSubscriptionRecordValue();
+    final Record<ProcessMessageSubscriptionRecordValue> mockedRecord =
         mockRecord(
             value,
-            ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
-            WorkflowInstanceSubscriptionIntent.CORRELATE);
+            ValueType.PROCESS_MESSAGE_SUBSCRIPTION,
+            ProcessMessageSubscriptionIntent.CORRELATED);
 
     // when
-    final Schema.WorkflowInstanceSubscriptionRecord workflowInstanceSubscriptionRecord =
-        (Schema.WorkflowInstanceSubscriptionRecord)
-            RecordTransformer.toProtobufMessage(mockedRecord);
+    final Schema.ProcessMessageSubscriptionRecord workflowInstanceSubscriptionRecord =
+        (Schema.ProcessMessageSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(
         workflowInstanceSubscriptionRecord.getMetadata(),
-        "WORKFLOW_INSTANCE_SUBSCRIPTION",
-        "CORRELATE");
+        "PROCESS_MESSAGE_SUBSCRIPTION",
+        "CORRELATED");
 
     assertVariables(workflowInstanceSubscriptionRecord.getVariables());
 
     assertThat(workflowInstanceSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(workflowInstanceSubscriptionRecord.getElementInstanceKey()).isEqualTo(4L);
-    assertThat(workflowInstanceSubscriptionRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(workflowInstanceSubscriptionRecord.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstanceSubscriptionRecord.getBpmnProcessId())
         .isEqualTo(value.getBpmnProcessId());
     assertThat(workflowInstanceSubscriptionRecord.getMessageKey()).isEqualTo(value.getMessageKey());
+    assertThat(workflowInstanceSubscriptionRecord.getCorrelationKey())
+        .isEqualTo(value.getCorrelationKey());
+    assertThat(workflowInstanceSubscriptionRecord.getElementId()).isEqualTo(value.getElementId());
+
+    assertVariables(workflowInstanceSubscriptionRecord.getVariables());
   }
 
   @Test
@@ -379,9 +411,10 @@ public class RecordTransformTest {
     assertThat(variableRecord.getName()).isEqualTo(variableRecordValue.getName());
     assertThat(variableRecord.getScopeKey()).isEqualTo(variableRecordValue.getScopeKey());
     assertThat(variableRecord.getValue()).isEqualTo(variableRecordValue.getValue());
-    assertThat(variableRecord.getWorkflowInstanceKey())
-        .isEqualTo(variableRecordValue.getWorkflowInstanceKey());
-    assertThat(variableRecord.getWorkflowKey()).isEqualTo(variableRecordValue.getWorkflowKey());
+    assertThat(variableRecord.getProcessInstanceKey())
+        .isEqualTo(variableRecordValue.getProcessInstanceKey());
+    assertThat(variableRecord.getProcessDefinitionKey())
+        .isEqualTo(variableRecordValue.getProcessDefinitionKey());
   }
 
   @Test
@@ -416,18 +449,45 @@ public class RecordTransformTest {
         mockRecord(
             value,
             ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
-            MessageStartEventSubscriptionIntent.OPEN);
+            MessageStartEventSubscriptionIntent.CREATED);
 
     // when
     final Schema.MessageStartEventSubscriptionRecord transformed =
         (Schema.MessageStartEventSubscriptionRecord) RecordTransformer.toProtobufMessage(record);
 
     // then
-    assertMetadata(transformed.getMetadata(), "MESSAGE_START_EVENT_SUBSCRIPTION", "OPEN");
+    assertMetadata(transformed.getMetadata(), "MESSAGE_START_EVENT_SUBSCRIPTION", "CREATED");
     assertThat(transformed.getMessageName()).isEqualTo(value.getMessageName());
     assertThat(transformed.getStartEventId()).isEqualTo(value.getStartEventId());
-    assertThat(transformed.getWorkflowKey()).isEqualTo(value.getWorkflowKey());
+    assertThat(transformed.getProcessDefinitionKey()).isEqualTo(value.getProcessDefinitionKey());
     assertThat(transformed.getBpmnProcessId()).isEqualTo(value.getBpmnProcessId());
+    assertThat(transformed.getCorrelationKey()).isEqualTo(value.getCorrelationKey());
+    assertThat(transformed.getMessageKey()).isEqualTo(value.getMessageKey());
+    assertThat(transformed.getProcessInstanceKey()).isEqualTo(value.getProcessInstanceKey());
+
+    assertVariables(transformed.getVariables());
+  }
+
+  @Test
+  public void shouldTransformProcessEvent() {
+    // given
+    final var recordValue = mockProcessEventRecordValue();
+    final Record<ProcessEventRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.PROCESS_EVENT, ProcessEventIntent.TRIGGERING);
+
+    // when
+    final var transformedRecord =
+        (Schema.ProcessEventRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "PROCESS_EVENT", "TRIGGERING");
+
+    assertThat(transformedRecord.getProcessDefinitionKey())
+        .isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getScopeKey()).isEqualTo(recordValue.getScopeKey());
+    assertThat(transformedRecord.getTargetElementId()).isEqualTo(recordValue.getTargetElementId());
+
+    assertVariables(transformedRecord.getVariables());
   }
 
   @Test
@@ -445,20 +505,7 @@ public class RecordTransformTest {
     assertThat(transformed.getExceptionMessage()).isEqualTo(value.getExceptionMessage());
     assertThat(transformed.getStacktrace()).isEqualTo(value.getStacktrace());
     assertThat(transformed.getErrorEventPosition()).isEqualTo(value.getErrorEventPosition());
-    assertThat(transformed.getWorkflowInstanceKey()).isEqualTo(value.getWorkflowInstanceKey());
-  }
-
-  @Test
-  public void shouldTransformBpmnElementType() {
-
-    final List<String> bpmnElementTypes =
-        Arrays.stream(BpmnElementType.values())
-            .map(BpmnElementType::name)
-            .collect(Collectors.toList());
-
-    assertThat(WorkflowInstanceRecord.BpmnElementType.values())
-        .extracting(WorkflowInstanceRecord.BpmnElementType::name)
-        .containsAll(bpmnElementTypes);
+    assertThat(transformed.getProcessInstanceKey()).isEqualTo(value.getProcessInstanceKey());
   }
 
   @Test
@@ -478,9 +525,12 @@ public class RecordTransformTest {
   @Test
   public void shouldTransformValueType() {
 
+    final var ignoredValueTypes =
+        Set.of(ValueType.NULL_VAL, ValueType.SBE_UNKNOWN, ValueType.PROCESS_INSTANCE_RESULT);
+
     final List<String> valueTypes =
         Arrays.stream(ValueType.values())
-            .filter(t -> t != ValueType.NULL_VAL && t != ValueType.SBE_UNKNOWN)
+            .filter(not(ignoredValueTypes::contains))
             .map(ValueType::name)
             .collect(Collectors.toList());
 
@@ -539,8 +589,12 @@ public class RecordTransformTest {
 
     when(value.getMessageName()).thenReturn("message");
     when(value.getStartEventId()).thenReturn("start");
-    when(value.getWorkflowKey()).thenReturn(1L);
+    when(value.getProcessDefinitionKey()).thenReturn(1L);
     when(value.getBpmnProcessId()).thenReturn("bpmnProcessId");
+    when(value.getCorrelationKey()).thenReturn("correlationKey");
+    when(value.getMessageKey()).thenReturn(2L);
+    when(value.getProcessInstanceKey()).thenReturn(3L);
+    when(value.getVariables()).thenReturn(Map.of("foo", 23));
 
     return value;
   }
@@ -552,8 +606,8 @@ public class RecordTransformTest {
     when(timerRecordValue.getRepetitions()).thenReturn(1);
     when(timerRecordValue.getElementInstanceKey()).thenReturn(1L);
     when(timerRecordValue.getTargetElementId()).thenReturn("timerCatch");
-    when(timerRecordValue.getWorkflowInstanceKey()).thenReturn(2L);
-    when(timerRecordValue.getWorkflowKey()).thenReturn(3L);
+    when(timerRecordValue.getProcessInstanceKey()).thenReturn(2L);
+    when(timerRecordValue.getProcessDefinitionKey()).thenReturn(3L);
 
     return timerRecordValue;
   }
@@ -564,8 +618,8 @@ public class RecordTransformTest {
     when(variableRecordValue.getName()).thenReturn("var");
     when(variableRecordValue.getScopeKey()).thenReturn(1L);
     when(variableRecordValue.getValue()).thenReturn("true");
-    when(variableRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
-    when(variableRecordValue.getWorkflowKey()).thenReturn(2L);
+    when(variableRecordValue.getProcessInstanceKey()).thenReturn(1L);
+    when(variableRecordValue.getProcessDefinitionKey()).thenReturn(2L);
 
     return variableRecordValue;
   }
@@ -588,22 +642,25 @@ public class RecordTransformTest {
     when(messageSubscriptionRecordValue.getCorrelationKey()).thenReturn("key");
     when(messageSubscriptionRecordValue.getElementInstanceKey()).thenReturn(12L);
     when(messageSubscriptionRecordValue.getMessageName()).thenReturn("message");
-    when(messageSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(messageSubscriptionRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(messageSubscriptionRecordValue.getBpmnProcessId()).thenReturn("bpmnProcessId");
     when(messageSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
+    when(messageSubscriptionRecordValue.getVariables()).thenReturn(Map.of("foo", 23));
 
     return messageSubscriptionRecordValue;
   }
 
-  private WorkflowInstanceSubscriptionRecordValue mockWorkflowInstanceSubscriptionRecordValue() {
-    final WorkflowInstanceSubscriptionRecordValue workflowInstanceSubscriptionRecordValue =
-        mock(WorkflowInstanceSubscriptionRecordValue.class);
+  private ProcessMessageSubscriptionRecordValue mockProcessMessageSubscriptionRecordValue() {
+    final ProcessMessageSubscriptionRecordValue workflowInstanceSubscriptionRecordValue =
+        mock(ProcessMessageSubscriptionRecordValue.class);
 
     when(workflowInstanceSubscriptionRecordValue.getMessageName()).thenReturn("message");
-    when(workflowInstanceSubscriptionRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(workflowInstanceSubscriptionRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(workflowInstanceSubscriptionRecordValue.getElementInstanceKey()).thenReturn(4L);
     when(workflowInstanceSubscriptionRecordValue.getBpmnProcessId()).thenReturn("bpmnProcessId");
     when(workflowInstanceSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
+    when(workflowInstanceSubscriptionRecordValue.getCorrelationKey()).thenReturn("correlationKey");
+    when(workflowInstanceSubscriptionRecordValue.getElementId()).thenReturn("elementId");
 
     when(workflowInstanceSubscriptionRecordValue.getVariables())
         .thenReturn(Collections.singletonMap("foo", 23));
@@ -641,9 +698,9 @@ public class RecordTransformTest {
     when(jobRecordValue.getBpmnProcessId()).thenReturn("process");
     when(jobRecordValue.getElementId()).thenReturn("task");
     when(jobRecordValue.getElementInstanceKey()).thenReturn(3L);
-    when(jobRecordValue.getWorkflowDefinitionVersion()).thenReturn(1);
-    when(jobRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
-    when(jobRecordValue.getWorkflowKey()).thenReturn(4L);
+    when(jobRecordValue.getProcessDefinitionVersion()).thenReturn(1);
+    when(jobRecordValue.getProcessInstanceKey()).thenReturn(1L);
+    when(jobRecordValue.getProcessDefinitionKey()).thenReturn(4L);
 
     return jobRecordValue;
   }
@@ -651,79 +708,83 @@ public class RecordTransformTest {
   private DeploymentRecordValue mockDeploymentRecordValue() {
     final DeploymentRecordValue deploymentRecordValue = mock(DeploymentRecordValue.class);
 
-    final List<DeployedWorkflow> workflows = new ArrayList<>();
-    final DeployedWorkflow deployedWorkflow = mock(DeployedWorkflow.class);
-    when(deployedWorkflow.getBpmnProcessId()).thenReturn("process");
-    when(deployedWorkflow.getResourceName()).thenReturn("process.bpmn");
-    when(deployedWorkflow.getVersion()).thenReturn(1);
-    when(deployedWorkflow.getWorkflowKey()).thenReturn(4L);
-    workflows.add(deployedWorkflow);
+    final List<ProcessMetadataValue> workflows = new ArrayList<>();
+    final ProcessMetadataValue processMetadata = mock(ProcessMetadataValue.class);
+    when(processMetadata.getBpmnProcessId()).thenReturn("process");
+    when(processMetadata.getResourceName()).thenReturn("process.bpmn");
+    when(processMetadata.getVersion()).thenReturn(1);
+    when(processMetadata.getProcessDefinitionKey()).thenReturn(4L);
+    when(processMetadata.getChecksum()).thenReturn("checksum".getBytes());
+    workflows.add(processMetadata);
 
-    when(deploymentRecordValue.getDeployedWorkflows()).thenReturn(workflows);
+    when(deploymentRecordValue.getProcessesMetadata()).thenReturn(workflows);
 
     final List<DeploymentResource> resources = new ArrayList<>();
     final DeploymentResource deploymentResource = mock(DeploymentResource.class);
     when(deploymentResource.getResource()).thenReturn("resourceContent".getBytes());
     when(deploymentResource.getResourceName()).thenReturn("process.bpmn");
-    when(deploymentResource.getResourceType()).thenReturn(ResourceType.BPMN_XML);
     resources.add(deploymentResource);
 
     when(deploymentRecordValue.getResources()).thenReturn(resources);
     return deploymentRecordValue;
   }
 
-  private WorkflowInstanceRecordValue mockWorkflowInstanceRecordValue() {
-    final WorkflowInstanceRecordValue workflowInstanceRecordValue =
-        mock(WorkflowInstanceRecordValue.class);
+  private DeploymentDistributionRecordValue mockDeploymentDistributionRecordValue() {
+    final DeploymentDistributionRecordValue value = mock(DeploymentDistributionRecordValue.class);
+    when(value.getPartitionId()).thenReturn(1);
+    return value;
+  }
 
-    when(workflowInstanceRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+  private Process mockProcessRecordValue() {
+    final Process value = mock(Process.class);
+    when(value.getBpmnProcessId()).thenReturn("process");
+    when(value.getResourceName()).thenReturn("process.bpmn");
+    when(value.getResource()).thenReturn("resourceContent".getBytes());
+    when(value.getVersion()).thenReturn(1);
+    when(value.getProcessDefinitionKey()).thenReturn(2L);
+    when(value.getChecksum()).thenReturn("checksum".getBytes());
+    return value;
+  }
+
+  private ProcessInstanceRecordValue mockProcessInstanceRecordValue() {
+    final ProcessInstanceRecordValue workflowInstanceRecordValue =
+        mock(ProcessInstanceRecordValue.class);
+
+    when(workflowInstanceRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(workflowInstanceRecordValue.getBpmnProcessId()).thenReturn("process");
     when(workflowInstanceRecordValue.getElementId()).thenReturn("startEvent");
     when(workflowInstanceRecordValue.getFlowScopeKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getVersion()).thenReturn(1);
-    when(workflowInstanceRecordValue.getWorkflowKey()).thenReturn(4L);
+    when(workflowInstanceRecordValue.getProcessDefinitionKey()).thenReturn(4L);
     when(workflowInstanceRecordValue.getBpmnElementType()).thenReturn(BpmnElementType.START_EVENT);
-    when(workflowInstanceRecordValue.getParentWorkflowInstanceKey()).thenReturn(-1L);
+    when(workflowInstanceRecordValue.getParentProcessInstanceKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getParentElementInstanceKey()).thenReturn(-1L);
 
     return workflowInstanceRecordValue;
   }
 
-  private WorkflowInstanceCreationRecordValue mockWorkflowInstanceCreationRecordValue() {
-    final WorkflowInstanceCreationRecordValue workflowInstanceCreationRecordValue =
-        mock(WorkflowInstanceCreationRecordValue.class);
+  private ProcessInstanceCreationRecordValue mockWorkflowInstanceCreationRecordValue() {
+    final ProcessInstanceCreationRecordValue workflowInstanceCreationRecordValue =
+        mock(ProcessInstanceCreationRecordValue.class);
 
     when(workflowInstanceCreationRecordValue.getBpmnProcessId()).thenReturn("process");
     when(workflowInstanceCreationRecordValue.getVersion()).thenReturn(1);
-    when(workflowInstanceCreationRecordValue.getWorkflowKey()).thenReturn(4L);
-    when(workflowInstanceCreationRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(workflowInstanceCreationRecordValue.getProcessDefinitionKey()).thenReturn(4L);
+    when(workflowInstanceCreationRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(workflowInstanceCreationRecordValue.getVariables())
         .thenReturn(Collections.singletonMap("foo", 23));
 
     return workflowInstanceCreationRecordValue;
   }
 
-  private WorkflowInstanceResultRecordValue mockWorkflowInstanceResultRecordValue() {
-    final WorkflowInstanceResultRecordValue recordValue =
-        mock(WorkflowInstanceResultRecordValue.class);
-
-    when(recordValue.getBpmnProcessId()).thenReturn("process");
-    when(recordValue.getVersion()).thenReturn(1);
-    when(recordValue.getWorkflowKey()).thenReturn(4L);
-    when(recordValue.getWorkflowInstanceKey()).thenReturn(1L);
-    when(recordValue.getVariables()).thenReturn(Collections.singletonMap("foo", 23));
-
-    return recordValue;
-  }
-
   private IncidentRecordValue mockIncidentRecordValue() {
     final IncidentRecordValue incidentRecordValue = mock(IncidentRecordValue.class);
 
     when(incidentRecordValue.getBpmnProcessId()).thenReturn("process");
-    when(incidentRecordValue.getWorkflowKey()).thenReturn(32L);
+    when(incidentRecordValue.getProcessDefinitionKey()).thenReturn(32L);
     when(incidentRecordValue.getElementId()).thenReturn("gateway");
     when(incidentRecordValue.getElementInstanceKey()).thenReturn(1L);
-    when(incidentRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(incidentRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(incidentRecordValue.getVariableScopeKey()).thenReturn(1L);
 
     when(incidentRecordValue.getErrorMessage()).thenReturn("failed");
@@ -734,13 +795,22 @@ public class RecordTransformTest {
     return incidentRecordValue;
   }
 
+  private ProcessEventRecordValue mockProcessEventRecordValue() {
+    final var value = mock(ProcessEventRecordValue.class);
+    when(value.getProcessDefinitionKey()).thenReturn(1L);
+    when(value.getScopeKey()).thenReturn(2L);
+    when(value.getTargetElementId()).thenReturn("targetElementId");
+    when(value.getVariables()).thenReturn(Map.of("foo", 23));
+    return value;
+  }
+
   private ErrorRecordValue mockErrorRecordValue() {
     final ErrorRecordValue errorRecordValue = mock(ErrorRecordValue.class);
 
     when(errorRecordValue.getExceptionMessage()).thenReturn("exceptionMessage");
     when(errorRecordValue.getStacktrace()).thenReturn("stacktrace");
     when(errorRecordValue.getErrorEventPosition()).thenReturn(123L);
-    when(errorRecordValue.getWorkflowInstanceKey()).thenReturn(1L);
+    when(errorRecordValue.getProcessInstanceKey()).thenReturn(1L);
     return errorRecordValue;
   }
 
@@ -753,9 +823,9 @@ public class RecordTransformTest {
   private void assertJobRecord(final JobRecord jobRecord) {
     assertThat(jobRecord.getBpmnProcessId()).isEqualTo("process");
     assertThat(jobRecord.getElementId()).isEqualTo("task");
-    assertThat(jobRecord.getWorkflowKey()).isEqualTo(4L);
+    assertThat(jobRecord.getProcessDefinitionKey()).isEqualTo(4L);
     assertThat(jobRecord.getWorkflowDefinitionVersion()).isEqualTo(1);
-    assertThat(jobRecord.getWorkflowInstanceKey()).isEqualTo(1L);
+    assertThat(jobRecord.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(jobRecord.getElementInstanceKey()).isEqualTo(3L);
 
     assertThat(jobRecord.getCustomHeaders().getFieldsCount()).isEqualTo(1);

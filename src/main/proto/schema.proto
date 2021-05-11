@@ -2,7 +2,7 @@ syntax = 'proto3';
 package exporter_protocol;
 
 option java_multiple_files = false;
-option java_package = "io.zeebe.exporter.proto";
+option java_package = "io.camunda.zeebe.exporter.proto";
 
 // Makes use of so called "well known types". Arguable if it's a good idea
 // see https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
@@ -31,19 +31,21 @@ message RecordMetadata {
     UNKNOWN_VALUE_TYPE = 0;
     JOB = 1;
     DEPLOYMENT = 2;
-    WORKFLOW_INSTANCE = 3;
+    PROCESS_INSTANCE = 3;
     INCIDENT = 4;
     MESSAGE = 5;
     MESSAGE_SUBSCRIPTION = 6;
-    WORKFLOW_INSTANCE_SUBSCRIPTION = 7;
+    PROCESS_MESSAGE_SUBSCRIPTION = 7;
     JOB_BATCH = 8;
     TIMER = 9;
     MESSAGE_START_EVENT_SUBSCRIPTION = 10;
     VARIABLE = 11;
     VARIABLE_DOCUMENT = 12;
-    WORKFLOW_INSTANCE_CREATION = 13;
+    PROCESS_INSTANCE_CREATION = 13;
     ERROR = 14;
-    WORKFLOW_INSTANCE_RESULT = 15;
+    PROCESS = 15;
+    DEPLOYMENT_DISTRIBUTION = 16;
+    PROCESS_EVENT = 17;
   }
 
   enum RecordType {
@@ -70,20 +72,26 @@ message RecordMetadata {
 message DeploymentRecord {
   message Resource {
     bytes resource = 1;
-    string resourceType = 2;
-    string resourceName = 3;
+    string resourceName = 2;
   }
 
-  message Workflow {
+  message ProcessMetadata {
     string bpmnProcessId = 1;
     int32 version = 2;
-    int64 workflowKey = 3;
+    int64 processDefinitionKey = 3;
     string resourceName = 5;
+    string checksum = 6;
   }
 
   RecordMetadata metadata = 1;
   repeated Resource resources = 2;
-  repeated Workflow deployedWorkflows = 3;
+  repeated ProcessMetadata processMetadata = 3;
+}
+
+message DeploymentDistributionRecord {
+  RecordMetadata metadata = 1;
+
+  int32 partitionId = 2;
 }
 
 message ErrorRecord {
@@ -93,7 +101,7 @@ message ErrorRecord {
   string stacktrace = 3;
 
   int64 errorEventPosition = 4;
-  int64 workflowInstanceKey = 5;
+  int64 processInstanceKey = 5;
 }
 
 message IncidentRecord {
@@ -103,11 +111,11 @@ message IncidentRecord {
   string errorMessage = 3;
 
   string bpmnProcessId = 4;
-  int64 workflowInstanceKey = 5;
+  int64 processInstanceKey = 5;
   string elementId = 6;
   int64 elementInstanceKey = 7;
   int64 jobKey = 8;
-  int64 workflowKey = 9;
+  int64 processDefinitionKey = 9;
   int64 variableScopeKey = 10;
 }
 
@@ -128,8 +136,8 @@ message JobRecord {
   int64 elementInstanceKey = 10;
   string bpmnProcessId = 11;
   int32 workflowDefinitionVersion = 12;
-  int64 workflowInstanceKey = 13;
-  int64 workflowKey = 14;
+  int64 processInstanceKey = 13;
+  int64 processDefinitionKey = 14;
 }
 
 message JobBatchRecord {
@@ -157,21 +165,26 @@ message MessageRecord {
 message MessageSubscriptionRecord {
   RecordMetadata metadata = 1;
 
-  int64 workflowInstanceKey = 2;
+  int64 processInstanceKey = 2;
   int64 elementInstanceKey = 3;
   string messageName = 4;
   string correlationKey = 5;
   string bpmnProcessId = 6;
   int64 messageKey = 7;
+  google.protobuf.Struct variables = 8;
 }
 
 message MessageStartEventSubscriptionRecord {
   RecordMetadata metadata = 1;
 
-  int64 workflowKey = 2;
+  int64 processDefinitionKey = 2;
   string startEventId = 3;
   string messageName = 4;
   string bpmnProcessId = 5;
+  string correlationKey = 6;
+  int64 messageKey = 7;
+  int64 processInstanceKey = 8;
+  google.protobuf.Struct variables = 9;
 }
 
 message TimerRecord {
@@ -181,9 +194,9 @@ message TimerRecord {
   int64 dueDate = 3;
   int32 repetitions = 4;
 
-  string targetFlowNodeId = 5;
-  int64 workflowInstanceKey = 6;
-  int64 workflowKey = 7;
+  string targetElementId = 5;
+  int64 processInstanceKey = 6;
+  int64 processDefinitionKey = 7;
 }
 
 message VariableRecord {
@@ -192,8 +205,8 @@ message VariableRecord {
   string name = 2;
   string value = 3;
   int64 scopeKey = 4;
-  int64 workflowInstanceKey = 5;
-  int64 workflowKey = 6;
+  int64 processInstanceKey = 5;
+  int64 processDefinitionKey = 6;
 }
 
 message VariableDocumentRecord {
@@ -211,67 +224,61 @@ message VariableDocumentRecord {
   google.protobuf.Struct variables = 4;
 }
 
-message WorkflowInstanceRecord {
-  enum BpmnElementType {
-    UNKNOWN_BPMN_ELEMENT_TYPE = 0;
-    UNSPECIFIED = 1;
-    PROCESS = 2;
-    SUB_PROCESS = 3;
-    START_EVENT = 4;
-    INTERMEDIATE_CATCH_EVENT = 5;
-    BOUNDARY_EVENT = 6;
-    END_EVENT = 7;
-    SERVICE_TASK = 8;
-    RECEIVE_TASK = 9;
-    EXCLUSIVE_GATEWAY = 10;
-    PARALLEL_GATEWAY = 11;
-    EVENT_BASED_GATEWAY = 12;
-    SEQUENCE_FLOW = 13;
-    MULTI_INSTANCE_BODY = 14;
-    CALL_ACTIVITY = 15;
-  }
+message ProcessInstanceRecord {
 
   RecordMetadata metadata = 1;
 
   string bpmnProcessId = 2;
   int32 version = 3;
-  int64 workflowKey = 4;
-  int64 workflowInstanceKey = 5;
+  int64 processDefinitionKey = 4;
+  int64 processInstanceKey = 5;
   string elementId = 6;
   int64 flowScopeKey = 7;
-  BpmnElementType bpmnElementType = 8;
-  int64 parentWorkflowInstanceKey = 9;
+  string bpmnElementType = 8;
+  int64 parentProcessInstanceKey = 9;
   int64 parentElementInstanceKey = 10;
-
 }
 
-message WorkflowInstanceCreationRecord {
+message ProcessInstanceCreationRecord {
   RecordMetadata metadata = 1;
 
   string bpmnProcessId = 2;
   int32 version = 3;
-  int64 workflowKey = 4;
-  int64 workflowInstanceKey = 5;
+  int64 processDefinitionKey = 4;
+  int64 processInstanceKey = 5;
   google.protobuf.Struct variables = 6;
 }
 
-message WorkflowInstanceResultRecord {
+message ProcessMessageSubscriptionRecord {
   RecordMetadata metadata = 1;
 
-  string bpmnProcessId = 2;
-  int32 version = 3;
-  int64 workflowKey = 4;
-  int64 workflowInstanceKey = 5;
-  google.protobuf.Struct variables = 6;
-}
-
-message WorkflowInstanceSubscriptionRecord {
-  RecordMetadata metadata = 1;
-
-  int64 workflowInstanceKey = 2;
+  int64 processInstanceKey = 2;
   int64 elementInstanceKey = 3;
   string messageName = 4;
   google.protobuf.Struct variables = 5;
   string bpmnProcessId = 6;
   int64 messageKey = 7;
+  string elementId = 8;
+  string correlationKey = 9;
 }
+
+message ProcessRecord {
+  RecordMetadata metadata = 1;
+
+  string bpmnProcessId = 2;
+  int32 version = 3;
+  int64 processDefinitionKey = 4;
+  string resourceName = 5;
+  string checksum = 6;
+  bytes resource = 7;
+}
+
+message ProcessEventRecord {
+  RecordMetadata metadata = 1;
+
+  int64 scopeKey = 2;
+  int64 processDefinitionKey = 3;
+  string targetElementId = 4;
+  google.protobuf.Struct variables = 5;
+}
+
