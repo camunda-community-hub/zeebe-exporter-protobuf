@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.exporter.proto;
+package io.camunda.zeebe.exporter.proto;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
@@ -23,32 +23,32 @@ import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import io.zeebe.exporter.proto.Schema.RecordMetadata;
-import io.zeebe.exporter.proto.Schema.VariableDocumentRecord;
-import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
-import io.zeebe.exporter.proto.Schema.WorkflowInstanceRecord;
-import io.zeebe.protocol.record.Record;
-import io.zeebe.protocol.record.RecordType;
-import io.zeebe.protocol.record.ValueType;
-import io.zeebe.protocol.record.value.BpmnElementType;
-import io.zeebe.protocol.record.value.DeploymentRecordValue;
-import io.zeebe.protocol.record.value.ErrorRecordValue;
-import io.zeebe.protocol.record.value.IncidentRecordValue;
-import io.zeebe.protocol.record.value.JobBatchRecordValue;
-import io.zeebe.protocol.record.value.JobRecordValue;
-import io.zeebe.protocol.record.value.MessageRecordValue;
-import io.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
-import io.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
-import io.zeebe.protocol.record.value.TimerRecordValue;
-import io.zeebe.protocol.record.value.VariableDocumentRecordValue;
-import io.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
-import io.zeebe.protocol.record.value.VariableRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceCreationRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceResultRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceSubscriptionRecordValue;
-import io.zeebe.protocol.record.value.deployment.DeployedWorkflow;
-import io.zeebe.protocol.record.value.deployment.DeploymentResource;
+import io.camunda.zeebe.exporter.proto.Schema.RecordMetadata;
+import io.camunda.zeebe.exporter.proto.Schema.VariableDocumentRecord;
+import io.camunda.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
+import io.camunda.zeebe.protocol.record.Record;
+import io.camunda.zeebe.protocol.record.RecordType;
+import io.camunda.zeebe.protocol.record.ValueType;
+import io.camunda.zeebe.protocol.record.value.DeploymentDistributionRecordValue;
+import io.camunda.zeebe.protocol.record.value.DeploymentRecordValue;
+import io.camunda.zeebe.protocol.record.value.ErrorRecordValue;
+import io.camunda.zeebe.protocol.record.value.IncidentRecordValue;
+import io.camunda.zeebe.protocol.record.value.JobBatchRecordValue;
+import io.camunda.zeebe.protocol.record.value.JobRecordValue;
+import io.camunda.zeebe.protocol.record.value.MessageRecordValue;
+import io.camunda.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
+import io.camunda.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessMessageSubscriptionRecordValue;
+import io.camunda.zeebe.protocol.record.value.TimerRecordValue;
+import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
+import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
+import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
+import io.camunda.zeebe.protocol.record.value.deployment.Process;
+import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -76,9 +76,6 @@ public final class RecordTransformer {
               RecordType.EVENT,
               RecordMetadata.RecordType.EVENT));
 
-  private static final EnumMap<BpmnElementType, WorkflowInstanceRecord.BpmnElementType>
-      BPMN_ELEMENT_TYPE_MAPPING = new EnumMap<>(BpmnElementType.class);
-
   private static final EnumMap<
           VariableDocumentUpdateSemantic, VariableDocumentRecord.UpdateSemantics>
       UPDATE_SEMANTICS_MAPPING =
@@ -91,29 +88,33 @@ public final class RecordTransformer {
 
   static {
     TRANSFORMERS.put(ValueType.DEPLOYMENT, RecordTransformer::toDeploymentRecord);
-    TRANSFORMERS.put(ValueType.WORKFLOW_INSTANCE, RecordTransformer::toWorkflowInstanceRecord);
+    TRANSFORMERS.put(
+        ValueType.DEPLOYMENT_DISTRIBUTION, RecordTransformer::toDeploymentDistributionRecord);
+    TRANSFORMERS.put(ValueType.PROCESS_INSTANCE, RecordTransformer::toProcessInstanceRecord);
     TRANSFORMERS.put(ValueType.JOB_BATCH, RecordTransformer::toJobBatchRecord);
     TRANSFORMERS.put(ValueType.JOB, RecordTransformer::toJobRecord);
     TRANSFORMERS.put(ValueType.INCIDENT, RecordTransformer::toIncidentRecord);
     TRANSFORMERS.put(ValueType.MESSAGE, RecordTransformer::toMessageRecord);
     TRANSFORMERS.put(
         ValueType.MESSAGE_SUBSCRIPTION, RecordTransformer::toMessageSubscriptionRecord);
+    TRANSFORMERS.put(ValueType.PROCESS, RecordTransformer::toProcessRecord);
+    TRANSFORMERS.put(ValueType.PROCESS_EVENT, RecordTransformer::toProcessEventRecord);
     TRANSFORMERS.put(
-        ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
-        RecordTransformer::toWorkflowInstanceSubscriptionRecord);
+        ValueType.PROCESS_MESSAGE_SUBSCRIPTION,
+        RecordTransformer::toProcessMessageSubscriptionRecord);
     TRANSFORMERS.put(ValueType.TIMER, RecordTransformer::toTimerRecord);
     TRANSFORMERS.put(ValueType.VARIABLE, RecordTransformer::toVariableRecord);
     TRANSFORMERS.put(
         ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
         RecordTransformer::toMessageStartEventSubscriptionRecord);
     TRANSFORMERS.put(
-        ValueType.WORKFLOW_INSTANCE_CREATION, RecordTransformer::toWorkflowInstanceCreationRecord);
+        ValueType.PROCESS_INSTANCE_CREATION, RecordTransformer::toProcessInstanceCreationRecord);
     TRANSFORMERS.put(ValueType.VARIABLE_DOCUMENT, RecordTransformer::toVariableDocumentRecord);
     TRANSFORMERS.put(ValueType.ERROR, RecordTransformer::toErrorRecord);
-    TRANSFORMERS.put(
-        ValueType.WORKFLOW_INSTANCE_RESULT, RecordTransformer::toWorkflowInstanceResultRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.DEPLOYMENT_DISTRIBUTION, RecordMetadata.ValueType.DEPLOYMENT_DISTRIBUTION);
     VALUE_TYPE_MAPPING.put(ValueType.ERROR, RecordMetadata.ValueType.ERROR);
     VALUE_TYPE_MAPPING.put(ValueType.INCIDENT, RecordMetadata.ValueType.INCIDENT);
     VALUE_TYPE_MAPPING.put(ValueType.JOB, RecordMetadata.ValueType.JOB);
@@ -127,47 +128,14 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.TIMER, RecordMetadata.ValueType.TIMER);
     VALUE_TYPE_MAPPING.put(ValueType.VARIABLE, RecordMetadata.ValueType.VARIABLE);
     VALUE_TYPE_MAPPING.put(ValueType.VARIABLE_DOCUMENT, RecordMetadata.ValueType.VARIABLE_DOCUMENT);
-    VALUE_TYPE_MAPPING.put(ValueType.WORKFLOW_INSTANCE, RecordMetadata.ValueType.WORKFLOW_INSTANCE);
+    VALUE_TYPE_MAPPING.put(ValueType.PROCESS, RecordMetadata.ValueType.PROCESS);
+    VALUE_TYPE_MAPPING.put(ValueType.PROCESS_EVENT, RecordMetadata.ValueType.PROCESS_EVENT);
+    VALUE_TYPE_MAPPING.put(ValueType.PROCESS_INSTANCE, RecordMetadata.ValueType.PROCESS_INSTANCE);
     VALUE_TYPE_MAPPING.put(
-        ValueType.WORKFLOW_INSTANCE_CREATION, RecordMetadata.ValueType.WORKFLOW_INSTANCE_CREATION);
+        ValueType.PROCESS_INSTANCE_CREATION, RecordMetadata.ValueType.PROCESS_INSTANCE_CREATION);
     VALUE_TYPE_MAPPING.put(
-        ValueType.WORKFLOW_INSTANCE_RESULT, RecordMetadata.ValueType.WORKFLOW_INSTANCE_RESULT);
-    VALUE_TYPE_MAPPING.put(
-        ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION,
-        RecordMetadata.ValueType.WORKFLOW_INSTANCE_SUBSCRIPTION);
-
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.BOUNDARY_EVENT, WorkflowInstanceRecord.BpmnElementType.BOUNDARY_EVENT);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.CALL_ACTIVITY, WorkflowInstanceRecord.BpmnElementType.CALL_ACTIVITY);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.END_EVENT, WorkflowInstanceRecord.BpmnElementType.END_EVENT);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.EVENT_BASED_GATEWAY,
-        WorkflowInstanceRecord.BpmnElementType.EVENT_BASED_GATEWAY);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.EXCLUSIVE_GATEWAY,
-        WorkflowInstanceRecord.BpmnElementType.EXCLUSIVE_GATEWAY);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.INTERMEDIATE_CATCH_EVENT,
-        WorkflowInstanceRecord.BpmnElementType.INTERMEDIATE_CATCH_EVENT);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.MULTI_INSTANCE_BODY,
-        WorkflowInstanceRecord.BpmnElementType.MULTI_INSTANCE_BODY);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.PARALLEL_GATEWAY, WorkflowInstanceRecord.BpmnElementType.PARALLEL_GATEWAY);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.PROCESS, WorkflowInstanceRecord.BpmnElementType.PROCESS);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.RECEIVE_TASK, WorkflowInstanceRecord.BpmnElementType.RECEIVE_TASK);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.SEQUENCE_FLOW, WorkflowInstanceRecord.BpmnElementType.SEQUENCE_FLOW);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.SERVICE_TASK, WorkflowInstanceRecord.BpmnElementType.SERVICE_TASK);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.START_EVENT, WorkflowInstanceRecord.BpmnElementType.START_EVENT);
-    BPMN_ELEMENT_TYPE_MAPPING.put(
-        BpmnElementType.SUB_PROCESS, WorkflowInstanceRecord.BpmnElementType.SUB_PROCESS);
+        ValueType.PROCESS_MESSAGE_SUBSCRIPTION,
+        RecordMetadata.ValueType.PROCESS_MESSAGE_SUBSCRIPTION);
   }
 
   private RecordTransformer() {}
@@ -229,8 +197,8 @@ public final class RecordTransformer {
       builder.addResources(toDeploymentRecordResource(resource));
     }
 
-    for (final DeployedWorkflow workflow : record.getValue().getDeployedWorkflows()) {
-      builder.addDeployedWorkflows(toDeploymentRecordWorkflow(workflow));
+    for (final var processMetadata : record.getValue().getProcessesMetadata()) {
+      builder.addProcessMetadata(toProcessMetadata(processMetadata));
     }
 
     return builder.build();
@@ -241,17 +209,40 @@ public final class RecordTransformer {
     return Schema.DeploymentRecord.Resource.newBuilder()
         .setResource(ByteString.copyFrom(resource.getResource()))
         .setResourceName(resource.getResourceName())
-        .setResourceType(resource.getResourceType().name())
         .build();
   }
 
-  private static Schema.DeploymentRecord.Workflow toDeploymentRecordWorkflow(
-      DeployedWorkflow workflow) {
-    return Schema.DeploymentRecord.Workflow.newBuilder()
-        .setBpmnProcessId(workflow.getBpmnProcessId())
-        .setResourceName(workflow.getResourceName())
-        .setVersion(workflow.getVersion())
-        .setWorkflowKey(workflow.getWorkflowKey())
+  private static Schema.DeploymentRecord.ProcessMetadata toProcessMetadata(
+      ProcessMetadataValue processMetadata) {
+
+    return Schema.DeploymentRecord.ProcessMetadata.newBuilder()
+        .setBpmnProcessId(processMetadata.getBpmnProcessId())
+        .setResourceName(processMetadata.getResourceName())
+        .setVersion(processMetadata.getVersion())
+        .setProcessDefinitionKey(processMetadata.getProcessDefinitionKey())
+        .setChecksum(new String(processMetadata.getChecksum()))
+        .build();
+  }
+
+  private static Schema.DeploymentDistributionRecord toDeploymentDistributionRecord(
+      Record<DeploymentDistributionRecordValue> record) {
+    return Schema.DeploymentDistributionRecord.newBuilder()
+        .setPartitionId(record.getValue().getPartitionId())
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.ProcessRecord toProcessRecord(Record<Process> record) {
+    final Process value = record.getValue();
+
+    return Schema.ProcessRecord.newBuilder()
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setResourceName(value.getResourceName())
+        .setResource(ByteString.copyFrom(value.getResource()))
+        .setVersion(value.getVersion())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setChecksum(new String(value.getChecksum()))
+        .setMetadata(toMetadata(record))
         .build();
   }
 
@@ -265,8 +256,8 @@ public final class RecordTransformer {
         .setErrorMessage(value.getErrorMessage())
         .setErrorType(value.getErrorType().name())
         .setJobKey(value.getJobKey())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setWorkflowKey(value.getWorkflowKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setVariableScopeKey(value.getVariableScopeKey())
         .setMetadata(toMetadata(record))
         .build();
@@ -289,9 +280,9 @@ public final class RecordTransformer {
         .setBpmnProcessId(value.getBpmnProcessId())
         .setElementId(value.getElementId())
         .setElementInstanceKey(value.getElementInstanceKey())
-        .setWorkflowDefinitionVersion(value.getWorkflowDefinitionVersion())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setWorkflowKey(value.getWorkflowKey());
+        .setWorkflowDefinitionVersion(value.getProcessDefinitionVersion())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey());
   }
 
   private static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
@@ -339,9 +330,10 @@ public final class RecordTransformer {
         .setCorrelationKey(value.getCorrelationKey())
         .setElementInstanceKey(value.getElementInstanceKey())
         .setMessageName(value.getMessageName())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
         .setBpmnProcessId(value.getBpmnProcessId())
         .setMessageKey(value.getMessageKey())
+        .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -353,10 +345,14 @@ public final class RecordTransformer {
         Schema.MessageStartEventSubscriptionRecord.newBuilder();
 
     builder
-        .setWorkflowKey(value.getWorkflowKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setMessageName(value.getMessageName())
         .setStartEventId(value.getStartEventId())
-        .setBpmnProcessId(value.getBpmnProcessId());
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setCorrelationKey(value.getCorrelationKey())
+        .setMessageKey(value.getMessageKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setVariables(toStruct(value.getVariables()));
 
     return builder.setMetadata(toMetadata(record)).build();
   }
@@ -367,8 +363,8 @@ public final class RecordTransformer {
 
     builder
         .setScopeKey(value.getScopeKey())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setWorkflowKey(value.getWorkflowKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setName(value.getName())
         .setValue(value.getValue());
 
@@ -382,75 +378,57 @@ public final class RecordTransformer {
         .setDueDate(value.getDueDate())
         .setRepetitions(value.getRepetitions())
         .setElementInstanceKey(value.getElementInstanceKey())
-        .setTargetFlowNodeId(value.getTargetElementId())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setWorkflowKey(value.getWorkflowKey())
+        .setTargetElementId(value.getTargetElementId())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setMetadata(toMetadata(record))
         .build();
   }
 
-  private static Schema.WorkflowInstanceRecord toWorkflowInstanceRecord(
-      Record<WorkflowInstanceRecordValue> record) {
-    final WorkflowInstanceRecordValue value = record.getValue();
+  private static Schema.ProcessInstanceRecord toProcessInstanceRecord(
+      Record<ProcessInstanceRecordValue> record) {
+    final ProcessInstanceRecordValue value = record.getValue();
 
-    return Schema.WorkflowInstanceRecord.newBuilder()
+    return Schema.ProcessInstanceRecord.newBuilder()
         .setBpmnProcessId(value.getBpmnProcessId())
         .setElementId(value.getElementId())
         .setFlowScopeKey(value.getFlowScopeKey())
         .setVersion(value.getVersion())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setWorkflowKey(value.getWorkflowKey())
-        .setBpmnElementType(toBpmnElementType(value.getBpmnElementType()))
-        .setParentWorkflowInstanceKey(value.getParentWorkflowInstanceKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setBpmnElementType(value.getBpmnElementType().name())
+        .setParentProcessInstanceKey(value.getParentProcessInstanceKey())
         .setParentElementInstanceKey(value.getParentElementInstanceKey())
         .setMetadata(toMetadata(record))
         .build();
   }
 
-  private static Schema.WorkflowInstanceRecord.BpmnElementType toBpmnElementType(
-      BpmnElementType type) {
-    return BPMN_ELEMENT_TYPE_MAPPING.getOrDefault(
-        type, WorkflowInstanceRecord.BpmnElementType.UNKNOWN_BPMN_ELEMENT_TYPE);
-  }
+  private static Schema.ProcessMessageSubscriptionRecord toProcessMessageSubscriptionRecord(
+      Record<ProcessMessageSubscriptionRecordValue> record) {
+    final ProcessMessageSubscriptionRecordValue value = record.getValue();
 
-  private static Schema.WorkflowInstanceSubscriptionRecord toWorkflowInstanceSubscriptionRecord(
-      Record<WorkflowInstanceSubscriptionRecordValue> record) {
-    final WorkflowInstanceSubscriptionRecordValue value = record.getValue();
-
-    return Schema.WorkflowInstanceSubscriptionRecord.newBuilder()
+    return Schema.ProcessMessageSubscriptionRecord.newBuilder()
         .setElementInstanceKey(value.getElementInstanceKey())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
         .setMessageName(value.getMessageName())
         .setVariables(toStruct(value.getVariables()))
         .setBpmnProcessId(value.getBpmnProcessId())
         .setMessageKey(value.getMessageKey())
+        .setCorrelationKey(value.getCorrelationKey())
+        .setElementId(value.getElementId())
         .setMetadata(toMetadata(record))
         .build();
   }
 
-  private static Schema.WorkflowInstanceCreationRecord toWorkflowInstanceCreationRecord(
-      Record<WorkflowInstanceCreationRecordValue> record) {
-    final WorkflowInstanceCreationRecordValue value = record.getValue();
+  private static Schema.ProcessInstanceCreationRecord toProcessInstanceCreationRecord(
+      Record<ProcessInstanceCreationRecordValue> record) {
+    final ProcessInstanceCreationRecordValue value = record.getValue();
 
-    return Schema.WorkflowInstanceCreationRecord.newBuilder()
+    return Schema.ProcessInstanceCreationRecord.newBuilder()
         .setBpmnProcessId(value.getBpmnProcessId())
         .setVersion(value.getVersion())
-        .setWorkflowKey(value.getWorkflowKey())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
-        .setVariables(toStruct(value.getVariables()))
-        .setMetadata(toMetadata(record))
-        .build();
-  }
-
-  private static Schema.WorkflowInstanceResultRecord toWorkflowInstanceResultRecord(
-      Record<WorkflowInstanceResultRecordValue> record) {
-    final WorkflowInstanceResultRecordValue value = record.getValue();
-
-    return Schema.WorkflowInstanceResultRecord.newBuilder()
-        .setBpmnProcessId(value.getBpmnProcessId())
-        .setVersion(value.getVersion())
-        .setWorkflowKey(value.getWorkflowKey())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
@@ -481,7 +459,20 @@ public final class RecordTransformer {
         .setExceptionMessage(value.getExceptionMessage())
         .setStacktrace(value.getStacktrace())
         .setErrorEventPosition(value.getErrorEventPosition())
-        .setWorkflowInstanceKey(value.getWorkflowInstanceKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.ProcessEventRecord toProcessEventRecord(
+      Record<ProcessEventRecordValue> record) {
+    final ProcessEventRecordValue value = record.getValue();
+
+    return Schema.ProcessEventRecord.newBuilder()
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setScopeKey(value.getScopeKey())
+        .setTargetElementId(value.getTargetElementId())
+        .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .build();
   }

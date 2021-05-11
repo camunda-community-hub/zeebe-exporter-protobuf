@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
   <name>Zeebe Exporter Protobuf Schema</name>
@@ -17,7 +19,7 @@
     <artifactId>camunda-release-parent</artifactId>
     <version>3.8.1</version>
     <!-- do not remove empty tag - http://jira.codehaus.org/browse/MNG-4687 -->
-    <relativePath />
+    <relativePath/>
   </parent>
 
   <properties>
@@ -37,16 +39,16 @@
     <license.header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</license.header>
 
     <!-- project dependencies -->
-    <version.assertj>3.19.0</version.assertj>
-
-    <version.junit>4.13.1</version.junit>
-    <version.log4j>2.11.1</version.log4j>
-    <version.mockito>3.8.0</version.mockito>
+    <version.zeebe>1.0.0</version.zeebe>
 
     <version.protobuf>3.15.6</version.protobuf>
     <version.protoc>3.9.1</version.protoc>
     <version.slf4j>1.7.25</version.slf4j>
-    <version.zeebe>0.26.1</version.zeebe>
+
+    <version.assertj>3.19.0</version.assertj>
+    <version.junit>4.13.1</version.junit>
+    <version.log4j>2.11.1</version.log4j>
+    <version.mockito>3.8.0</version.mockito>
 
     <!-- plugin version -->
     <plugin.version.checkstyle>3.1.2</plugin.version.checkstyle>
@@ -66,7 +68,7 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>io.zeebe</groupId>
+        <groupId>io.camunda</groupId>
         <artifactId>zeebe-bom</artifactId>
         <version>${version.zeebe}</version>
         <scope>import</scope>
@@ -89,19 +91,13 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.zeebe</groupId>
+      <groupId>io.camunda</groupId>
       <artifactId>zeebe-exporter-api</artifactId>
     </dependency>
 
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.zeebe</groupId>
-      <artifactId>zeebe-test</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -212,7 +208,7 @@
         <!-- dependency on build tool to reference the checkstyle cfg -->
         <dependencies>
           <dependency>
-            <groupId>io.zeebe</groupId>
+            <groupId>io.camunda</groupId>
             <artifactId>zeebe-build-tools</artifactId>
             <version>${version.zeebe}</version>
           </dependency>
@@ -370,7 +366,8 @@
 
   <scm>
     <url>https://github.com/camunda-community-hub/zeebe-exporter-protobuf</url>
-    <connection>scm:git:git@github.com:camunda-community-hub/zeebe-exporter-protobuf.git</connection>
+    <connection>scm:git:git@github.com:camunda-community-hub/zeebe-exporter-protobuf.git
+    </connection>
     <developerConnection>scm:git:git@github.com:camunda-community-hub/zeebe-exporter-protobuf.git
     </developerConnection>
     <tag>HEAD</tag>
