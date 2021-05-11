@@ -9,13 +9,13 @@
   <version>0.12.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <url>https://github.com/zeebe-io/zeebe-exporter-protobuf/java</url>
+  <url>https://github.com/camunda-community-hub/zeebe-exporter-protobuf</url>
   <inceptionYear>2019</inceptionYear>
 
   <parent>
     <groupId>org.camunda</groupId>
     <artifactId>camunda-release-parent</artifactId>
-    <version>3.7</version>
+    <version>3.8.1</version>
     <!-- do not remove empty tag - http://jira.codehaus.org/browse/MNG-4687 -->
     <relativePath />
   </parent>
@@ -369,9 +369,9 @@
   </repositories>
 
   <scm>
-    <url>https://github.com/zeebe-io/zeebe-exporter-protobuf</url>
-    <connection>scm:git:git@github.com:zeebe-io/zeebe-exporter-protobuf.git</connection>
-    <developerConnection>scm:git:git@github.com:zeebe-io/zeebe-exporter-protobuf.git
+    <url>https://github.com/camunda-community-hub/zeebe-exporter-protobuf</url>
+    <connection>scm:git:git@github.com:camunda-community-hub/zeebe-exporter-protobuf.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda-community-hub/zeebe-exporter-protobuf.git
     </developerConnection>
     <tag>HEAD</tag>
   </scm>
