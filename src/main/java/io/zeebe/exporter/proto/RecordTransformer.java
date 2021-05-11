@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.zeebe.exporter.proto;
+package io.zeebe.exporter.proto;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
@@ -23,9 +23,6 @@ import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import io.camunda.zeebe.exporter.proto.Schema.RecordMetadata;
-import io.camunda.zeebe.exporter.proto.Schema.VariableDocumentRecord;
-import io.camunda.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
@@ -49,6 +46,9 @@ import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
 import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
+import io.zeebe.exporter.proto.Schema.RecordMetadata;
+import io.zeebe.exporter.proto.Schema.VariableDocumentRecord;
+import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
