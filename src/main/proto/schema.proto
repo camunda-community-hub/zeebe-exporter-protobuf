@@ -2,7 +2,7 @@ syntax = 'proto3';
 package exporter_protocol;
 
 option java_multiple_files = false;
-option java_package = "io.camunda.zeebe.exporter.proto";
+option java_package = "io.zeebe.exporter.proto";
 
 // Makes use of so called "well known types". Arguable if it's a good idea
 // see https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
