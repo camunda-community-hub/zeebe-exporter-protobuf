@@ -354,6 +354,7 @@ public class RecordTransformTest {
     assertThat(messageSubscriptionRecord.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(messageSubscriptionRecord.getBpmnProcessId()).isEqualTo(value.getBpmnProcessId());
     assertThat(messageSubscriptionRecord.getMessageKey()).isEqualTo(value.getMessageKey());
+    assertThat(messageSubscriptionRecord.getIsInterrupting()).isTrue();
 
     assertVariables(messageSubscriptionRecord.getVariables());
   }
@@ -389,6 +390,7 @@ public class RecordTransformTest {
     assertThat(workflowInstanceSubscriptionRecord.getCorrelationKey())
         .isEqualTo(value.getCorrelationKey());
     assertThat(workflowInstanceSubscriptionRecord.getElementId()).isEqualTo(value.getElementId());
+    assertThat(workflowInstanceSubscriptionRecord.getIsInterrupting()).isTrue();
 
     assertVariables(workflowInstanceSubscriptionRecord.getVariables());
   }
@@ -644,6 +646,7 @@ public class RecordTransformTest {
     when(messageSubscriptionRecordValue.getBpmnProcessId()).thenReturn("bpmnProcessId");
     when(messageSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
     when(messageSubscriptionRecordValue.getVariables()).thenReturn(Map.of("foo", 23));
+    when(messageSubscriptionRecordValue.isInterrupting()).thenReturn(true);
 
     return messageSubscriptionRecordValue;
   }
@@ -662,6 +665,7 @@ public class RecordTransformTest {
 
     when(workflowInstanceSubscriptionRecordValue.getVariables())
         .thenReturn(Collections.singletonMap("foo", 23));
+    when(workflowInstanceSubscriptionRecordValue.isInterrupting()).thenReturn(true);
 
     return workflowInstanceSubscriptionRecordValue;
   }

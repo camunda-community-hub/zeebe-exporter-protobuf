@@ -334,6 +334,7 @@ public final class RecordTransformer {
         .setBpmnProcessId(value.getBpmnProcessId())
         .setMessageKey(value.getMessageKey())
         .setVariables(toStruct(value.getVariables()))
+        .setIsInterrupting(value.isInterrupting())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -416,6 +417,7 @@ public final class RecordTransformer {
         .setMessageKey(value.getMessageKey())
         .setCorrelationKey(value.getCorrelationKey())
         .setElementId(value.getElementId())
+        .setIsInterrupting(value.isInterrupting())
         .setMetadata(toMetadata(record))
         .build();
   }
