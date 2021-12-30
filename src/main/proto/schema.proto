@@ -172,6 +172,7 @@ message MessageSubscriptionRecord {
   string bpmnProcessId = 6;
   int64 messageKey = 7;
   google.protobuf.Struct variables = 8;
+  bool isInterrupting = 9;
 }
 
 message MessageStartEventSubscriptionRecord {
@@ -260,6 +261,7 @@ message ProcessMessageSubscriptionRecord {
   int64 messageKey = 7;
   string elementId = 8;
   string correlationKey = 9;
+  bool isInterrupting = 10;
 }
 
 message ProcessRecord {
