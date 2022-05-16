@@ -46,6 +46,9 @@ message RecordMetadata {
     PROCESS = 15;
     DEPLOYMENT_DISTRIBUTION = 16;
     PROCESS_EVENT = 17;
+    DECISION = 18;
+    DECISION_REQUIREMENTS = 19;
+    DECISION_EVALUATION = 20;
   }
 
   enum RecordType {
