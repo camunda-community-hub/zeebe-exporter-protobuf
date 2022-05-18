@@ -48,13 +48,18 @@ import io.camunda.zeebe.protocol.record.intent.TimerIntent;
 import io.camunda.zeebe.protocol.record.intent.VariableDocumentIntent;
 import io.camunda.zeebe.protocol.record.intent.VariableIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
+import io.camunda.zeebe.protocol.record.value.DecisionEvaluationRecordValue;
 import io.camunda.zeebe.protocol.record.value.DeploymentDistributionRecordValue;
 import io.camunda.zeebe.protocol.record.value.DeploymentRecordValue;
 import io.camunda.zeebe.protocol.record.value.ErrorRecordValue;
 import io.camunda.zeebe.protocol.record.value.ErrorType;
+import io.camunda.zeebe.protocol.record.value.EvaluatedDecisionValue;
+import io.camunda.zeebe.protocol.record.value.EvaluatedInputValue;
+import io.camunda.zeebe.protocol.record.value.EvaluatedOutputValue;
 import io.camunda.zeebe.protocol.record.value.IncidentRecordValue;
 import io.camunda.zeebe.protocol.record.value.JobBatchRecordValue;
 import io.camunda.zeebe.protocol.record.value.JobRecordValue;
+import io.camunda.zeebe.protocol.record.value.MatchedRuleValue;
 import io.camunda.zeebe.protocol.record.value.MessageRecordValue;
 import io.camunda.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
 import io.camunda.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
@@ -66,6 +71,8 @@ import io.camunda.zeebe.protocol.record.value.TimerRecordValue;
 import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
 import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
 import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
@@ -570,6 +577,154 @@ public class RecordTransformTest {
     assertThat(unpackedRecord).isEqualTo(expectedProtobufRecord);
   }
 
+  @Test
+  public void shouldTransformDecisionRecord() {
+    // given
+    final var recordValue = mockDecisionRecordValue();
+    final Record<DecisionRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.DECISION, ProcessEventIntent.TRIGGERING);
+
+    // when
+    final var transformedRecord =
+        (Schema.DecisionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "DECISION", "TRIGGERING");
+
+    assertThat(transformedRecord.getDecisionRequirementsKey())
+        .isEqualTo(recordValue.getDecisionRequirementsKey());
+    assertThat(transformedRecord.getDecisionRequirementsId())
+        .isEqualTo(recordValue.getDecisionRequirementsId());
+    assertThat(transformedRecord.getVersion()).isEqualTo(recordValue.getVersion());
+    assertThat(transformedRecord.getDecisionId()).isEqualTo(recordValue.getDecisionId());
+    assertThat(transformedRecord.getDecisionName()).isEqualTo(recordValue.getDecisionName());
+    assertThat(transformedRecord.getDecisionKey()).isEqualTo(recordValue.getDecisionKey());
+    assertThat(transformedRecord.getIsDuplicate()).isEqualTo(recordValue.isDuplicate());
+  }
+
+  @Test
+  public void shouldTransformDecisionRequirementsRecord() {
+    // given
+    final var recordValue = mockDecisionRequirementsRecordValue();
+    final Record<DecisionRequirementsRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.DECISION_REQUIREMENTS, ProcessEventIntent.TRIGGERING);
+
+    // when
+    final var transformedRecord =
+        (Schema.DecisionRequirementsRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "DECISION_REQUIREMENTS", "TRIGGERING");
+
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getDecisionRequirementsKey())
+        .isEqualTo(recordValue.getDecisionRequirementsKey());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getDecisionRequirementsId())
+        .isEqualTo(recordValue.getDecisionRequirementsId());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getDecisionRequirementsName())
+        .isEqualTo(recordValue.getDecisionRequirementsName());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getDecisionRequirementsVersion())
+        .isEqualTo(recordValue.getDecisionRequirementsVersion());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getNamespace())
+        .isEqualTo(recordValue.getNamespace());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getResourceName())
+        .isEqualTo(recordValue.getResourceName());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getChecksum().getBytes())
+        .isEqualTo(recordValue.getChecksum());
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getIsDuplicate())
+        .isEqualTo(recordValue.isDuplicate());
+  }
+
+  @Test
+  public void shouldTransformDecisionEvaluationRecord() {
+    // given
+    final var recordValue = mockDecisionEvaluationRecordValue();
+    final Record<DecisionEvaluationRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.DECISION_EVALUATION, ProcessEventIntent.TRIGGERING);
+
+    // when
+    final var transformedRecord =
+        (Schema.DecisionEvaluationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "DECISION_EVALUATION", "TRIGGERING");
+
+    //    List<EvaluatedDecisionValue> getEvaluatedDecisions();
+
+    assertThat(transformedRecord.getDecisionKey()).isEqualTo(recordValue.getDecisionKey());
+    assertThat(transformedRecord.getDecisionId()).isEqualTo(recordValue.getDecisionId());
+    assertThat(transformedRecord.getDecisionName()).isEqualTo(recordValue.getDecisionName());
+    assertThat(transformedRecord.getDecisionVersion()).isEqualTo(recordValue.getDecisionVersion());
+    assertThat(transformedRecord.getDecisionRequirementsId())
+        .isEqualTo(recordValue.getDecisionRequirementsId());
+    assertThat(transformedRecord.getDecisionRequirementsKey())
+        .isEqualTo(recordValue.getDecisionRequirementsKey());
+    assertThat(transformedRecord.getDecisionOutput()).isEqualTo(recordValue.getDecisionOutput());
+    assertThat(transformedRecord.getBpmnProcessId()).isEqualTo(recordValue.getBpmnProcessId());
+    assertThat(transformedRecord.getProcessDefinitionKey())
+        .isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getProcessInstanceKey())
+        .isEqualTo(recordValue.getProcessInstanceKey());
+    assertThat(transformedRecord.getElementId()).isEqualTo(recordValue.getElementId());
+    assertThat(transformedRecord.getElementInstanceKey())
+        .isEqualTo(recordValue.getElementInstanceKey());
+    assertThat(transformedRecord.getEvaluationFailureMessage())
+        .isEqualTo(recordValue.getEvaluationFailureMessage());
+    assertThat(transformedRecord.getFailedDecisionId())
+        .isEqualTo(recordValue.getFailedDecisionId());
+
+    assertThat(transformedRecord.getEvaluatedDecisionsList()).hasSize(1);
+    assertThat(recordValue.getEvaluatedDecisions()).hasSize(1);
+    final Schema.EvaluatedDecision evaluatedDecision =
+        transformedRecord.getEvaluatedDecisionsList().get(0);
+    assertEvaluatedDecision(evaluatedDecision, recordValue.getEvaluatedDecisions().get(0));
+  }
+
+  private void assertEvaluatedDecision(
+      final Schema.EvaluatedDecision transformedRecord, final EvaluatedDecisionValue recordValue) {
+    assertThat(transformedRecord.getDecisionId()).isEqualTo(recordValue.getDecisionId());
+    assertThat(transformedRecord.getDecisionName()).isEqualTo(recordValue.getDecisionName());
+    assertThat(transformedRecord.getDecisionKey()).isEqualTo(recordValue.getDecisionKey());
+    assertThat(transformedRecord.getDecisionVersion()).isEqualTo(recordValue.getDecisionVersion());
+    assertThat(transformedRecord.getDecisionType()).isEqualTo(recordValue.getDecisionType());
+    assertThat(transformedRecord.getDecisionOutput()).isEqualTo(recordValue.getDecisionOutput());
+
+    assertThat(transformedRecord.getEvaluatedInputsList()).hasSize(1);
+    assertThat(recordValue.getEvaluatedInputs()).hasSize(1);
+    final Schema.EvaluatedInput evaluatedInput = transformedRecord.getEvaluatedInputsList().get(0);
+    assertEvaluatedInput(evaluatedInput, recordValue.getEvaluatedInputs().get(0));
+
+    assertThat(transformedRecord.getMatchedRulesList()).hasSize(1);
+    assertThat(recordValue.getMatchedRules()).hasSize(1);
+    final Schema.MatchedRule matchedRule = transformedRecord.getMatchedRulesList().get(0);
+    assertMatchedRule(matchedRule, recordValue.getMatchedRules().get(0));
+  }
+
+  private void assertMatchedRule(
+      final Schema.MatchedRule transformedRecord, final MatchedRuleValue recordValue) {
+    assertThat(transformedRecord.getRuleId()).isEqualTo(recordValue.getRuleId());
+    assertThat(transformedRecord.getRuleIndex()).isEqualTo(recordValue.getRuleIndex());
+
+    assertThat(transformedRecord.getEvaluatedOutputsList()).hasSize(1);
+    assertThat(recordValue.getEvaluatedOutputs()).hasSize(1);
+    final Schema.EvaluatedOutput evaluatedOutput =
+        transformedRecord.getEvaluatedOutputsList().get(0);
+    assertEvaluatedOutput(evaluatedOutput, recordValue.getEvaluatedOutputs().get(0));
+  }
+
+  private void assertEvaluatedOutput(
+      final Schema.EvaluatedOutput transformedRecord, final EvaluatedOutputValue recordValue) {
+    assertThat(transformedRecord.getOutputId()).isEqualTo(recordValue.getOutputId());
+    assertThat(transformedRecord.getOutputName()).isEqualTo(recordValue.getOutputName());
+    assertThat(transformedRecord.getOutputValue()).isEqualTo(recordValue.getOutputValue());
+  }
+
+  private void assertEvaluatedInput(
+      final Schema.EvaluatedInput transformedRecord, final EvaluatedInputValue recordValue) {
+    assertThat(transformedRecord.getInputId()).isEqualTo(recordValue.getInputId());
+    assertThat(transformedRecord.getInputName()).isEqualTo(recordValue.getInputName());
+    assertThat(transformedRecord.getInputValue()).isEqualTo(recordValue.getInputValue());
+  }
+
   private MessageRecordValue mockMessageRecordValue() {
     final MessageRecordValue messageRecordValue = mock(MessageRecordValue.class);
 
@@ -803,6 +958,102 @@ public class RecordTransformTest {
     when(value.getScopeKey()).thenReturn(2L);
     when(value.getTargetElementId()).thenReturn("targetElementId");
     when(value.getVariables()).thenReturn(Map.of("foo", 23));
+    return value;
+  }
+
+  private DecisionRecordValue mockDecisionRecordValue() {
+    final var value = mock(DecisionRecordValue.class);
+    when(value.getDecisionRequirementsKey()).thenReturn(1L);
+    when(value.getDecisionRequirementsId()).thenReturn("decisionRequirementsId");
+    when(value.getVersion()).thenReturn(2);
+    when(value.getDecisionId()).thenReturn("decision");
+    when(value.getDecisionName()).thenReturn("decisionName");
+    when(value.getDecisionKey()).thenReturn(3L);
+    when(value.isDuplicate()).thenReturn(false);
+    return value;
+  }
+
+  private DecisionRequirementsRecordValue mockDecisionRequirementsRecordValue() {
+    final var value = mock(DecisionRequirementsRecordValue.class);
+    when(value.getDecisionRequirementsKey()).thenReturn(1L);
+    when(value.getDecisionRequirementsId()).thenReturn("decisionRequirementsId");
+    when(value.getDecisionRequirementsName()).thenReturn("decisionRequirementsName");
+    when(value.getDecisionRequirementsVersion()).thenReturn(3);
+    when(value.getNamespace()).thenReturn("namespace");
+    when(value.getResourceName()).thenReturn("resourceName");
+    when(value.getChecksum()).thenReturn("checksum".getBytes());
+    when(value.getResource()).thenReturn("resource".getBytes());
+    when(value.isDuplicate()).thenReturn(false);
+    return value;
+  }
+
+  private DecisionEvaluationRecordValue mockDecisionEvaluationRecordValue() {
+    final var value = mock(DecisionEvaluationRecordValue.class);
+
+    when(value.getDecisionVersion()).thenReturn(2);
+    when(value.getDecisionKey()).thenReturn(2L);
+    when(value.getDecisionId()).thenReturn("decisionId");
+    when(value.getDecisionName()).thenReturn("decisionName");
+    when(value.getDecisionVersion()).thenReturn(2);
+    when(value.getDecisionRequirementsId()).thenReturn("decisionRequirementsId");
+    when(value.getDecisionRequirementsKey()).thenReturn(4L);
+    when(value.getDecisionOutput()).thenReturn("decisionOutput");
+    when(value.getBpmnProcessId()).thenReturn("bpmnProcessId");
+    when(value.getProcessDefinitionKey()).thenReturn(3L);
+    when(value.getProcessInstanceKey()).thenReturn(1L);
+    when(value.getElementId()).thenReturn("elementId");
+    when(value.getElementInstanceKey()).thenReturn(3L);
+    when(value.getEvaluationFailureMessage()).thenReturn("evaluationFailureMessage");
+    when(value.getFailedDecisionId()).thenReturn("failedDecisionId");
+
+    final List<EvaluatedDecisionValue> evaluatedDecisions =
+        Collections.singletonList(mockEvaluatedDecisionValue());
+    when(value.getEvaluatedDecisions()).thenReturn(evaluatedDecisions);
+    return value;
+  }
+
+  private EvaluatedDecisionValue mockEvaluatedDecisionValue() {
+    final var value = mock(EvaluatedDecisionValue.class);
+
+    when(value.getDecisionId()).thenReturn("decisionId");
+    when(value.getDecisionName()).thenReturn("decisionName");
+    when(value.getDecisionKey()).thenReturn(2L);
+    when(value.getDecisionVersion()).thenReturn(2L);
+    when(value.getDecisionType()).thenReturn("decisionType");
+    when(value.getDecisionOutput()).thenReturn("decisionOutput");
+
+    final List<EvaluatedInputValue> evaluatedInputs =
+        Collections.singletonList(mockEvaluatedInputValue());
+    when(value.getEvaluatedInputs()).thenReturn(evaluatedInputs);
+    final List<MatchedRuleValue> matchedRules = Collections.singletonList(mockMatchedRuleValue());
+    when(value.getMatchedRules()).thenReturn(matchedRules);
+
+    return value;
+  }
+
+  private MatchedRuleValue mockMatchedRuleValue() {
+    final var value = mock(MatchedRuleValue.class);
+    when(value.getRuleId()).thenReturn("ruleId");
+    when(value.getRuleIndex()).thenReturn(3);
+    final List<EvaluatedOutputValue> evaluatedOutputs =
+        Collections.singletonList(mockEvaluatedOutputValue());
+    when(value.getEvaluatedOutputs()).thenReturn(evaluatedOutputs);
+    return value;
+  }
+
+  private EvaluatedOutputValue mockEvaluatedOutputValue() {
+    final var value = mock(EvaluatedOutputValue.class);
+    when(value.getOutputId()).thenReturn("outputId");
+    when(value.getOutputName()).thenReturn("outputName");
+    when(value.getOutputValue()).thenReturn("outputValue");
+    return value;
+  }
+
+  private EvaluatedInputValue mockEvaluatedInputValue() {
+    final var value = mock(EvaluatedInputValue.class);
+    when(value.getInputId()).thenReturn("inputId");
+    when(value.getInputName()).thenReturn("inputName");
+    when(value.getInputValue()).thenReturn("inputValue");
     return value;
   }
 

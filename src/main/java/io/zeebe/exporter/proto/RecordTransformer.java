@@ -26,12 +26,17 @@ import com.google.protobuf.Value;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
+import io.camunda.zeebe.protocol.record.value.DecisionEvaluationRecordValue;
 import io.camunda.zeebe.protocol.record.value.DeploymentDistributionRecordValue;
 import io.camunda.zeebe.protocol.record.value.DeploymentRecordValue;
 import io.camunda.zeebe.protocol.record.value.ErrorRecordValue;
+import io.camunda.zeebe.protocol.record.value.EvaluatedDecisionValue;
+import io.camunda.zeebe.protocol.record.value.EvaluatedInputValue;
+import io.camunda.zeebe.protocol.record.value.EvaluatedOutputValue;
 import io.camunda.zeebe.protocol.record.value.IncidentRecordValue;
 import io.camunda.zeebe.protocol.record.value.JobBatchRecordValue;
 import io.camunda.zeebe.protocol.record.value.JobRecordValue;
+import io.camunda.zeebe.protocol.record.value.MatchedRuleValue;
 import io.camunda.zeebe.protocol.record.value.MessageRecordValue;
 import io.camunda.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
 import io.camunda.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
@@ -43,6 +48,9 @@ import io.camunda.zeebe.protocol.record.value.TimerRecordValue;
 import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
 import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsMetadataValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
 import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
@@ -111,6 +119,10 @@ public final class RecordTransformer {
         ValueType.PROCESS_INSTANCE_CREATION, RecordTransformer::toProcessInstanceCreationRecord);
     TRANSFORMERS.put(ValueType.VARIABLE_DOCUMENT, RecordTransformer::toVariableDocumentRecord);
     TRANSFORMERS.put(ValueType.ERROR, RecordTransformer::toErrorRecord);
+    TRANSFORMERS.put(ValueType.DECISION, RecordTransformer::toDecisionRecord);
+    TRANSFORMERS.put(
+        ValueType.DECISION_REQUIREMENTS, RecordTransformer::toDecisionRequirementsRecord);
+    TRANSFORMERS.put(ValueType.DECISION_EVALUATION, RecordTransformer::toDecisionEvaluationRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -136,6 +148,11 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(
         ValueType.PROCESS_MESSAGE_SUBSCRIPTION,
         RecordMetadata.ValueType.PROCESS_MESSAGE_SUBSCRIPTION);
+    VALUE_TYPE_MAPPING.put(ValueType.DECISION, RecordMetadata.ValueType.DECISION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.DECISION_REQUIREMENTS, RecordMetadata.ValueType.DECISION_REQUIREMENTS);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.DECISION_EVALUATION, RecordMetadata.ValueType.DECISION_EVALUATION);
   }
 
   private RecordTransformer() {}
@@ -476,6 +493,126 @@ public final class RecordTransformer {
         .setTargetElementId(value.getTargetElementId())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.DecisionRecord toDecisionRecord(Record<DecisionRecordValue> record) {
+    final DecisionRecordValue value = record.getValue();
+
+    return Schema.DecisionRecord.newBuilder()
+        .setDecisionId(value.getDecisionId())
+        .setDecisionKey(value.getDecisionKey())
+        .setVersion(value.getVersion())
+        .setDecisionName(value.getDecisionName())
+        .setDecisionRequirementsId(value.getDecisionRequirementsId())
+        .setDecisionRequirementsKey(value.getDecisionRequirementsKey())
+        .setIsDuplicate(value.isDuplicate())
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.DecisionRequirementsRecord toDecisionRequirementsRecord(
+      Record<DecisionRequirementsRecordValue> record) {
+    final DecisionRequirementsRecordValue value = record.getValue();
+
+    return Schema.DecisionRequirementsRecord.newBuilder()
+        .setResource(ByteString.copyFrom(value.getResource()))
+        .setDecisionRequirementsMetadata(toDecisionRequirementsMetadata(value))
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.DecisionRequirementsMetadata toDecisionRequirementsMetadata(
+      DecisionRequirementsMetadataValue metadataValue) {
+    return Schema.DecisionRequirementsMetadata.newBuilder()
+        .setDecisionRequirementsId(metadataValue.getDecisionRequirementsId())
+        .setDecisionRequirementsName(metadataValue.getDecisionRequirementsName())
+        .setDecisionRequirementsVersion(metadataValue.getDecisionRequirementsVersion())
+        .setDecisionRequirementsKey(metadataValue.getDecisionRequirementsKey())
+        .setNamespace(metadataValue.getNamespace())
+        .setResourceName(metadataValue.getResourceName())
+        .setChecksum(new String(metadataValue.getChecksum()))
+        .setIsDuplicate(metadataValue.isDuplicate())
+        .build();
+  }
+
+  private static Schema.DecisionEvaluationRecord toDecisionEvaluationRecord(
+      Record<DecisionEvaluationRecordValue> record) {
+    final DecisionEvaluationRecordValue value = record.getValue();
+
+    final Schema.DecisionEvaluationRecord.Builder builder =
+        Schema.DecisionEvaluationRecord.newBuilder();
+
+    if (!value.getEvaluatedDecisions().isEmpty()) {
+      for (EvaluatedDecisionValue item : value.getEvaluatedDecisions()) {
+        builder.addEvaluatedDecisions(toEvaluatedDecision(item));
+      }
+    }
+
+    return builder
+        .setDecisionKey(value.getDecisionKey())
+        .setDecisionId(value.getDecisionId())
+        .setDecisionName(value.getDecisionName())
+        .setDecisionVersion(value.getDecisionVersion())
+        .setDecisionRequirementsId(value.getDecisionRequirementsId())
+        .setDecisionRequirementsKey(value.getDecisionRequirementsKey())
+        .setDecisionOutput(value.getDecisionOutput())
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setElementId(value.getElementId())
+        .setElementInstanceKey(value.getElementInstanceKey())
+        .setEvaluationFailureMessage(value.getEvaluationFailureMessage())
+        .setFailedDecisionId(value.getFailedDecisionId())
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.EvaluatedDecision toEvaluatedDecision(EvaluatedDecisionValue value) {
+    final Schema.EvaluatedDecision.Builder builder = Schema.EvaluatedDecision.newBuilder();
+    if (!value.getEvaluatedInputs().isEmpty()) {
+      for (EvaluatedInputValue item : value.getEvaluatedInputs()) {
+        builder.addEvaluatedInputs(toEvaluatedInput(item));
+      }
+    }
+    if (!value.getMatchedRules().isEmpty()) {
+      for (MatchedRuleValue item : value.getMatchedRules()) {
+        builder.addMatchedRules(toMatchedRule(item));
+      }
+    }
+    return builder
+        .setDecisionId(value.getDecisionId())
+        .setDecisionName(value.getDecisionName())
+        .setDecisionKey(value.getDecisionKey())
+        .setDecisionVersion(value.getDecisionVersion())
+        .setDecisionType(value.getDecisionType())
+        .setDecisionOutput(value.getDecisionOutput())
+        .build();
+  }
+
+  private static Schema.MatchedRule toMatchedRule(MatchedRuleValue value) {
+    final Schema.MatchedRule.Builder builder = Schema.MatchedRule.newBuilder();
+    if (!value.getEvaluatedOutputs().isEmpty()) {
+      for (EvaluatedOutputValue item : value.getEvaluatedOutputs()) {
+        builder.addEvaluatedOutputs(toEvaluatedOutput(item));
+      }
+    }
+    return builder.setRuleId(value.getRuleId()).setRuleIndex(value.getRuleIndex()).build();
+  }
+
+  private static Schema.EvaluatedOutput toEvaluatedOutput(EvaluatedOutputValue value) {
+    return Schema.EvaluatedOutput.newBuilder()
+        .setOutputId(value.getOutputId())
+        .setOutputName(value.getOutputName())
+        .setOutputValue(value.getOutputValue())
+        .build();
+  }
+
+  private static Schema.EvaluatedInput toEvaluatedInput(EvaluatedInputValue value) {
+    return Schema.EvaluatedInput.newBuilder()
+        .setInputId(value.getInputId())
+        .setInputValue(value.getInputValue())
+        .setInputName(value.getInputName())
         .build();
   }
 
