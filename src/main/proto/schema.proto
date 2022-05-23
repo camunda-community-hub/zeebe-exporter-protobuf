@@ -84,6 +84,7 @@ message DeploymentRecord {
     int64 processDefinitionKey = 3;
     string resourceName = 5;
     string checksum = 6;
+    bool isDuplicate = 7;
   }
 
   message DecisionMetadata {

@@ -919,6 +919,7 @@ public class RecordTransformTest {
     when(processMetadata.getVersion()).thenReturn(1);
     when(processMetadata.getProcessDefinitionKey()).thenReturn(4L);
     when(processMetadata.getChecksum()).thenReturn("checksum".getBytes());
+    when(processMetadata.isDuplicate()).thenReturn(false);
     workflows.add(processMetadata);
 
     when(deploymentRecordValue.getProcessesMetadata()).thenReturn(workflows);
