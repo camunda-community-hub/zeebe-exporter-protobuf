@@ -75,6 +75,7 @@ import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
 import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsMetadataValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
@@ -721,13 +722,14 @@ public class RecordTransformTest {
 
     assertThat(transformedRecord.getEvaluatedDecisionsList()).hasSize(1);
     assertThat(recordValue.getEvaluatedDecisions()).hasSize(1);
-    final Schema.EvaluatedDecision evaluatedDecision =
+    final Schema.DecisionEvaluationRecord.EvaluatedDecision evaluatedDecision =
         transformedRecord.getEvaluatedDecisionsList().get(0);
     assertEvaluatedDecision(evaluatedDecision, recordValue.getEvaluatedDecisions().get(0));
   }
 
   private void assertEvaluatedDecision(
-      final Schema.EvaluatedDecision transformedRecord, final EvaluatedDecisionValue recordValue) {
+      final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
+      final EvaluatedDecisionValue recordValue) {
     assertThat(transformedRecord.getDecisionId()).isEqualTo(recordValue.getDecisionId());
     assertThat(transformedRecord.getDecisionName()).isEqualTo(recordValue.getDecisionName());
     assertThat(transformedRecord.getDecisionKey()).isEqualTo(recordValue.getDecisionKey());
@@ -737,36 +739,41 @@ public class RecordTransformTest {
 
     assertThat(transformedRecord.getEvaluatedInputsList()).hasSize(1);
     assertThat(recordValue.getEvaluatedInputs()).hasSize(1);
-    final Schema.EvaluatedInput evaluatedInput = transformedRecord.getEvaluatedInputsList().get(0);
+    final Schema.DecisionEvaluationRecord.EvaluatedInput evaluatedInput =
+        transformedRecord.getEvaluatedInputsList().get(0);
     assertEvaluatedInput(evaluatedInput, recordValue.getEvaluatedInputs().get(0));
 
     assertThat(transformedRecord.getMatchedRulesList()).hasSize(1);
     assertThat(recordValue.getMatchedRules()).hasSize(1);
-    final Schema.MatchedRule matchedRule = transformedRecord.getMatchedRulesList().get(0);
+    final Schema.DecisionEvaluationRecord.MatchedRule matchedRule =
+        transformedRecord.getMatchedRulesList().get(0);
     assertMatchedRule(matchedRule, recordValue.getMatchedRules().get(0));
   }
 
   private void assertMatchedRule(
-      final Schema.MatchedRule transformedRecord, final MatchedRuleValue recordValue) {
+      final Schema.DecisionEvaluationRecord.MatchedRule transformedRecord,
+      final MatchedRuleValue recordValue) {
     assertThat(transformedRecord.getRuleId()).isEqualTo(recordValue.getRuleId());
     assertThat(transformedRecord.getRuleIndex()).isEqualTo(recordValue.getRuleIndex());
 
     assertThat(transformedRecord.getEvaluatedOutputsList()).hasSize(1);
     assertThat(recordValue.getEvaluatedOutputs()).hasSize(1);
-    final Schema.EvaluatedOutput evaluatedOutput =
+    final Schema.DecisionEvaluationRecord.EvaluatedOutput evaluatedOutput =
         transformedRecord.getEvaluatedOutputsList().get(0);
     assertEvaluatedOutput(evaluatedOutput, recordValue.getEvaluatedOutputs().get(0));
   }
 
   private void assertEvaluatedOutput(
-      final Schema.EvaluatedOutput transformedRecord, final EvaluatedOutputValue recordValue) {
+      final Schema.DecisionEvaluationRecord.EvaluatedOutput transformedRecord,
+      final EvaluatedOutputValue recordValue) {
     assertThat(transformedRecord.getOutputId()).isEqualTo(recordValue.getOutputId());
     assertThat(transformedRecord.getOutputName()).isEqualTo(recordValue.getOutputName());
     assertThat(transformedRecord.getOutputValue()).isEqualTo(recordValue.getOutputValue());
   }
 
   private void assertEvaluatedInput(
-      final Schema.EvaluatedInput transformedRecord, final EvaluatedInputValue recordValue) {
+      final Schema.DecisionEvaluationRecord.EvaluatedInput transformedRecord,
+      final EvaluatedInputValue recordValue) {
     assertThat(transformedRecord.getInputId()).isEqualTo(recordValue.getInputId());
     assertThat(transformedRecord.getInputName()).isEqualTo(recordValue.getInputName());
     assertThat(transformedRecord.getInputValue()).isEqualTo(recordValue.getInputValue());

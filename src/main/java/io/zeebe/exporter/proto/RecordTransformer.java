@@ -220,7 +220,8 @@ public final class RecordTransformer {
 
     for (DecisionRequirementsMetadataValue decisionRequirementsMetadata :
         record.getValue().getDecisionRequirementsMetadata()) {
-      builder.addDecisionRequirementsMetadata(toDecisionRequirementsMetadata(decisionRequirementsMetadata));
+      builder.addDecisionRequirementsMetadata(
+          toDecisionRequirementsMetadata(decisionRequirementsMetadata));
     }
 
     for (DecisionRecordValue decisionMetadata : record.getValue().getDecisionsMetadata()) {
@@ -590,8 +591,10 @@ public final class RecordTransformer {
         .build();
   }
 
-  private static Schema.EvaluatedDecision toEvaluatedDecision(EvaluatedDecisionValue value) {
-    final Schema.EvaluatedDecision.Builder builder = Schema.EvaluatedDecision.newBuilder();
+  private static Schema.DecisionEvaluationRecord.EvaluatedDecision toEvaluatedDecision(
+      EvaluatedDecisionValue value) {
+    final Schema.DecisionEvaluationRecord.EvaluatedDecision.Builder builder =
+        Schema.DecisionEvaluationRecord.EvaluatedDecision.newBuilder();
     if (!value.getEvaluatedInputs().isEmpty()) {
       for (EvaluatedInputValue item : value.getEvaluatedInputs()) {
         builder.addEvaluatedInputs(toEvaluatedInput(item));
@@ -612,8 +615,9 @@ public final class RecordTransformer {
         .build();
   }
 
-  private static Schema.MatchedRule toMatchedRule(MatchedRuleValue value) {
-    final Schema.MatchedRule.Builder builder = Schema.MatchedRule.newBuilder();
+  private static Schema.DecisionEvaluationRecord.MatchedRule toMatchedRule(MatchedRuleValue value) {
+    final Schema.DecisionEvaluationRecord.MatchedRule.Builder builder =
+        Schema.DecisionEvaluationRecord.MatchedRule.newBuilder();
     if (!value.getEvaluatedOutputs().isEmpty()) {
       for (EvaluatedOutputValue item : value.getEvaluatedOutputs()) {
         builder.addEvaluatedOutputs(toEvaluatedOutput(item));
@@ -622,16 +626,18 @@ public final class RecordTransformer {
     return builder.setRuleId(value.getRuleId()).setRuleIndex(value.getRuleIndex()).build();
   }
 
-  private static Schema.EvaluatedOutput toEvaluatedOutput(EvaluatedOutputValue value) {
-    return Schema.EvaluatedOutput.newBuilder()
+  private static Schema.DecisionEvaluationRecord.EvaluatedOutput toEvaluatedOutput(
+      EvaluatedOutputValue value) {
+    return Schema.DecisionEvaluationRecord.EvaluatedOutput.newBuilder()
         .setOutputId(value.getOutputId())
         .setOutputName(value.getOutputName())
         .setOutputValue(value.getOutputValue())
         .build();
   }
 
-  private static Schema.EvaluatedInput toEvaluatedInput(EvaluatedInputValue value) {
-    return Schema.EvaluatedInput.newBuilder()
+  private static Schema.DecisionEvaluationRecord.EvaluatedInput toEvaluatedInput(
+      EvaluatedInputValue value) {
+    return Schema.DecisionEvaluationRecord.EvaluatedInput.newBuilder()
         .setInputId(value.getInputId())
         .setInputValue(value.getInputValue())
         .setInputName(value.getInputName())

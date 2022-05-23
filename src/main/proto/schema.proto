@@ -328,36 +328,37 @@ message DecisionRequirementsRecord {
   bytes resource = 3;
 }
 
-message EvaluatedInput {
-  string inputId = 1;
-  string inputName = 2;
-  string inputValue = 3;
-}
-
-message EvaluatedOutput {
-  string outputId = 1;
-  string outputName = 2;
-  string outputValue = 3;
-}
-
-message MatchedRule {
-  string ruleId = 1;
-  int32 ruleIndex = 2;
-  repeated EvaluatedOutput evaluatedOutputs = 3;
-}
-
-message EvaluatedDecision {
-  string decisionId = 1;
-  string decisionName = 2;
-  int64 decisionKey = 3;
-  int64 decisionVersion = 4;
-  string decisionType = 5;
-  string decisionOutput = 6;
-  repeated EvaluatedInput evaluatedInputs = 7;
-  repeated MatchedRule matchedRules = 8;
-}
-
 message DecisionEvaluationRecord {
+
+  message EvaluatedDecision {
+    string decisionId = 1;
+    string decisionName = 2;
+    int64 decisionKey = 3;
+    int64 decisionVersion = 4;
+    string decisionType = 5;
+    string decisionOutput = 6;
+    repeated EvaluatedInput evaluatedInputs = 7;
+    repeated MatchedRule matchedRules = 8;
+  }
+
+  message MatchedRule {
+    string ruleId = 1;
+    int32 ruleIndex = 2;
+    repeated EvaluatedOutput evaluatedOutputs = 3;
+  }
+
+  message EvaluatedInput {
+    string inputId = 1;
+    string inputName = 2;
+    string inputValue = 3;
+  }
+
+  message EvaluatedOutput {
+    string outputId = 1;
+    string outputName = 2;
+    string outputValue = 3;
+  }
+
   RecordMetadata metadata = 1;
   int64 decisionKey = 2;
   string decisionId = 3;
