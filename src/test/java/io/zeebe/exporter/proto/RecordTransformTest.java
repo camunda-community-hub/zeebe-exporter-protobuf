@@ -130,6 +130,51 @@ public class RecordTransformTest {
     assertThat(processMetadata.getProcessDefinitionKey()).isEqualTo(4L);
     assertThat(processMetadata.getVersion()).isEqualTo(1);
     assertThat(processMetadata.getChecksum()).isEqualTo("checksum");
+    assertThat(processMetadata.getIsDuplicate()).isFalse();
+
+    final var decisionRequirementsMetadataList = deployment.getDecisionRequirementsMetadataList();
+    assertThat(decisionRequirementsMetadataList).hasSize(1);
+
+    final var transformedDecisionRequirementsMetadata = decisionRequirementsMetadataList.get(0);
+    final var decisionRequirementsMetadata =
+        deploymentRecordValue.getDecisionRequirementsMetadata().get(0);
+
+    assertThat(transformedDecisionRequirementsMetadata.getDecisionRequirementsKey())
+        .isEqualTo(decisionRequirementsMetadata.getDecisionRequirementsKey());
+    assertThat(transformedDecisionRequirementsMetadata.getDecisionRequirementsId())
+        .isEqualTo(decisionRequirementsMetadata.getDecisionRequirementsId());
+    assertThat(transformedDecisionRequirementsMetadata.getDecisionRequirementsName())
+        .isEqualTo(decisionRequirementsMetadata.getDecisionRequirementsName());
+    assertThat(transformedDecisionRequirementsMetadata.getDecisionRequirementsVersion())
+        .isEqualTo(decisionRequirementsMetadata.getDecisionRequirementsVersion());
+    assertThat(transformedDecisionRequirementsMetadata.getNamespace())
+        .isEqualTo(decisionRequirementsMetadata.getNamespace());
+    assertThat(transformedDecisionRequirementsMetadata.getResourceName())
+        .isEqualTo(decisionRequirementsMetadata.getResourceName());
+    assertThat(transformedDecisionRequirementsMetadata.getChecksum().getBytes())
+        .isEqualTo(decisionRequirementsMetadata.getChecksum());
+    assertThat(transformedDecisionRequirementsMetadata.getIsDuplicate())
+        .isEqualTo(decisionRequirementsMetadata.isDuplicate());
+
+    final var decisionMetadataList = deployment.getDecisionMetadataList();
+    assertThat(decisionMetadataList).hasSize(1);
+
+    final var transformedDecisionMetadata = decisionMetadataList.get(0);
+    final var decisionMetadata = deploymentRecordValue.getDecisionsMetadata().get(0);
+
+    assertThat(transformedDecisionMetadata.getDecisionRequirementsKey())
+        .isEqualTo(decisionMetadata.getDecisionRequirementsKey());
+    assertThat(transformedDecisionMetadata.getDecisionRequirementsId())
+        .isEqualTo(decisionMetadata.getDecisionRequirementsId());
+    assertThat(transformedDecisionMetadata.getVersion()).isEqualTo(decisionMetadata.getVersion());
+    assertThat(transformedDecisionMetadata.getDecisionId())
+        .isEqualTo(decisionMetadata.getDecisionId());
+    assertThat(transformedDecisionMetadata.getDecisionName())
+        .isEqualTo(decisionMetadata.getDecisionName());
+    assertThat(transformedDecisionMetadata.getDecisionKey())
+        .isEqualTo(decisionMetadata.getDecisionKey());
+    assertThat(transformedDecisionMetadata.getIsDuplicate())
+        .isEqualTo(decisionMetadata.isDuplicate());
   }
 
   @Test
@@ -877,6 +922,15 @@ public class RecordTransformTest {
     workflows.add(processMetadata);
 
     when(deploymentRecordValue.getProcessesMetadata()).thenReturn(workflows);
+
+    final List<DecisionRequirementsMetadataValue> decisionRequirementsMetadata = new ArrayList<>();
+    decisionRequirementsMetadata.add(mockDecisionRequirementsRecordValue());
+    when(deploymentRecordValue.getDecisionRequirementsMetadata())
+        .thenReturn(decisionRequirementsMetadata);
+
+    final List<DecisionRecordValue> decisionRecordValues = new ArrayList<>();
+    decisionRecordValues.add(mockDecisionRecordValue());
+    when(deploymentRecordValue.getDecisionsMetadata()).thenReturn(decisionRecordValues);
 
     final List<DeploymentResource> resources = new ArrayList<>();
     final DeploymentResource deploymentResource = mock(DeploymentResource.class);

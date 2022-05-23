@@ -218,6 +218,15 @@ public final class RecordTransformer {
       builder.addProcessMetadata(toProcessMetadata(processMetadata));
     }
 
+    for (DecisionRequirementsMetadataValue decisionRequirementsMetadata :
+        record.getValue().getDecisionRequirementsMetadata()) {
+      builder.addDecisionRequirementsMetadata(toDecisionRequirementsMetadata(decisionRequirementsMetadata));
+    }
+
+    for (DecisionRecordValue decisionMetadata : record.getValue().getDecisionsMetadata()) {
+      builder.addDecisionMetadata(toDecisionMetadata(decisionMetadata));
+    }
+
     return builder.build();
   }
 
@@ -238,6 +247,19 @@ public final class RecordTransformer {
         .setVersion(processMetadata.getVersion())
         .setProcessDefinitionKey(processMetadata.getProcessDefinitionKey())
         .setChecksum(new String(processMetadata.getChecksum()))
+        .build();
+  }
+
+  private static Schema.DeploymentRecord.DecisionMetadata toDecisionMetadata(
+      DecisionRecordValue decision) {
+    return Schema.DeploymentRecord.DecisionMetadata.newBuilder()
+        .setDecisionId(decision.getDecisionId())
+        .setDecisionKey(decision.getDecisionKey())
+        .setVersion(decision.getVersion())
+        .setDecisionName(decision.getDecisionName())
+        .setDecisionRequirementsId(decision.getDecisionRequirementsId())
+        .setDecisionRequirementsKey(decision.getDecisionRequirementsKey())
+        .setIsDuplicate(decision.isDuplicate())
         .build();
   }
 

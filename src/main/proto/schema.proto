@@ -86,9 +86,21 @@ message DeploymentRecord {
     string checksum = 6;
   }
 
+  message DecisionMetadata {
+    string decisionId = 1;
+    int32 version = 2;
+    int64 decisionKey = 3;
+    string decisionName = 4;
+    string decisionRequirementsId = 5;
+    int64 decisionRequirementsKey = 6;
+    bool isDuplicate = 7;
+  }
+
   RecordMetadata metadata = 1;
   repeated Resource resources = 2;
   repeated ProcessMetadata processMetadata = 3;
+  repeated DecisionRequirementsMetadata decisionRequirementsMetadata = 4;
+  repeated DecisionMetadata decisionMetadata = 5;
 }
 
 message DeploymentDistributionRecord {
