@@ -29,6 +29,9 @@ import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.RecordValue;
 import io.camunda.zeebe.protocol.record.RejectionType;
 import io.camunda.zeebe.protocol.record.ValueType;
+import io.camunda.zeebe.protocol.record.intent.DecisionEvaluationIntent;
+import io.camunda.zeebe.protocol.record.intent.DecisionIntent;
+import io.camunda.zeebe.protocol.record.intent.DecisionRequirementsIntent;
 import io.camunda.zeebe.protocol.record.intent.DeploymentDistributionIntent;
 import io.camunda.zeebe.protocol.record.intent.DeploymentIntent;
 import io.camunda.zeebe.protocol.record.intent.ErrorIntent;
@@ -582,14 +585,14 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockDecisionRecordValue();
     final Record<DecisionRecordValue> mockedRecord =
-        mockRecord(recordValue, ValueType.DECISION, ProcessEventIntent.TRIGGERING);
+        mockRecord(recordValue, ValueType.DECISION, DecisionIntent.CREATED);
 
     // when
     final var transformedRecord =
         (Schema.DecisionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(transformedRecord.getMetadata(), "DECISION", "TRIGGERING");
+    assertMetadata(transformedRecord.getMetadata(), "DECISION", "CREATED");
 
     assertThat(transformedRecord.getDecisionRequirementsKey())
         .isEqualTo(recordValue.getDecisionRequirementsKey());
@@ -607,14 +610,15 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockDecisionRequirementsRecordValue();
     final Record<DecisionRequirementsRecordValue> mockedRecord =
-        mockRecord(recordValue, ValueType.DECISION_REQUIREMENTS, ProcessEventIntent.TRIGGERING);
+        mockRecord(
+            recordValue, ValueType.DECISION_REQUIREMENTS, DecisionRequirementsIntent.CREATED);
 
     // when
     final var transformedRecord =
         (Schema.DecisionRequirementsRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(transformedRecord.getMetadata(), "DECISION_REQUIREMENTS", "TRIGGERING");
+    assertMetadata(transformedRecord.getMetadata(), "DECISION_REQUIREMENTS", "CREATED");
 
     assertThat(transformedRecord.getDecisionRequirementsMetadata().getDecisionRequirementsKey())
         .isEqualTo(recordValue.getDecisionRequirementsKey());
@@ -639,16 +643,14 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockDecisionEvaluationRecordValue();
     final Record<DecisionEvaluationRecordValue> mockedRecord =
-        mockRecord(recordValue, ValueType.DECISION_EVALUATION, ProcessEventIntent.TRIGGERING);
+        mockRecord(recordValue, ValueType.DECISION_EVALUATION, DecisionEvaluationIntent.EVALUATED);
 
     // when
     final var transformedRecord =
         (Schema.DecisionEvaluationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(transformedRecord.getMetadata(), "DECISION_EVALUATION", "TRIGGERING");
-
-    //    List<EvaluatedDecisionValue> getEvaluatedDecisions();
+    assertMetadata(transformedRecord.getMetadata(), "DECISION_EVALUATION", "EVALUATED");
 
     assertThat(transformedRecord.getDecisionKey()).isEqualTo(recordValue.getDecisionKey());
     assertThat(transformedRecord.getDecisionId()).isEqualTo(recordValue.getDecisionId());
