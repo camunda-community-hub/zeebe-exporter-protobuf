@@ -43,7 +43,7 @@
     <version.protoc>3.9.1</version.protoc>
     <version.slf4j>1.7.25</version.slf4j>
 
-    <version.assertj>3.22.0</version.assertj>
+    <version.assertj>3.23.0</version.assertj>
     <version.junit>4.13.2</version.junit>
     <version.log4j>2.11.1</version.log4j>
     <version.mockito>4.6.0</version.mockito>
