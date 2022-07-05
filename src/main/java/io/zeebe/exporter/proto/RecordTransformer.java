@@ -247,7 +247,7 @@ public final class RecordTransformer {
         .setResourceName(processMetadata.getResourceName())
         .setVersion(processMetadata.getVersion())
         .setProcessDefinitionKey(processMetadata.getProcessDefinitionKey())
-        .setChecksum(new String(processMetadata.getChecksum()))
+        .setChecksum(ByteString.copyFrom(processMetadata.getChecksum()))
         .build();
   }
 
@@ -281,7 +281,7 @@ public final class RecordTransformer {
         .setResource(ByteString.copyFrom(value.getResource()))
         .setVersion(value.getVersion())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
-        .setChecksum(new String(value.getChecksum()))
+        .setChecksum(ByteString.copyFrom(value.getChecksum()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -554,7 +554,7 @@ public final class RecordTransformer {
         .setDecisionRequirementsKey(metadataValue.getDecisionRequirementsKey())
         .setNamespace(metadataValue.getNamespace())
         .setResourceName(metadataValue.getResourceName())
-        .setChecksum(new String(metadataValue.getChecksum()))
+        .setChecksum(ByteString.copyFrom(metadataValue.getChecksum()))
         .setIsDuplicate(metadataValue.isDuplicate())
         .build();
   }

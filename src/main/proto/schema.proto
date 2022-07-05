@@ -83,7 +83,7 @@ message DeploymentRecord {
     int32 version = 2;
     int64 processDefinitionKey = 3;
     string resourceName = 5;
-    string checksum = 6;
+    bytes checksum = 6;
     bool isDuplicate = 7;
   }
 
@@ -287,7 +287,7 @@ message ProcessRecord {
   int32 version = 3;
   int64 processDefinitionKey = 4;
   string resourceName = 5;
-  string checksum = 6;
+  bytes checksum = 6;
   bytes resource = 7;
 }
 
@@ -318,7 +318,7 @@ message DecisionRequirementsMetadata {
   int64 decisionRequirementsKey = 4;
   string namespace = 5;
   string resourceName = 6;
-  string checksum = 7;
+  bytes checksum = 7;
   bool isDuplicate = 8;
 }
 
