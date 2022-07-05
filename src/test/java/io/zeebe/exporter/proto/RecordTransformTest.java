@@ -130,7 +130,7 @@ public class RecordTransformTest {
     assertThat(processMetadata.getResourceName()).isEqualTo("process.bpmn");
     assertThat(processMetadata.getProcessDefinitionKey()).isEqualTo(4L);
     assertThat(processMetadata.getVersion()).isEqualTo(1);
-    assertThat(processMetadata.getChecksum()).isEqualTo("checksum");
+    assertThat(processMetadata.getChecksum().toByteArray()).isEqualTo("checksum".getBytes());
     assertThat(processMetadata.getIsDuplicate()).isFalse();
 
     final var decisionRequirementsMetadataList = deployment.getDecisionRequirementsMetadataList();
@@ -152,7 +152,7 @@ public class RecordTransformTest {
         .isEqualTo(decisionRequirementsMetadata.getNamespace());
     assertThat(transformedDecisionRequirementsMetadata.getResourceName())
         .isEqualTo(decisionRequirementsMetadata.getResourceName());
-    assertThat(transformedDecisionRequirementsMetadata.getChecksum().getBytes())
+    assertThat(transformedDecisionRequirementsMetadata.getChecksum().toByteArray())
         .isEqualTo(decisionRequirementsMetadata.getChecksum());
     assertThat(transformedDecisionRequirementsMetadata.getIsDuplicate())
         .isEqualTo(decisionRequirementsMetadata.isDuplicate());
@@ -217,7 +217,7 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getResource().toStringUtf8()).isEqualTo("resourceContent");
     assertThat(transformedRecord.getResourceName()).isEqualTo(recordValue.getResourceName());
     assertThat(transformedRecord.getBpmnProcessId()).isEqualTo(recordValue.getBpmnProcessId());
-    assertThat(transformedRecord.getChecksum()).isEqualTo("checksum");
+    assertThat(transformedRecord.getChecksum().toByteArray()).isEqualTo("checksum".getBytes());
     assertThat(transformedRecord.getProcessDefinitionKey())
         .isEqualTo(recordValue.getProcessDefinitionKey());
     assertThat(transformedRecord.getVersion()).isEqualTo(recordValue.getVersion());
@@ -678,7 +678,7 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getNamespace());
     assertThat(transformedRecord.getDecisionRequirementsMetadata().getResourceName())
         .isEqualTo(recordValue.getResourceName());
-    assertThat(transformedRecord.getDecisionRequirementsMetadata().getChecksum().getBytes())
+    assertThat(transformedRecord.getDecisionRequirementsMetadata().getChecksum().toByteArray())
         .isEqualTo(recordValue.getChecksum());
     assertThat(transformedRecord.getDecisionRequirementsMetadata().getIsDuplicate())
         .isEqualTo(recordValue.isDuplicate());
