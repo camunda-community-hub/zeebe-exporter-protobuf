@@ -46,7 +46,7 @@
     <version.assertj>3.23.1</version.assertj>
     <version.junit>4.13.2</version.junit>
     <version.log4j>2.11.1</version.log4j>
-    <version.mockito>4.9.0</version.mockito>
+    <version.mockito>4.10.0</version.mockito>
 
     <!-- plugin version -->
     <plugin.version.checkstyle>3.2.0</plugin.version.checkstyle>
