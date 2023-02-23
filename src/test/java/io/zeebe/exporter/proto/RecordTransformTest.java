@@ -29,57 +29,16 @@ import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.RecordValue;
 import io.camunda.zeebe.protocol.record.RejectionType;
 import io.camunda.zeebe.protocol.record.ValueType;
-import io.camunda.zeebe.protocol.record.intent.DecisionEvaluationIntent;
-import io.camunda.zeebe.protocol.record.intent.DecisionIntent;
-import io.camunda.zeebe.protocol.record.intent.DecisionRequirementsIntent;
-import io.camunda.zeebe.protocol.record.intent.DeploymentDistributionIntent;
-import io.camunda.zeebe.protocol.record.intent.DeploymentIntent;
-import io.camunda.zeebe.protocol.record.intent.ErrorIntent;
-import io.camunda.zeebe.protocol.record.intent.IncidentIntent;
-import io.camunda.zeebe.protocol.record.intent.Intent;
-import io.camunda.zeebe.protocol.record.intent.JobBatchIntent;
-import io.camunda.zeebe.protocol.record.intent.JobIntent;
-import io.camunda.zeebe.protocol.record.intent.MessageIntent;
-import io.camunda.zeebe.protocol.record.intent.MessageStartEventSubscriptionIntent;
-import io.camunda.zeebe.protocol.record.intent.MessageSubscriptionIntent;
-import io.camunda.zeebe.protocol.record.intent.ProcessEventIntent;
-import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent;
-import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
-import io.camunda.zeebe.protocol.record.intent.ProcessIntent;
-import io.camunda.zeebe.protocol.record.intent.ProcessMessageSubscriptionIntent;
-import io.camunda.zeebe.protocol.record.intent.TimerIntent;
-import io.camunda.zeebe.protocol.record.intent.VariableDocumentIntent;
-import io.camunda.zeebe.protocol.record.intent.VariableIntent;
-import io.camunda.zeebe.protocol.record.value.BpmnElementType;
-import io.camunda.zeebe.protocol.record.value.DecisionEvaluationRecordValue;
-import io.camunda.zeebe.protocol.record.value.DeploymentDistributionRecordValue;
-import io.camunda.zeebe.protocol.record.value.DeploymentRecordValue;
-import io.camunda.zeebe.protocol.record.value.ErrorRecordValue;
-import io.camunda.zeebe.protocol.record.value.ErrorType;
-import io.camunda.zeebe.protocol.record.value.EvaluatedDecisionValue;
-import io.camunda.zeebe.protocol.record.value.EvaluatedInputValue;
-import io.camunda.zeebe.protocol.record.value.EvaluatedOutputValue;
-import io.camunda.zeebe.protocol.record.value.IncidentRecordValue;
-import io.camunda.zeebe.protocol.record.value.JobBatchRecordValue;
-import io.camunda.zeebe.protocol.record.value.JobRecordValue;
-import io.camunda.zeebe.protocol.record.value.MatchedRuleValue;
-import io.camunda.zeebe.protocol.record.value.MessageRecordValue;
-import io.camunda.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
-import io.camunda.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessMessageSubscriptionRecordValue;
-import io.camunda.zeebe.protocol.record.value.TimerRecordValue;
-import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
-import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
-import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
+import io.camunda.zeebe.protocol.record.intent.*;
+import io.camunda.zeebe.protocol.record.intent.management.CheckpointIntent;
+import io.camunda.zeebe.protocol.record.value.*;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsMetadataValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
 import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
+import io.camunda.zeebe.protocol.record.value.management.CheckpointRecordValue;
 import io.zeebe.exporter.proto.Schema.JobRecord;
 import io.zeebe.exporter.proto.Schema.RecordMetadata;
 import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
@@ -725,6 +684,114 @@ public class RecordTransformTest {
     final Schema.DecisionEvaluationRecord.EvaluatedDecision evaluatedDecision =
         transformedRecord.getEvaluatedDecisionsList().get(0);
     assertEvaluatedDecision(evaluatedDecision, recordValue.getEvaluatedDecisions().get(0));
+  }
+
+  @Test
+  public void shouldTransformProcessInstanceModificationRecord() {
+    // given
+    final var recordValue = mock(ProcessInstanceModificationRecordValue.class);
+    when(recordValue.getProcessInstanceKey()).thenReturn(10L);
+    when(recordValue.getActivateInstructions())
+        .thenAnswer(
+            invocation -> {
+              final var instruction =
+                  mock(
+                      ProcessInstanceModificationRecordValue
+                          .ProcessInstanceModificationActivateInstructionValue.class);
+              when(instruction.getElementId()).thenReturn("element-id");
+              when(instruction.getAncestorScopeKey()).thenReturn(20L);
+              when(instruction.getAncestorScopeKeys()).thenReturn(Set.of(30L, 31L));
+              when(instruction.getVariableInstructions())
+                  .thenAnswer(
+                      invocation2 -> {
+                        final var variableInstruction =
+                            mock(
+                                ProcessInstanceModificationRecordValue
+                                    .ProcessInstanceModificationVariableInstructionValue.class);
+                        when(variableInstruction.getElementId()).thenReturn("variable-element-id");
+                        when(variableInstruction.getVariables()).thenReturn(Map.of("foo", 23));
+                        return List.of(variableInstruction);
+                      });
+              return List.of(instruction);
+            });
+    when(recordValue.getTerminateInstructions())
+        .thenAnswer(
+            invocation -> {
+              final var instruction =
+                  mock(
+                      ProcessInstanceModificationRecordValue
+                          .ProcessInstanceModificationTerminateInstructionValue.class);
+              when(instruction.getElementInstanceKey()).thenReturn(40L);
+              return List.of(instruction);
+            });
+
+    final Record<ProcessInstanceModificationRecordValue> mockedRecord =
+        mockRecord(
+            recordValue,
+            ValueType.PROCESS_INSTANCE_MODIFICATION,
+            ProcessInstanceModificationIntent.MODIFIED);
+
+    // when
+    final var transformedRecord =
+        (Schema.ProcessInstanceModificationRecord)
+            RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "PROCESS_INSTANCE_MODIFICATION", "MODIFIED");
+
+    assertThat(transformedRecord.getProcessInstanceKey())
+        .isEqualTo(recordValue.getProcessInstanceKey());
+    assertThat(transformedRecord.getActivateInstructionsList())
+        .hasSize(1)
+        .allSatisfy(
+            transformedInstruction -> {
+              final var activateInstruction = recordValue.getActivateInstructions().get(0);
+              assertThat(transformedInstruction.getElementId())
+                  .isEqualTo(activateInstruction.getElementId());
+              assertThat(transformedInstruction.getAncestorScopeKey())
+                  .isEqualTo(activateInstruction.getAncestorScopeKey());
+              assertThat(transformedInstruction.getAncestorScopeKeysList())
+                  .containsAll(activateInstruction.getAncestorScopeKeys());
+              assertThat(transformedInstruction.getVariableInstructionsList())
+                  .hasSize(1)
+                  .allSatisfy(
+                      transformedVariableInstruction -> {
+                        final var variableInstruction =
+                            activateInstruction.getVariableInstructions().get(0);
+                        assertThat(transformedVariableInstruction.getElementId())
+                            .isEqualTo(variableInstruction.getElementId());
+                        assertVariables(transformedVariableInstruction.getVariables());
+                      });
+            });
+    assertThat(transformedRecord.getTerminateInstructionsList())
+        .hasSize(1)
+        .allSatisfy(
+            transformedInstruction -> {
+              final var terminateInstruction = recordValue.getTerminateInstructions().get(0);
+              assertThat(transformedInstruction.getElementInstanceKey())
+                  .isEqualTo(terminateInstruction.getElementInstanceKey());
+            });
+  }
+
+  @Test
+  public void shouldTransformCheckpointRecord() {
+    // given
+    final var recordValue = mock(CheckpointRecordValue.class);
+    when(recordValue.getCheckpointId()).thenReturn(10L);
+    when(recordValue.getCheckpointPosition()).thenReturn(20L);
+
+    final Record<CheckpointRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.CHECKPOINT, CheckpointIntent.CREATED);
+
+    // when
+    final var transformedRecord =
+        (Schema.CheckpointRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "CHECKPOINT", "CREATED");
+
+    assertThat(transformedRecord.getId()).isEqualTo(recordValue.getCheckpointId());
+    assertThat(transformedRecord.getPosition()).isEqualTo(recordValue.getCheckpointPosition());
   }
 
   private void assertEvaluatedDecision(

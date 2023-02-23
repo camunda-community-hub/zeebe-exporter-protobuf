@@ -26,34 +26,14 @@ import com.google.protobuf.Value;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
-import io.camunda.zeebe.protocol.record.value.DecisionEvaluationRecordValue;
-import io.camunda.zeebe.protocol.record.value.DeploymentDistributionRecordValue;
-import io.camunda.zeebe.protocol.record.value.DeploymentRecordValue;
-import io.camunda.zeebe.protocol.record.value.ErrorRecordValue;
-import io.camunda.zeebe.protocol.record.value.EvaluatedDecisionValue;
-import io.camunda.zeebe.protocol.record.value.EvaluatedInputValue;
-import io.camunda.zeebe.protocol.record.value.EvaluatedOutputValue;
-import io.camunda.zeebe.protocol.record.value.IncidentRecordValue;
-import io.camunda.zeebe.protocol.record.value.JobBatchRecordValue;
-import io.camunda.zeebe.protocol.record.value.JobRecordValue;
-import io.camunda.zeebe.protocol.record.value.MatchedRuleValue;
-import io.camunda.zeebe.protocol.record.value.MessageRecordValue;
-import io.camunda.zeebe.protocol.record.value.MessageStartEventSubscriptionRecordValue;
-import io.camunda.zeebe.protocol.record.value.MessageSubscriptionRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
-import io.camunda.zeebe.protocol.record.value.ProcessMessageSubscriptionRecordValue;
-import io.camunda.zeebe.protocol.record.value.TimerRecordValue;
-import io.camunda.zeebe.protocol.record.value.VariableDocumentRecordValue;
-import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic;
-import io.camunda.zeebe.protocol.record.value.VariableRecordValue;
+import io.camunda.zeebe.protocol.record.value.*;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsMetadataValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
 import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
 import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
+import io.camunda.zeebe.protocol.record.value.management.CheckpointRecordValue;
 import io.zeebe.exporter.proto.Schema.RecordMetadata;
 import io.zeebe.exporter.proto.Schema.VariableDocumentRecord;
 import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
@@ -61,6 +41,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * As a one class god factory...not great but keeping it around since it has all the code necessary
@@ -123,6 +104,10 @@ public final class RecordTransformer {
     TRANSFORMERS.put(
         ValueType.DECISION_REQUIREMENTS, RecordTransformer::toDecisionRequirementsRecord);
     TRANSFORMERS.put(ValueType.DECISION_EVALUATION, RecordTransformer::toDecisionEvaluationRecord);
+    TRANSFORMERS.put(
+        ValueType.PROCESS_INSTANCE_MODIFICATION,
+        RecordTransformer::toProcessInstanceModificationRecord);
+    TRANSFORMERS.put(ValueType.CHECKPOINT, RecordTransformer::toCheckpointRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -153,6 +138,10 @@ public final class RecordTransformer {
         ValueType.DECISION_REQUIREMENTS, RecordMetadata.ValueType.DECISION_REQUIREMENTS);
     VALUE_TYPE_MAPPING.put(
         ValueType.DECISION_EVALUATION, RecordMetadata.ValueType.DECISION_EVALUATION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.PROCESS_INSTANCE_MODIFICATION,
+        RecordMetadata.ValueType.PROCESS_INSTANCE_MODIFICATION);
+    VALUE_TYPE_MAPPING.put(ValueType.CHECKPOINT, RecordMetadata.ValueType.CHECKPOINT);
   }
 
   private RecordTransformer() {}
@@ -641,6 +630,61 @@ public final class RecordTransformer {
         .setInputId(value.getInputId())
         .setInputValue(value.getInputValue())
         .setInputName(value.getInputName())
+        .build();
+  }
+
+  private static Schema.ProcessInstanceModificationRecord toProcessInstanceModificationRecord(
+      Record<ProcessInstanceModificationRecordValue> record) {
+    final ProcessInstanceModificationRecordValue value = record.getValue();
+
+    final var activateInstructions =
+        value.getActivateInstructions().stream()
+            .map(
+                activateInstruction ->
+                    Schema.ProcessInstanceModificationRecord
+                        .ProcessInstanceModificationActivateInstruction.newBuilder()
+                        .setElementId(activateInstruction.getElementId())
+                        .setAncestorScopeKey(activateInstruction.getAncestorScopeKey())
+                        .addAllAncestorScopeKeys(activateInstruction.getAncestorScopeKeys())
+                        .addAllVariableInstructions(
+                            activateInstruction.getVariableInstructions().stream()
+                                .map(
+                                    variableInstruction ->
+                                        Schema.ProcessInstanceModificationRecord
+                                            .ProcessInstanceModificationVariableInstruction
+                                            .newBuilder()
+                                            .setElementId(variableInstruction.getElementId())
+                                            .setVariables(
+                                                toStruct(variableInstruction.getVariables()))
+                                            .build())
+                                .collect(Collectors.toList()))
+                        .build())
+            .collect(Collectors.toList());
+
+    final var terminateInstructions =
+        value.getTerminateInstructions().stream()
+            .map(
+                terminateInstruction ->
+                    Schema.ProcessInstanceModificationRecord
+                        .ProcessInstanceModificationTerminateInstruction.newBuilder()
+                        .setElementInstanceKey(terminateInstruction.getElementInstanceKey())
+                        .build())
+            .collect(Collectors.toList());
+
+    return Schema.ProcessInstanceModificationRecord.newBuilder()
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .addAllActivateInstructions(activateInstructions)
+        .addAllTerminateInstructions(terminateInstructions)
+        .setMetadata(toMetadata(record))
+        .build();
+  }
+
+  private static Schema.CheckpointRecord toCheckpointRecord(Record<CheckpointRecordValue> record) {
+    final CheckpointRecordValue value = record.getValue();
+    return Schema.CheckpointRecord.newBuilder()
+        .setId(value.getCheckpointId())
+        .setPosition(value.getCheckpointPosition())
+        .setMetadata(toMetadata(record))
         .build();
   }
 
