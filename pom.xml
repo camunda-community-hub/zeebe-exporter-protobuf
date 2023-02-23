@@ -13,11 +13,10 @@
   <inceptionYear>2019</inceptionYear>
 
   <parent>
-    <groupId>org.camunda</groupId>
-    <artifactId>camunda-release-parent</artifactId>
-    <version>3.9.1</version>
-    <!-- do not remove empty tag - http://jira.codehaus.org/browse/MNG-4687 -->
-    <relativePath />
+    <groupId>org.camunda.community</groupId>
+    <artifactId>community-hub-release-parent</artifactId>
+    <version>1.4.1</version>
+    <relativePath/>
   </parent>
 
   <properties>
@@ -131,6 +130,26 @@
       </extension>
     </extensions>
 
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>3.4.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.sonatype.plugins</groupId>
+          <artifactId>nexus-staging-maven-plugin</artifactId>
+          <version>1.6.13</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
     <plugins>
 
       <plugin>
@@ -143,11 +162,30 @@
       </plugin>
 
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.5.0</version>
         <configuration>
-          <!-- Override java source version to workaround javadoc bug https://bugs.openjdk.java.net/browse/JDK-8212233 -->
-          <source>8</source>
+          <source>${version.java}</source>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>empty-javadoc-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>javadoc</classifier>
+              <classesDirectory>${basedir}/javadoc</classesDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- Protobuf plugin -->
@@ -169,97 +207,11 @@
         </executions>
       </plugin>
 
-      <!-- LICENSE PLUGIN -->
-      <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <version>${plugin.version.license}</version>
-        <configuration>
-          <header>${license.header}</header>
-          <properties>
-            <owner>camunda services GmbH</owner>
-            <email>info@camunda.com</email>
-          </properties>
-          <includes>
-            <include>**/*.java</include>
-          </includes>
-          <mapping>
-            <java>SLASHSTAR_STYLE</java>
-          </mapping>
-        </configuration>
-        <executions>
-          <execution>
-            <id>add-license</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>format</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- CHECKSTYLE -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${plugin.version.checkstyle}</version>
-        <!-- dependency on build tool to reference the checkstyle cfg -->
-        <dependencies>
-          <dependency>
-            <groupId>io.camunda</groupId>
-            <artifactId>zeebe-build-tools</artifactId>
-            <version>${version.zeebe}</version>
-          </dependency>
-        </dependencies>
-        <configuration>
-          <configLocation>check/.checkstyle.xml</configLocation>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <encoding>UTF-8</encoding>
-          <failOnViolation>true</failOnViolation>
-          <sourceDirectories>
-            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-            <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
-            <sourceDirectory>${project.basedir}/src/test/jmh</sourceDirectory>
-          </sourceDirectories>
-        </configuration>
-        <executions>
-          <execution>
-            <id>validate-java</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <configuration>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <!-- unit tests -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${plugin.version.surefire}</version>
-        <configuration>
-          <failIfNoTests>false</failIfNoTests>
-          <trimStackTrace>false</trimStackTrace>
-          <redirectTestOutputToFile>true</redirectTestOutputToFile>
-        </configuration>
-      </plugin>
-
-      <!-- INTEGRATION TESTS -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${plugin.version.failsafe}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
         <configuration>
           <failIfNoTests>false</failIfNoTests>
           <trimStackTrace>false</trimStackTrace>
@@ -294,12 +246,40 @@
         <version>${plugin.version.shade}</version>
       </plugin>
 
-
       <!-- Resources Plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>${plugin.version.resources}</version>
+      </plugin>
+
+      <!-- LICENSE PLUGIN -->
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${plugin.version.license}</version>
+        <configuration>
+          <header>${license.header}</header>
+          <properties>
+            <owner>camunda services GmbH</owner>
+            <email>info@camunda.com</email>
+          </properties>
+          <includes>
+            <include>**/*.java</include>
+          </includes>
+          <mapping>
+            <java>SLASHSTAR_STYLE</java>
+          </mapping>
+        </configuration>
+        <executions>
+          <execution>
+            <id>add-license</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>format</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
     </plugins>
