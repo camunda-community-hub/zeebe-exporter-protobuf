@@ -430,6 +430,7 @@ public class RecordTransformTest {
         .isEqualTo(variableRecordValue.getProcessInstanceKey());
     assertThat(variableRecord.getProcessDefinitionKey())
         .isEqualTo(variableRecordValue.getProcessDefinitionKey());
+    assertThat(variableRecord.getBpmnProcessId()).isEqualTo(variableRecordValue.getBpmnProcessId());
   }
 
   @Test
@@ -896,6 +897,7 @@ public class RecordTransformTest {
     when(variableRecordValue.getValue()).thenReturn("true");
     when(variableRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(variableRecordValue.getProcessDefinitionKey()).thenReturn(2L);
+    when(variableRecordValue.getBpmnProcessId()).thenReturn("process");
 
     return variableRecordValue;
   }
