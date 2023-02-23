@@ -226,6 +226,7 @@ message VariableRecord {
   int64 scopeKey = 4;
   int64 processInstanceKey = 5;
   int64 processDefinitionKey = 6;
+  string bpmnProcessId = 7;
 }
 
 message VariableDocumentRecord {

@@ -395,6 +395,7 @@ public final class RecordTransformer {
         .setScopeKey(value.getScopeKey())
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setBpmnProcessId(value.getBpmnProcessId())
         .setName(value.getName())
         .setValue(value.getValue());
 
