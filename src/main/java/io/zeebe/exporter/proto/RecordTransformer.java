@@ -142,6 +142,10 @@ public final class RecordTransformer {
         ValueType.PROCESS_INSTANCE_MODIFICATION,
         RecordMetadata.ValueType.PROCESS_INSTANCE_MODIFICATION);
     VALUE_TYPE_MAPPING.put(ValueType.CHECKPOINT, RecordMetadata.ValueType.CHECKPOINT);
+    VALUE_TYPE_MAPPING.put(ValueType.ESCALATION, RecordMetadata.ValueType.ESCALATION);
+    VALUE_TYPE_MAPPING.put(ValueType.SIGNAL_SUBSCRIPTION, RecordMetadata.ValueType.SIGNAL_SUBSCRIPTION);
+    VALUE_TYPE_MAPPING.put(ValueType.SIGNAL, RecordMetadata.ValueType.SIGNAL);
+    VALUE_TYPE_MAPPING.put(ValueType.RESOURCE_DELETION, RecordMetadata.ValueType.RESOURCE_DELETION);
   }
 
   private RecordTransformer() {}

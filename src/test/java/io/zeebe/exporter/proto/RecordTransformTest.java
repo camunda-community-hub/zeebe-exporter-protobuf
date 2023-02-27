@@ -1151,7 +1151,7 @@ public class RecordTransformTest {
     when(value.getDecisionId()).thenReturn("decisionId");
     when(value.getDecisionName()).thenReturn("decisionName");
     when(value.getDecisionKey()).thenReturn(2L);
-    when(value.getDecisionVersion()).thenReturn(2L);
+    when(value.getDecisionVersion()).thenReturn(2);
     when(value.getDecisionType()).thenReturn("decisionType");
     when(value.getDecisionOutput()).thenReturn("decisionOutput");
 
