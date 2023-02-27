@@ -51,6 +51,10 @@ message RecordMetadata {
     DECISION_EVALUATION = 20;
     PROCESS_INSTANCE_MODIFICATION = 21;
     CHECKPOINT = 22;
+    ESCALATION = 23;
+    SIGNAL_SUBSCRIPTION = 24;
+    SIGNAL = 25;
+    RESOURCE_DELETION = 26;
   }
 
   enum RecordType {
