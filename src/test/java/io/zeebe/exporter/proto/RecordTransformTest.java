@@ -206,6 +206,7 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstance.getFlowScopeKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getBpmnElementType()).isEqualTo("START_EVENT");
+    assertThat(workflowInstance.getBpmnEventType()).isEqualTo("NONE");
     assertThat(workflowInstance.getParentProcessInstanceKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getParentElementInstanceKey()).isEqualTo(-1L);
   }
@@ -1047,6 +1048,7 @@ public class RecordTransformTest {
     when(workflowInstanceRecordValue.getVersion()).thenReturn(1);
     when(workflowInstanceRecordValue.getProcessDefinitionKey()).thenReturn(4L);
     when(workflowInstanceRecordValue.getBpmnElementType()).thenReturn(BpmnElementType.START_EVENT);
+    when(workflowInstanceRecordValue.getBpmnEventType()).thenReturn(BpmnEventType.NONE);
     when(workflowInstanceRecordValue.getParentProcessInstanceKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getParentElementInstanceKey()).thenReturn(-1L);
 

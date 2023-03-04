@@ -261,6 +261,7 @@ message ProcessInstanceRecord {
   string bpmnElementType = 8;
   int64 parentProcessInstanceKey = 9;
   int64 parentElementInstanceKey = 10;
+  string bpmnEventType = 11;
 }
 
 message ProcessInstanceCreationRecord {
