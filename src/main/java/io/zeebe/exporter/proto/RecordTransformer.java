@@ -433,6 +433,7 @@ public final class RecordTransformer {
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setBpmnElementType(value.getBpmnElementType().name())
+        .setBpmnEventType(value.getBpmnEventType().name())
         .setParentProcessInstanceKey(value.getParentProcessInstanceKey())
         .setParentElementInstanceKey(value.getParentElementInstanceKey())
         .setMetadata(toMetadata(record))
