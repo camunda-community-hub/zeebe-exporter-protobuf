@@ -58,6 +58,7 @@ public class RecordTransformTest {
   public static final long POSITION = 300L;
   public static final long TIMESTAMP = 1000L;
   public static final long SOURCE_POSITION = 100L;
+  public static final Map<String, Object> VARIABLES = Map.of("foo", 23);
 
   @Test
   public void shouldTransformDeployment() {
@@ -711,7 +712,7 @@ public class RecordTransformTest {
                                 ProcessInstanceModificationRecordValue
                                     .ProcessInstanceModificationVariableInstructionValue.class);
                         when(variableInstruction.getElementId()).thenReturn("variable-element-id");
-                        when(variableInstruction.getVariables()).thenReturn(Map.of("foo", 23));
+                        when(variableInstruction.getVariables()).thenReturn(VARIABLES);
                         return List.of(variableInstruction);
                       });
               return List.of(instruction);
@@ -796,6 +797,54 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getPosition()).isEqualTo(recordValue.getCheckpointPosition());
   }
 
+  @Test
+  public void shouldTransformSignalRecord() {
+    // given
+    final var recordValue = mock(SignalRecordValue.class);
+    when(recordValue.getSignalName()).thenReturn("signal");
+    when(recordValue.getVariables()).thenReturn(VARIABLES);
+
+    final Record<SignalRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.SIGNAL, SignalIntent.BROADCAST);
+
+    // when
+    final var transformedRecord =
+            (Schema.SignalRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "SIGNAL", "BROADCAST");
+
+    assertThat(transformedRecord.getSignalName()).isEqualTo(recordValue.getSignalName());
+    assertVariables(transformedRecord.getVariables());
+  }
+
+  @Test
+  public void shouldTransformSignalSubscriptionRecord() {
+    // given
+    final var recordValue = mock(SignalSubscriptionRecordValue.class);
+    when(recordValue.getSignalName()).thenReturn("signal");
+    when(recordValue.getProcessDefinitionKey()).thenReturn(10L);
+    when(recordValue.getBpmnProcessId()).thenReturn("process");
+    when(recordValue.getCatchEventId()).thenReturn("event");
+    when(recordValue.getCatchEventInstanceKey()).thenReturn(20L);
+
+    final Record<SignalSubscriptionRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.SIGNAL_SUBSCRIPTION, SignalSubscriptionIntent.CREATED);
+
+    // when
+    final var transformedRecord =
+            (Schema.SignalSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "SIGNAL_SUBSCRIPTION", "CREATED");
+
+    assertThat(transformedRecord.getSignalName()).isEqualTo(recordValue.getSignalName());
+    assertThat(transformedRecord.getProcessDefinitionKey()).isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getBpmnProcessId()).isEqualTo(recordValue.getBpmnProcessId());
+    assertThat(transformedRecord.getCatchEventId()).isEqualTo(recordValue.getCatchEventId());
+    assertThat(transformedRecord.getCatchEventInstanceKey()).isEqualTo(recordValue.getCatchEventInstanceKey());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -872,7 +921,7 @@ public class RecordTransformTest {
     when(value.getCorrelationKey()).thenReturn("correlationKey");
     when(value.getMessageKey()).thenReturn(2L);
     when(value.getProcessInstanceKey()).thenReturn(3L);
-    when(value.getVariables()).thenReturn(Map.of("foo", 23));
+    when(value.getVariables()).thenReturn(VARIABLES);
 
     return value;
   }
@@ -924,7 +973,7 @@ public class RecordTransformTest {
     when(messageSubscriptionRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(messageSubscriptionRecordValue.getBpmnProcessId()).thenReturn("bpmnProcessId");
     when(messageSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
-    when(messageSubscriptionRecordValue.getVariables()).thenReturn(Map.of("foo", 23));
+    when(messageSubscriptionRecordValue.getVariables()).thenReturn(VARIABLES);
     when(messageSubscriptionRecordValue.isInterrupting()).thenReturn(true);
 
     return messageSubscriptionRecordValue;
@@ -1092,7 +1141,7 @@ public class RecordTransformTest {
     when(value.getProcessDefinitionKey()).thenReturn(1L);
     when(value.getScopeKey()).thenReturn(2L);
     when(value.getTargetElementId()).thenReturn("targetElementId");
-    when(value.getVariables()).thenReturn(Map.of("foo", 23));
+    when(value.getVariables()).thenReturn(VARIABLES);
     return value;
   }
 
