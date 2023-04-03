@@ -55,6 +55,7 @@ message RecordMetadata {
     SIGNAL_SUBSCRIPTION = 24;
     SIGNAL = 25;
     RESOURCE_DELETION = 26;
+    COMMAND_DISTRIBUTION = 27;
   }
 
   enum RecordType {
@@ -413,4 +414,19 @@ message CheckpointRecord {
   RecordMetadata metadata = 1;
   int64 id = 2;
   int64 position = 3;
+}
+
+message SignalRecord {
+  RecordMetadata metadata = 1;
+  string signalName = 2;
+  google.protobuf.Struct variables = 3;
+}
+
+message SignalSubscriptionRecord {
+  RecordMetadata metadata = 1;
+  string signalName = 2;
+  int64 processDefinitionKey = 3;
+  string bpmnProcessId = 4;
+  string catchEventId = 5;
+  int64 catchEventInstanceKey = 6;
 }
