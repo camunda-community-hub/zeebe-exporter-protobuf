@@ -149,7 +149,8 @@ public final class RecordTransformer {
         ValueType.SIGNAL_SUBSCRIPTION, RecordMetadata.ValueType.SIGNAL_SUBSCRIPTION);
     VALUE_TYPE_MAPPING.put(ValueType.SIGNAL, RecordMetadata.ValueType.SIGNAL);
     VALUE_TYPE_MAPPING.put(ValueType.RESOURCE_DELETION, RecordMetadata.ValueType.RESOURCE_DELETION);
-    VALUE_TYPE_MAPPING.put(ValueType.COMMAND_DISTRIBUTION, RecordMetadata.ValueType.COMMAND_DISTRIBUTION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.COMMAND_DISTRIBUTION, RecordMetadata.ValueType.COMMAND_DISTRIBUTION);
   }
 
   private RecordTransformer() {}
@@ -701,22 +702,23 @@ public final class RecordTransformer {
   private static Schema.SignalRecord toSignalRecord(Record<SignalRecordValue> record) {
     final SignalRecordValue value = record.getValue();
     return Schema.SignalRecord.newBuilder()
-            .setSignalName(value.getSignalName())
-            .setVariables(toStruct(value.getVariables()))
-            .setMetadata(toMetadata(record))
-            .build();
+        .setSignalName(value.getSignalName())
+        .setVariables(toStruct(value.getVariables()))
+        .setMetadata(toMetadata(record))
+        .build();
   }
 
-  private static Schema.SignalSubscriptionRecord toSignalSubscriptionRecord(Record<SignalSubscriptionRecordValue> record) {
+  private static Schema.SignalSubscriptionRecord toSignalSubscriptionRecord(
+      Record<SignalSubscriptionRecordValue> record) {
     final var value = record.getValue();
     return Schema.SignalSubscriptionRecord.newBuilder()
-            .setSignalName(value.getSignalName())
-            .setBpmnProcessId(value.getBpmnProcessId())
-            .setProcessDefinitionKey(value.getProcessDefinitionKey())
-            .setCatchEventId(value.getCatchEventId())
-            .setCatchEventInstanceKey(value.getCatchEventInstanceKey())
-            .setMetadata(toMetadata(record))
-            .build();
+        .setSignalName(value.getSignalName())
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setCatchEventId(value.getCatchEventId())
+        .setCatchEventInstanceKey(value.getCatchEventInstanceKey())
+        .setMetadata(toMetadata(record))
+        .build();
   }
 
   private static Struct toStruct(Map<?, ?> map) {

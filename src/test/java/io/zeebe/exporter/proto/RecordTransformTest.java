@@ -805,11 +805,11 @@ public class RecordTransformTest {
     when(recordValue.getVariables()).thenReturn(VARIABLES);
 
     final Record<SignalRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.SIGNAL, SignalIntent.BROADCAST);
+        mockRecord(recordValue, ValueType.SIGNAL, SignalIntent.BROADCAST);
 
     // when
     final var transformedRecord =
-            (Schema.SignalRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.SignalRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "SIGNAL", "BROADCAST");
@@ -829,20 +829,22 @@ public class RecordTransformTest {
     when(recordValue.getCatchEventInstanceKey()).thenReturn(20L);
 
     final Record<SignalSubscriptionRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.SIGNAL_SUBSCRIPTION, SignalSubscriptionIntent.CREATED);
+        mockRecord(recordValue, ValueType.SIGNAL_SUBSCRIPTION, SignalSubscriptionIntent.CREATED);
 
     // when
     final var transformedRecord =
-            (Schema.SignalSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.SignalSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "SIGNAL_SUBSCRIPTION", "CREATED");
 
     assertThat(transformedRecord.getSignalName()).isEqualTo(recordValue.getSignalName());
-    assertThat(transformedRecord.getProcessDefinitionKey()).isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getProcessDefinitionKey())
+        .isEqualTo(recordValue.getProcessDefinitionKey());
     assertThat(transformedRecord.getBpmnProcessId()).isEqualTo(recordValue.getBpmnProcessId());
     assertThat(transformedRecord.getCatchEventId()).isEqualTo(recordValue.getCatchEventId());
-    assertThat(transformedRecord.getCatchEventInstanceKey()).isEqualTo(recordValue.getCatchEventInstanceKey());
+    assertThat(transformedRecord.getCatchEventInstanceKey())
+        .isEqualTo(recordValue.getCatchEventInstanceKey());
   }
 
   private void assertEvaluatedDecision(
