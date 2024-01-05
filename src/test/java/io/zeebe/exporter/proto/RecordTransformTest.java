@@ -562,6 +562,7 @@ public class RecordTransformTest {
             ValueType.NULL_VAL,
             ValueType.SBE_UNKNOWN,
             ValueType.PROCESS_INSTANCE_RESULT,
+            // below are general TODOs for Zeebe 8.3.x
             ValueType.PROCESS_INSTANCE_BATCH,
             ValueType.MESSAGE_BATCH,
             ValueType.FORM);
