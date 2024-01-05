@@ -15,24 +15,13 @@
  */
 package io.zeebe.exporter.proto;
 
-import com.google.protobuf.Any;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Empty;
-import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.ListValue;
-import com.google.protobuf.NullValue;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
+import com.google.protobuf.*;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
 import io.camunda.zeebe.protocol.record.value.*;
-import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
-import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsMetadataValue;
-import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
-import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
+import io.camunda.zeebe.protocol.record.value.deployment.*;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
-import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
 import io.camunda.zeebe.protocol.record.value.management.CheckpointRecordValue;
 import io.zeebe.exporter.proto.Schema.RecordMetadata;
 import io.zeebe.exporter.proto.Schema.VariableDocumentRecord;
@@ -40,6 +29,7 @@ import io.zeebe.exporter.proto.Schema.VariableDocumentRecord.UpdateSemantics;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -226,6 +216,8 @@ public final class RecordTransformer {
       builder.addDecisionMetadata(toDecisionMetadata(decisionMetadata));
     }
 
+    builder.setTenantId(toTenantId(record.getValue()));
+
     return builder.build();
   }
 
@@ -246,6 +238,8 @@ public final class RecordTransformer {
         .setVersion(processMetadata.getVersion())
         .setProcessDefinitionKey(processMetadata.getProcessDefinitionKey())
         .setChecksum(ByteString.copyFrom(processMetadata.getChecksum()))
+        .setIsDuplicate(processMetadata.isDuplicate())
+        .setTenantId(toTenantId(processMetadata))
         .build();
   }
 
@@ -259,6 +253,7 @@ public final class RecordTransformer {
         .setDecisionRequirementsId(decision.getDecisionRequirementsId())
         .setDecisionRequirementsKey(decision.getDecisionRequirementsKey())
         .setIsDuplicate(decision.isDuplicate())
+        .setTenantId(toTenantId(decision))
         .build();
   }
 
@@ -281,6 +276,7 @@ public final class RecordTransformer {
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setChecksum(ByteString.copyFrom(value.getChecksum()))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -298,6 +294,7 @@ public final class RecordTransformer {
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setVariableScopeKey(value.getVariableScopeKey())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -320,7 +317,8 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setWorkflowDefinitionVersion(value.getProcessDefinitionVersion())
         .setProcessInstanceKey(value.getProcessInstanceKey())
-        .setProcessDefinitionKey(value.getProcessDefinitionKey());
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setTenantId(toTenantId(value));
   }
 
   private static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
@@ -335,6 +333,10 @@ public final class RecordTransformer {
 
     if (!value.getJobKeys().isEmpty()) {
       builder.addAllJobKeys(value.getJobKeys());
+    }
+
+    if (!value.getTenantIds().isEmpty()) {
+      builder.addAllTenantIds(value.getTenantIds());
     }
 
     return builder
@@ -357,6 +359,7 @@ public final class RecordTransformer {
         .setTimeToLive(value.getTimeToLive())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -374,6 +377,7 @@ public final class RecordTransformer {
         .setVariables(toStruct(value.getVariables()))
         .setIsInterrupting(value.isInterrupting())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -391,7 +395,8 @@ public final class RecordTransformer {
         .setCorrelationKey(value.getCorrelationKey())
         .setMessageKey(value.getMessageKey())
         .setProcessInstanceKey(value.getProcessInstanceKey())
-        .setVariables(toStruct(value.getVariables()));
+        .setVariables(toStruct(value.getVariables()))
+        .setTenantId(toTenantId(value));
 
     return builder.setMetadata(toMetadata(record)).build();
   }
@@ -406,7 +411,8 @@ public final class RecordTransformer {
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setBpmnProcessId(value.getBpmnProcessId())
         .setName(value.getName())
-        .setValue(value.getValue());
+        .setValue(value.getValue())
+        .setTenantId(toTenantId(value));
 
     return builder.setMetadata(toMetadata(record)).build();
   }
@@ -422,6 +428,7 @@ public final class RecordTransformer {
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -441,6 +448,7 @@ public final class RecordTransformer {
         .setParentProcessInstanceKey(value.getParentProcessInstanceKey())
         .setParentElementInstanceKey(value.getParentElementInstanceKey())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -459,6 +467,7 @@ public final class RecordTransformer {
         .setElementId(value.getElementId())
         .setIsInterrupting(value.isInterrupting())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -473,6 +482,7 @@ public final class RecordTransformer {
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -485,6 +495,7 @@ public final class RecordTransformer {
         .setUpdateSemantics(toUpdateSemantics(value.getUpdateSemantics()))
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -516,6 +527,7 @@ public final class RecordTransformer {
         .setTargetElementId(value.getTargetElementId())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -531,6 +543,7 @@ public final class RecordTransformer {
         .setDecisionRequirementsKey(value.getDecisionRequirementsKey())
         .setIsDuplicate(value.isDuplicate())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -542,6 +555,7 @@ public final class RecordTransformer {
         .setResource(ByteString.copyFrom(value.getResource()))
         .setDecisionRequirementsMetadata(toDecisionRequirementsMetadata(value))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -556,6 +570,7 @@ public final class RecordTransformer {
         .setResourceName(metadataValue.getResourceName())
         .setChecksum(ByteString.copyFrom(metadataValue.getChecksum()))
         .setIsDuplicate(metadataValue.isDuplicate())
+        .setTenantId(toTenantId(metadataValue))
         .build();
   }
 
@@ -588,6 +603,7 @@ public final class RecordTransformer {
         .setEvaluationFailureMessage(value.getEvaluationFailureMessage())
         .setFailedDecisionId(value.getFailedDecisionId())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -612,6 +628,7 @@ public final class RecordTransformer {
         .setDecisionVersion(value.getDecisionVersion())
         .setDecisionType(value.getDecisionType())
         .setDecisionOutput(value.getDecisionOutput())
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -687,6 +704,7 @@ public final class RecordTransformer {
         .addAllActivateInstructions(activateInstructions)
         .addAllTerminateInstructions(terminateInstructions)
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -705,6 +723,7 @@ public final class RecordTransformer {
         .setSignalName(value.getSignalName())
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -718,6 +737,7 @@ public final class RecordTransformer {
         .setCatchEventId(value.getCatchEventId())
         .setCatchEventInstanceKey(value.getCatchEventInstanceKey())
         .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
         .build();
   }
 
@@ -761,5 +781,9 @@ public final class RecordTransformer {
     }
 
     return builder.build();
+  }
+
+  private static String toTenantId(TenantOwned value) {
+    return Optional.ofNullable(value.getTenantId()).orElse(TenantOwned.DEFAULT_TENANT_IDENTIFIER);
   }
 }

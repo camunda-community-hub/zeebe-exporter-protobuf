@@ -59,6 +59,7 @@ public class RecordTransformTest {
   public static final long TIMESTAMP = 1000L;
   public static final long SOURCE_POSITION = 100L;
   public static final Map<String, Object> VARIABLES = Map.of("foo", 23);
+  public static final String TENANT_ID = "tenant-42";
 
   @Test
   public void shouldTransformDeployment() {
@@ -92,6 +93,7 @@ public class RecordTransformTest {
     assertThat(processMetadata.getVersion()).isEqualTo(1);
     assertThat(processMetadata.getChecksum().toByteArray()).isEqualTo("checksum".getBytes());
     assertThat(processMetadata.getIsDuplicate()).isFalse();
+    assertThat(processMetadata.getTenantId()).isEqualTo(TENANT_ID);
 
     final var decisionRequirementsMetadataList = deployment.getDecisionRequirementsMetadataList();
     assertThat(decisionRequirementsMetadataList).hasSize(1);
@@ -116,6 +118,8 @@ public class RecordTransformTest {
         .isEqualTo(decisionRequirementsMetadata.getChecksum());
     assertThat(transformedDecisionRequirementsMetadata.getIsDuplicate())
         .isEqualTo(decisionRequirementsMetadata.isDuplicate());
+    assertThat(transformedDecisionRequirementsMetadata.getTenantId())
+        .isEqualTo(decisionRequirementsMetadata.getTenantId());
 
     final var decisionMetadataList = deployment.getDecisionMetadataList();
     assertThat(decisionMetadataList).hasSize(1);
@@ -136,6 +140,7 @@ public class RecordTransformTest {
         .isEqualTo(decisionMetadata.getDecisionKey());
     assertThat(transformedDecisionMetadata.getIsDuplicate())
         .isEqualTo(decisionMetadata.isDuplicate());
+    assertThat(transformedDecisionMetadata.getTenantId()).isEqualTo(decisionMetadata.getTenantId());
   }
 
   @Test
@@ -210,6 +215,7 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getBpmnEventType()).isEqualTo("NONE");
     assertThat(workflowInstance.getParentProcessInstanceKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getParentElementInstanceKey()).isEqualTo(-1L);
+    assertThat(workflowInstance.getTenantId()).isEqualTo(TENANT_ID);
   }
 
   @Test
@@ -235,6 +241,7 @@ public class RecordTransformTest {
         .isEqualTo(workflowInstanceCreationRecordValue.getProcessDefinitionKey());
     assertThat(workflowInstanceCreation.getVersion()).isEqualTo(1);
     assertThat(workflowInstanceCreation.getProcessInstanceKey()).isEqualTo(1L);
+    assertThat(workflowInstanceCreation.getTenantId()).isEqualTo(TENANT_ID);
     assertVariables(workflowInstanceCreation.getVariables());
   }
 
@@ -305,6 +312,7 @@ public class RecordTransformTest {
     assertThat(incidentRecord.getErrorType()).isEqualTo(ErrorType.JOB_NO_RETRIES.name());
 
     assertThat(incidentRecord.getJobKey()).isEqualTo(12L);
+    assertThat(incidentRecord.getTenantId()).isEqualTo(TENANT_ID);
   }
 
   @Test
@@ -325,6 +333,7 @@ public class RecordTransformTest {
     assertThat(messageRecord.getMessageId()).isEqualTo("msgId");
     assertThat(messageRecord.getName()).isEqualTo("message");
     assertThat(messageRecord.getTimeToLive()).isEqualTo(1000L);
+    assertThat(messageRecord.getTenantId()).isEqualTo(TENANT_ID);
 
     assertVariables(messageRecord.getVariables());
   }
@@ -349,6 +358,7 @@ public class RecordTransformTest {
     assertThat(timerRecord.getTargetElementId()).isEqualTo("timerCatch");
     assertThat(timerRecord.getProcessInstanceKey()).isEqualTo(2L);
     assertThat(timerRecord.getProcessDefinitionKey()).isEqualTo(3L);
+    assertThat(timerRecord.getTenantId()).isEqualTo(TENANT_ID);
   }
 
   @Test
@@ -372,7 +382,7 @@ public class RecordTransformTest {
     assertThat(messageSubscriptionRecord.getBpmnProcessId()).isEqualTo(value.getBpmnProcessId());
     assertThat(messageSubscriptionRecord.getMessageKey()).isEqualTo(value.getMessageKey());
     assertThat(messageSubscriptionRecord.getIsInterrupting()).isTrue();
-
+    assertThat(messageSubscriptionRecord.getTenantId()).isEqualTo(value.getTenantId());
     assertVariables(messageSubscriptionRecord.getVariables());
   }
 
@@ -408,7 +418,7 @@ public class RecordTransformTest {
         .isEqualTo(value.getCorrelationKey());
     assertThat(workflowInstanceSubscriptionRecord.getElementId()).isEqualTo(value.getElementId());
     assertThat(workflowInstanceSubscriptionRecord.getIsInterrupting()).isTrue();
-
+    assertThat(workflowInstanceSubscriptionRecord.getTenantId()).isEqualTo(value.getTenantId());
     assertVariables(workflowInstanceSubscriptionRecord.getVariables());
   }
 
@@ -433,6 +443,7 @@ public class RecordTransformTest {
     assertThat(variableRecord.getProcessDefinitionKey())
         .isEqualTo(variableRecordValue.getProcessDefinitionKey());
     assertThat(variableRecord.getBpmnProcessId()).isEqualTo(variableRecordValue.getBpmnProcessId());
+    assertThat(variableRecord.getTenantId()).isEqualTo(variableRecordValue.getTenantId());
   }
 
   @Test
@@ -455,6 +466,7 @@ public class RecordTransformTest {
     assertThat(variableRecord.getScopeKey()).isEqualTo(variableDocumentRecordValue.getScopeKey());
     assertThat(variableRecord.getUpdateSemantics().name())
         .isEqualTo(variableDocumentRecordValue.getUpdateSemantics().name());
+    assertThat(variableRecord.getTenantId()).isEqualTo(variableDocumentRecordValue.getTenantId());
     assertVariables(variableRecord.getVariables());
   }
 
@@ -482,6 +494,7 @@ public class RecordTransformTest {
     assertThat(transformed.getCorrelationKey()).isEqualTo(value.getCorrelationKey());
     assertThat(transformed.getMessageKey()).isEqualTo(value.getMessageKey());
     assertThat(transformed.getProcessInstanceKey()).isEqualTo(value.getProcessInstanceKey());
+    assertThat(transformed.getTenantId()).isEqualTo(value.getTenantId());
 
     assertVariables(transformed.getVariables());
   }
@@ -504,6 +517,7 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getProcessDefinitionKey());
     assertThat(transformedRecord.getScopeKey()).isEqualTo(recordValue.getScopeKey());
     assertThat(transformedRecord.getTargetElementId()).isEqualTo(recordValue.getTargetElementId());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
 
     assertVariables(transformedRecord.getVariables());
   }
@@ -544,7 +558,13 @@ public class RecordTransformTest {
   public void shouldTransformValueType() {
 
     final var ignoredValueTypes =
-        Set.of(ValueType.NULL_VAL, ValueType.SBE_UNKNOWN, ValueType.PROCESS_INSTANCE_RESULT);
+        Set.of(
+            ValueType.NULL_VAL,
+            ValueType.SBE_UNKNOWN,
+            ValueType.PROCESS_INSTANCE_RESULT,
+            ValueType.PROCESS_INSTANCE_BATCH,
+            ValueType.MESSAGE_BATCH,
+            ValueType.FORM);
 
     final List<String> valueTypes =
         Arrays.stream(ValueType.values())
@@ -611,6 +631,7 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getDecisionName()).isEqualTo(recordValue.getDecisionName());
     assertThat(transformedRecord.getDecisionKey()).isEqualTo(recordValue.getDecisionKey());
     assertThat(transformedRecord.getIsDuplicate()).isEqualTo(recordValue.isDuplicate());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
   @Test
@@ -644,6 +665,7 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getChecksum());
     assertThat(transformedRecord.getDecisionRequirementsMetadata().getIsDuplicate())
         .isEqualTo(recordValue.isDuplicate());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
   @Test
@@ -681,6 +703,7 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getEvaluationFailureMessage());
     assertThat(transformedRecord.getFailedDecisionId())
         .isEqualTo(recordValue.getFailedDecisionId());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
 
     assertThat(transformedRecord.getEvaluatedDecisionsList()).hasSize(1);
     assertThat(recordValue.getEvaluatedDecisions()).hasSize(1);
@@ -693,6 +716,7 @@ public class RecordTransformTest {
   public void shouldTransformProcessInstanceModificationRecord() {
     // given
     final var recordValue = mock(ProcessInstanceModificationRecordValue.class);
+    when(recordValue.getTenantId()).thenReturn(TENANT_ID);
     when(recordValue.getProcessInstanceKey()).thenReturn(10L);
     when(recordValue.getActivateInstructions())
         .thenAnswer(
@@ -774,6 +798,7 @@ public class RecordTransformTest {
               assertThat(transformedInstruction.getElementInstanceKey())
                   .isEqualTo(terminateInstruction.getElementInstanceKey());
             });
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
   @Test
@@ -803,6 +828,7 @@ public class RecordTransformTest {
     final var recordValue = mock(SignalRecordValue.class);
     when(recordValue.getSignalName()).thenReturn("signal");
     when(recordValue.getVariables()).thenReturn(VARIABLES);
+    when(recordValue.getTenantId()).thenReturn(TENANT_ID);
 
     final Record<SignalRecordValue> mockedRecord =
         mockRecord(recordValue, ValueType.SIGNAL, SignalIntent.BROADCAST);
@@ -815,6 +841,7 @@ public class RecordTransformTest {
     assertMetadata(transformedRecord.getMetadata(), "SIGNAL", "BROADCAST");
 
     assertThat(transformedRecord.getSignalName()).isEqualTo(recordValue.getSignalName());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
     assertVariables(transformedRecord.getVariables());
   }
 
@@ -827,6 +854,7 @@ public class RecordTransformTest {
     when(recordValue.getBpmnProcessId()).thenReturn("process");
     when(recordValue.getCatchEventId()).thenReturn("event");
     when(recordValue.getCatchEventInstanceKey()).thenReturn(20L);
+    when(recordValue.getTenantId()).thenReturn(TENANT_ID);
 
     final Record<SignalSubscriptionRecordValue> mockedRecord =
         mockRecord(recordValue, ValueType.SIGNAL_SUBSCRIPTION, SignalSubscriptionIntent.CREATED);
@@ -845,6 +873,7 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getCatchEventId()).isEqualTo(recordValue.getCatchEventId());
     assertThat(transformedRecord.getCatchEventInstanceKey())
         .isEqualTo(recordValue.getCatchEventInstanceKey());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
   private void assertEvaluatedDecision(
@@ -856,6 +885,7 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getDecisionVersion()).isEqualTo(recordValue.getDecisionVersion());
     assertThat(transformedRecord.getDecisionType()).isEqualTo(recordValue.getDecisionType());
     assertThat(transformedRecord.getDecisionOutput()).isEqualTo(recordValue.getDecisionOutput());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
 
     assertThat(transformedRecord.getEvaluatedInputsList()).hasSize(1);
     assertThat(recordValue.getEvaluatedInputs()).hasSize(1);
@@ -906,8 +936,8 @@ public class RecordTransformTest {
     when(messageRecordValue.getMessageId()).thenReturn("msgId");
     when(messageRecordValue.getName()).thenReturn("message");
     when(messageRecordValue.getTimeToLive()).thenReturn(1000L);
-
     when(messageRecordValue.getVariables()).thenReturn(Collections.singletonMap("foo", 23));
+    when(messageRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return messageRecordValue;
   }
@@ -924,6 +954,7 @@ public class RecordTransformTest {
     when(value.getMessageKey()).thenReturn(2L);
     when(value.getProcessInstanceKey()).thenReturn(3L);
     when(value.getVariables()).thenReturn(VARIABLES);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
 
     return value;
   }
@@ -937,6 +968,7 @@ public class RecordTransformTest {
     when(timerRecordValue.getTargetElementId()).thenReturn("timerCatch");
     when(timerRecordValue.getProcessInstanceKey()).thenReturn(2L);
     when(timerRecordValue.getProcessDefinitionKey()).thenReturn(3L);
+    when(timerRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return timerRecordValue;
   }
@@ -950,6 +982,7 @@ public class RecordTransformTest {
     when(variableRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(variableRecordValue.getProcessDefinitionKey()).thenReturn(2L);
     when(variableRecordValue.getBpmnProcessId()).thenReturn("process");
+    when(variableRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return variableRecordValue;
   }
@@ -961,6 +994,7 @@ public class RecordTransformTest {
     when(variableRecordValue.getUpdateSemantics())
         .thenReturn(VariableDocumentUpdateSemantic.PROPAGATE);
     when(variableRecordValue.getVariables()).thenReturn(Collections.singletonMap("foo", 23));
+    when(variableRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return variableRecordValue;
   }
@@ -977,6 +1011,7 @@ public class RecordTransformTest {
     when(messageSubscriptionRecordValue.getMessageKey()).thenReturn(2L);
     when(messageSubscriptionRecordValue.getVariables()).thenReturn(VARIABLES);
     when(messageSubscriptionRecordValue.isInterrupting()).thenReturn(true);
+    when(messageSubscriptionRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return messageSubscriptionRecordValue;
   }
@@ -997,6 +1032,7 @@ public class RecordTransformTest {
         .thenReturn(Collections.singletonMap("foo", 23));
     when(workflowInstanceSubscriptionRecordValue.isInterrupting()).thenReturn(true);
 
+    when(workflowInstanceSubscriptionRecordValue.getTenantId()).thenReturn(TENANT_ID);
     return workflowInstanceSubscriptionRecordValue;
   }
 
@@ -1011,6 +1047,7 @@ public class RecordTransformTest {
     when(jobBatchRecordValue.getType()).thenReturn("jobType");
     when(jobBatchRecordValue.getWorker()).thenReturn("myveryownworker");
     when(jobBatchRecordValue.isTruncated()).thenReturn(true);
+    when(jobBatchRecordValue.getTenantIds()).thenReturn(List.of(TENANT_ID));
 
     return jobBatchRecordValue;
   }
@@ -1033,6 +1070,7 @@ public class RecordTransformTest {
     when(jobRecordValue.getProcessDefinitionVersion()).thenReturn(1);
     when(jobRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(jobRecordValue.getProcessDefinitionKey()).thenReturn(4L);
+    when(jobRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return jobRecordValue;
   }
@@ -1048,6 +1086,7 @@ public class RecordTransformTest {
     when(processMetadata.getProcessDefinitionKey()).thenReturn(4L);
     when(processMetadata.getChecksum()).thenReturn("checksum".getBytes());
     when(processMetadata.isDuplicate()).thenReturn(false);
+    when(processMetadata.getTenantId()).thenReturn(TENANT_ID);
     workflows.add(processMetadata);
 
     when(deploymentRecordValue.getProcessesMetadata()).thenReturn(workflows);
@@ -1066,8 +1105,9 @@ public class RecordTransformTest {
     when(deploymentResource.getResource()).thenReturn("resourceContent".getBytes());
     when(deploymentResource.getResourceName()).thenReturn("process.bpmn");
     resources.add(deploymentResource);
-
     when(deploymentRecordValue.getResources()).thenReturn(resources);
+
+    when(deploymentRecordValue.getTenantId()).thenReturn(TENANT_ID);
     return deploymentRecordValue;
   }
 
@@ -1085,6 +1125,7 @@ public class RecordTransformTest {
     when(value.getVersion()).thenReturn(1);
     when(value.getProcessDefinitionKey()).thenReturn(2L);
     when(value.getChecksum()).thenReturn("checksum".getBytes());
+    when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
 
@@ -1102,6 +1143,7 @@ public class RecordTransformTest {
     when(workflowInstanceRecordValue.getBpmnEventType()).thenReturn(BpmnEventType.NONE);
     when(workflowInstanceRecordValue.getParentProcessInstanceKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getParentElementInstanceKey()).thenReturn(-1L);
+    when(workflowInstanceRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return workflowInstanceRecordValue;
   }
@@ -1116,6 +1158,7 @@ public class RecordTransformTest {
     when(workflowInstanceCreationRecordValue.getProcessInstanceKey()).thenReturn(1L);
     when(workflowInstanceCreationRecordValue.getVariables())
         .thenReturn(Collections.singletonMap("foo", 23));
+    when(workflowInstanceCreationRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return workflowInstanceCreationRecordValue;
   }
@@ -1134,6 +1177,7 @@ public class RecordTransformTest {
     when(incidentRecordValue.getErrorType()).thenReturn(ErrorType.JOB_NO_RETRIES);
 
     when(incidentRecordValue.getJobKey()).thenReturn(12L);
+    when(incidentRecordValue.getTenantId()).thenReturn(TENANT_ID);
 
     return incidentRecordValue;
   }
@@ -1144,6 +1188,7 @@ public class RecordTransformTest {
     when(value.getScopeKey()).thenReturn(2L);
     when(value.getTargetElementId()).thenReturn("targetElementId");
     when(value.getVariables()).thenReturn(VARIABLES);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
 
@@ -1156,6 +1201,7 @@ public class RecordTransformTest {
     when(value.getDecisionName()).thenReturn("decisionName");
     when(value.getDecisionKey()).thenReturn(3L);
     when(value.isDuplicate()).thenReturn(false);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
 
@@ -1170,6 +1216,7 @@ public class RecordTransformTest {
     when(value.getChecksum()).thenReturn("checksum".getBytes());
     when(value.getResource()).thenReturn("resource".getBytes());
     when(value.isDuplicate()).thenReturn(false);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
 
@@ -1195,6 +1242,7 @@ public class RecordTransformTest {
     final List<EvaluatedDecisionValue> evaluatedDecisions =
         Collections.singletonList(mockEvaluatedDecisionValue());
     when(value.getEvaluatedDecisions()).thenReturn(evaluatedDecisions);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
 
@@ -1213,7 +1261,7 @@ public class RecordTransformTest {
     when(value.getEvaluatedInputs()).thenReturn(evaluatedInputs);
     final List<MatchedRuleValue> matchedRules = Collections.singletonList(mockMatchedRuleValue());
     when(value.getMatchedRules()).thenReturn(matchedRules);
-
+    when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
 
@@ -1277,6 +1325,7 @@ public class RecordTransformTest {
     assertThat(jobRecord.getRetries()).isEqualTo(3);
     assertThat(jobRecord.getType()).isEqualTo("jobType");
     assertThat(jobRecord.getWorker()).isEqualTo("myveryownworker");
+    assertThat(jobRecord.getTenantId()).isEqualTo(TENANT_ID);
   }
 
   private void assertMetadata(
