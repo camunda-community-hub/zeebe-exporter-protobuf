@@ -92,6 +92,7 @@ message DeploymentRecord {
     string resourceName = 5;
     bytes checksum = 6;
     bool isDuplicate = 7;
+    string tenantId = 8;
   }
 
   message DecisionMetadata {
@@ -102,6 +103,7 @@ message DeploymentRecord {
     string decisionRequirementsId = 5;
     int64 decisionRequirementsKey = 6;
     bool isDuplicate = 7;
+    string tenantId = 8;
   }
 
   RecordMetadata metadata = 1;
@@ -109,6 +111,7 @@ message DeploymentRecord {
   repeated ProcessMetadata processMetadata = 3;
   repeated DecisionRequirementsMetadata decisionRequirementsMetadata = 4;
   repeated DecisionMetadata decisionMetadata = 5;
+  string tenantId = 6;
 }
 
 message DeploymentDistributionRecord {
@@ -140,6 +143,7 @@ message IncidentRecord {
   int64 jobKey = 8;
   int64 processDefinitionKey = 9;
   int64 variableScopeKey = 10;
+  string tenantId = 11;
 }
 
 message JobRecord {
@@ -161,6 +165,7 @@ message JobRecord {
   int32 workflowDefinitionVersion = 12;
   int64 processInstanceKey = 13;
   int64 processDefinitionKey = 14;
+  string tenantId = 15;
 }
 
 message JobBatchRecord {
@@ -173,6 +178,7 @@ message JobBatchRecord {
   repeated int64 jobKeys = 6;
   repeated JobRecord jobs = 7;
   bool truncated = 8;
+  repeated string tenantIds = 9;
 }
 
 message MessageRecord {
@@ -183,6 +189,7 @@ message MessageRecord {
   string messageId = 4;
   int64 timeToLive = 5;
   google.protobuf.Struct variables = 6;
+  string tenantId = 7;
 }
 
 message MessageSubscriptionRecord {
@@ -196,6 +203,7 @@ message MessageSubscriptionRecord {
   int64 messageKey = 7;
   google.protobuf.Struct variables = 8;
   bool isInterrupting = 9;
+  string tenantId = 10;
 }
 
 message MessageStartEventSubscriptionRecord {
@@ -209,6 +217,7 @@ message MessageStartEventSubscriptionRecord {
   int64 messageKey = 7;
   int64 processInstanceKey = 8;
   google.protobuf.Struct variables = 9;
+  string tenantId = 10;
 }
 
 message TimerRecord {
@@ -221,6 +230,7 @@ message TimerRecord {
   string targetElementId = 5;
   int64 processInstanceKey = 6;
   int64 processDefinitionKey = 7;
+  string tenantId = 8;
 }
 
 message VariableRecord {
@@ -232,6 +242,7 @@ message VariableRecord {
   int64 processInstanceKey = 5;
   int64 processDefinitionKey = 6;
   string bpmnProcessId = 7;
+  string tenantId = 8;
 }
 
 message VariableDocumentRecord {
@@ -247,6 +258,7 @@ message VariableDocumentRecord {
   int64 scopeKey = 2;
   UpdateSemantics updateSemantics = 3;
   google.protobuf.Struct variables = 4;
+  string tenantId = 5;
 }
 
 message ProcessInstanceRecord {
@@ -263,6 +275,7 @@ message ProcessInstanceRecord {
   int64 parentProcessInstanceKey = 9;
   int64 parentElementInstanceKey = 10;
   string bpmnEventType = 11;
+  string tenantId = 12;
 }
 
 message ProcessInstanceCreationRecord {
@@ -273,6 +286,7 @@ message ProcessInstanceCreationRecord {
   int64 processDefinitionKey = 4;
   int64 processInstanceKey = 5;
   google.protobuf.Struct variables = 6;
+  string tenantId = 7;
 }
 
 message ProcessMessageSubscriptionRecord {
@@ -287,6 +301,7 @@ message ProcessMessageSubscriptionRecord {
   string elementId = 8;
   string correlationKey = 9;
   bool isInterrupting = 10;
+  string tenantId = 11;
 }
 
 message ProcessRecord {
@@ -298,6 +313,7 @@ message ProcessRecord {
   string resourceName = 5;
   bytes checksum = 6;
   bytes resource = 7;
+  string tenantId = 8;
 }
 
 message ProcessEventRecord {
@@ -307,6 +323,7 @@ message ProcessEventRecord {
   int64 processDefinitionKey = 3;
   string targetElementId = 4;
   google.protobuf.Struct variables = 5;
+  string tenantId = 6;
 }
 
 message DecisionRecord {
@@ -318,6 +335,7 @@ message DecisionRecord {
   string decisionRequirementsId = 6;
   int64 decisionRequirementsKey = 7;
   bool isDuplicate = 8;
+  string tenantId = 9;
 }
 
 message DecisionRequirementsMetadata {
@@ -329,12 +347,14 @@ message DecisionRequirementsMetadata {
   string resourceName = 6;
   bytes checksum = 7;
   bool isDuplicate = 8;
+  string tenantId = 9;
 }
 
 message DecisionRequirementsRecord {
   RecordMetadata metadata = 1;
   DecisionRequirementsMetadata decisionRequirementsMetadata = 2;
   bytes resource = 3;
+  string tenantId = 4;
 }
 
 message DecisionEvaluationRecord {
@@ -348,6 +368,7 @@ message DecisionEvaluationRecord {
     string decisionOutput = 6;
     repeated EvaluatedInput evaluatedInputs = 7;
     repeated MatchedRule matchedRules = 8;
+    string tenantId = 9;
   }
 
   message MatchedRule {
@@ -384,6 +405,7 @@ message DecisionEvaluationRecord {
   string evaluationFailureMessage = 14;
   string failedDecisionId = 15;
   repeated EvaluatedDecision evaluatedDecisions = 16;
+  string tenantId = 17;
 }
 
 message ProcessInstanceModificationRecord {
@@ -408,6 +430,7 @@ message ProcessInstanceModificationRecord {
   int64 processInstanceKey = 2;
   repeated ProcessInstanceModificationTerminateInstruction terminateInstructions = 3;
   repeated ProcessInstanceModificationActivateInstruction activateInstructions = 4;
+  string tenantId = 5;
 }
 
 message CheckpointRecord {
@@ -420,6 +443,7 @@ message SignalRecord {
   RecordMetadata metadata = 1;
   string signalName = 2;
   google.protobuf.Struct variables = 3;
+  string tenantId = 4;
 }
 
 message SignalSubscriptionRecord {
@@ -429,4 +453,5 @@ message SignalSubscriptionRecord {
   string bpmnProcessId = 4;
   string catchEventId = 5;
   int64 catchEventInstanceKey = 6;
+  string tenantId = 7;
 }
