@@ -557,15 +557,7 @@ public class RecordTransformTest {
   @Test
   public void shouldTransformValueType() {
 
-    final var ignoredValueTypes =
-        Set.of(
-            ValueType.NULL_VAL,
-            ValueType.SBE_UNKNOWN,
-            ValueType.PROCESS_INSTANCE_RESULT,
-            // below are general TODOs for Zeebe 8.3.x
-            ValueType.PROCESS_INSTANCE_BATCH,
-            ValueType.MESSAGE_BATCH,
-            ValueType.FORM);
+    final var ignoredValueTypes = Set.of(ValueType.NULL_VAL, ValueType.SBE_UNKNOWN);
 
     final List<String> valueTypes =
         Arrays.stream(ValueType.values())
