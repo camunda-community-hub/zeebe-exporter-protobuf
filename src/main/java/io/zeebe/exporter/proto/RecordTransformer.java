@@ -101,6 +101,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.SIGNAL, RecordTransformer::toSignalRecord);
     TRANSFORMERS.put(ValueType.SIGNAL_SUBSCRIPTION, RecordTransformer::toSignalSubscriptionRecord);
     TRANSFORMERS.put(ValueType.FORM, RecordTransformer::toFormRecord);
+    TRANSFORMERS.put(ValueType.RESOURCE_DELETION, RecordTransformer::toResourceDeletionRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -771,6 +772,16 @@ public final class RecordTransformer {
             .setChecksum(ByteString.copyFrom(value.getChecksum()))
             .setIsDuplicate(value.isDuplicate())
             .setResource(ByteString.copyFrom(value.getResource()))
+            .setMetadata(toMetadata(record))
+            .setTenantId(toTenantId(value))
+            .build();
+  }
+
+  private static Schema.ResourceDeletionRecord toResourceDeletionRecord(Record<ResourceDeletionRecordValue> record) {
+    final var value = record.getValue();
+
+    return Schema.ResourceDeletionRecord.newBuilder()
+            .setResourceKey(value.getResourceKey())
             .setMetadata(toMetadata(record))
             .setTenantId(toTenantId(value))
             .build();
