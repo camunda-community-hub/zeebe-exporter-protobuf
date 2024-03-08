@@ -32,12 +32,8 @@ import io.camunda.zeebe.protocol.record.ValueType;
 import io.camunda.zeebe.protocol.record.intent.*;
 import io.camunda.zeebe.protocol.record.intent.management.CheckpointIntent;
 import io.camunda.zeebe.protocol.record.value.*;
-import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue;
-import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsMetadataValue;
-import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue;
-import io.camunda.zeebe.protocol.record.value.deployment.DeploymentResource;
+import io.camunda.zeebe.protocol.record.value.deployment.*;
 import io.camunda.zeebe.protocol.record.value.deployment.Process;
-import io.camunda.zeebe.protocol.record.value.deployment.ProcessMetadataValue;
 import io.camunda.zeebe.protocol.record.value.management.CheckpointRecordValue;
 import io.zeebe.exporter.proto.Schema.JobRecord;
 import io.zeebe.exporter.proto.Schema.RecordMetadata;
@@ -141,6 +137,28 @@ public class RecordTransformTest {
     assertThat(transformedDecisionMetadata.getIsDuplicate())
         .isEqualTo(decisionMetadata.isDuplicate());
     assertThat(transformedDecisionMetadata.getTenantId()).isEqualTo(decisionMetadata.getTenantId());
+
+    final var formMetadataList = deployment.getFormMetadataList();
+    assertThat(formMetadataList).hasSize(1);
+
+    final var transformedFormMetadata = formMetadataList.get(0);
+    final var formMetadata =
+            deploymentRecordValue.getFormMetadata().get(0);
+
+    assertThat(transformedFormMetadata.getFormId())
+            .isEqualTo(formMetadata.getFormId());
+    assertThat(transformedFormMetadata.getVersion())
+            .isEqualTo(formMetadata.getVersion());
+    assertThat(transformedFormMetadata.getFormKey())
+            .isEqualTo(formMetadata.getFormKey());
+    assertThat(transformedFormMetadata.getResourceName())
+            .isEqualTo(formMetadata.getResourceName());
+    assertThat(transformedFormMetadata.getChecksum().toByteArray())
+            .isEqualTo(formMetadata.getChecksum());
+    assertThat(transformedFormMetadata.getIsDuplicate())
+            .isEqualTo(formMetadata.isDuplicate());
+    assertThat(transformedFormMetadata.getTenantId())
+            .isEqualTo(formMetadata.getTenantId());
   }
 
   @Test
@@ -869,6 +887,34 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
+  @Test
+  public void shouldTransformFormRecord() {
+    // given
+    final var recordValue = mockFormRecordValue();
+    final Record<Form> mockedRecord =
+            mockRecord(recordValue, ValueType.FORM, FormIntent.CREATED);
+
+    // when
+    final var transformedRecord =
+            (Schema.FormRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "FORM", "CREATED");
+
+    assertThat(transformedRecord.getFormId())
+            .isEqualTo(recordValue.getFormId());
+    assertThat(transformedRecord.getVersion())
+            .isEqualTo(recordValue.getVersion());
+    assertThat(transformedRecord.getFormKey()).isEqualTo(recordValue.getFormKey());
+    assertThat(transformedRecord.getResourceName())
+            .isEqualTo(recordValue.getResourceName());
+    assertThat(transformedRecord.getChecksum().toByteArray())
+            .isEqualTo(recordValue.getChecksum());
+    assertThat(transformedRecord.getResource().toByteArray())
+            .isEqualTo(recordValue.getResource());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1093,6 +1139,11 @@ public class RecordTransformTest {
     decisionRecordValues.add(mockDecisionRecordValue());
     when(deploymentRecordValue.getDecisionsMetadata()).thenReturn(decisionRecordValues);
 
+    final List<FormMetadataValue> formMetadata = new ArrayList<>();
+    formMetadata.add(mockFormRecordValue());
+    when(deploymentRecordValue.getFormMetadata()).thenReturn(formMetadata);
+
+
     final List<DeploymentResource> resources = new ArrayList<>();
     final DeploymentResource deploymentResource = mock(DeploymentResource.class);
     when(deploymentResource.getResource()).thenReturn("resourceContent".getBytes());
@@ -1292,6 +1343,19 @@ public class RecordTransformTest {
     when(errorRecordValue.getErrorEventPosition()).thenReturn(123L);
     when(errorRecordValue.getProcessInstanceKey()).thenReturn(1L);
     return errorRecordValue;
+  }
+
+  private Form mockFormRecordValue() {
+    final var value = mock(Form.class);
+    when(value.getFormId()).thenReturn("formId");
+    when(value.getVersion()).thenReturn(2);
+    when(value.getFormKey()).thenReturn(1L);
+    when(value.getResourceName()).thenReturn("resourceName");
+    when(value.getChecksum()).thenReturn("checksum".getBytes());
+    when(value.getResource()).thenReturn("resource".getBytes());
+    when(value.isDuplicate()).thenReturn(false);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
+    return value;
   }
 
   private void assertVariables(final Struct payload) {

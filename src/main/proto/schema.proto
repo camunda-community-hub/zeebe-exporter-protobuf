@@ -113,12 +113,23 @@ message DeploymentRecord {
     string tenantId = 8;
   }
 
+  message FormMetadata {
+    string formId = 1;
+    int32 version = 2;
+    int64 formKey = 3;
+    string resourceName = 4;
+    bytes checksum = 5;
+    bool isDuplicate = 6;
+    string tenantId = 7;
+  }
+
   RecordMetadata metadata = 1;
   repeated Resource resources = 2;
   repeated ProcessMetadata processMetadata = 3;
   repeated DecisionRequirementsMetadata decisionRequirementsMetadata = 4;
   repeated DecisionMetadata decisionMetadata = 5;
   string tenantId = 6;
+  repeated FormMetadata formMetadata = 7;
 }
 
 message DeploymentDistributionRecord {
@@ -461,4 +472,16 @@ message SignalSubscriptionRecord {
   string catchEventId = 5;
   int64 catchEventInstanceKey = 6;
   string tenantId = 7;
+}
+
+message FormRecord {
+  RecordMetadata metadata = 1;
+  string formId = 2;
+  int32 version = 3;
+  int64 formKey = 4;
+  string resourceName = 5;
+  bytes checksum = 6;
+  bytes resource = 7;
+  bool isDuplicate = 8;
+  string tenantId = 9;
 }

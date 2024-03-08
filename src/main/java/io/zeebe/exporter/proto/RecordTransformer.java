@@ -100,6 +100,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.CHECKPOINT, RecordTransformer::toCheckpointRecord);
     TRANSFORMERS.put(ValueType.SIGNAL, RecordTransformer::toSignalRecord);
     TRANSFORMERS.put(ValueType.SIGNAL_SUBSCRIPTION, RecordTransformer::toSignalSubscriptionRecord);
+    TRANSFORMERS.put(ValueType.FORM, RecordTransformer::toFormRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -141,6 +142,7 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.RESOURCE_DELETION, RecordMetadata.ValueType.RESOURCE_DELETION);
     VALUE_TYPE_MAPPING.put(
         ValueType.COMMAND_DISTRIBUTION, RecordMetadata.ValueType.COMMAND_DISTRIBUTION);
+    VALUE_TYPE_MAPPING.put(ValueType.FORM, RecordMetadata.ValueType.FORM);
   }
 
   private RecordTransformer() {}
@@ -216,6 +218,10 @@ public final class RecordTransformer {
       builder.addDecisionMetadata(toDecisionMetadata(decisionMetadata));
     }
 
+    for (FormMetadataValue formMetadata : record.getValue().getFormMetadata()) {
+      builder.addFormMetadata(toFormMetadata(formMetadata));
+    }
+
     builder.setTenantId(toTenantId(record.getValue()));
 
     return builder.build();
@@ -254,6 +260,19 @@ public final class RecordTransformer {
         .setDecisionRequirementsKey(decision.getDecisionRequirementsKey())
         .setIsDuplicate(decision.isDuplicate())
         .setTenantId(toTenantId(decision))
+        .build();
+  }
+
+  private static Schema.DeploymentRecord.FormMetadata toFormMetadata(
+          FormMetadataValue form) {
+    return Schema.DeploymentRecord.FormMetadata.newBuilder()
+        .setFormId(form.getFormId())
+        .setVersion(form.getVersion())
+        .setFormKey(form.getFormKey())
+        .setIsDuplicate(form.isDuplicate())
+        .setResourceName(form.getResourceName())
+        .setChecksum(ByteString.copyFrom(form.getChecksum()))
+        .setTenantId(toTenantId(form))
         .build();
   }
 
@@ -739,6 +758,22 @@ public final class RecordTransformer {
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .build();
+  }
+
+  private static Schema.FormRecord toFormRecord(Record<Form> record) {
+    final Form value = record.getValue();
+
+    return Schema.FormRecord.newBuilder()
+            .setFormId(value.getFormId())
+            .setVersion(value.getVersion())
+            .setFormKey(value.getFormKey())
+            .setResourceName(value.getResourceName())
+            .setChecksum(ByteString.copyFrom(value.getChecksum()))
+            .setIsDuplicate(value.isDuplicate())
+            .setResource(ByteString.copyFrom(value.getResource()))
+            .setMetadata(toMetadata(record))
+            .setTenantId(toTenantId(value))
+            .build();
   }
 
   private static Struct toStruct(Map<?, ?> map) {
