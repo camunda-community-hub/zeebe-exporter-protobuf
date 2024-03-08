@@ -485,3 +485,9 @@ message FormRecord {
   bool isDuplicate = 8;
   string tenantId = 9;
 }
+
+message ResourceDeletionRecord {
+  RecordMetadata metadata = 1;
+  int64 resourceKey = 2;
+  string tenantId = 3;
+}

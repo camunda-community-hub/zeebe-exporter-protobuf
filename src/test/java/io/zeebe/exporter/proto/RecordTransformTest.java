@@ -915,6 +915,25 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
+  @Test
+  public void shouldTransformResourceDeletionRecord() {
+    // given
+    final var recordValue = mockResourceDeletionRecordValue();
+    final Record<ResourceDeletionRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.RESOURCE_DELETION, ResourceDeletionIntent.DELETED);
+
+    // when
+    final var transformedRecord =
+            (Schema.ResourceDeletionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "RESOURCE_DELETION", "DELETED");
+
+    assertThat(transformedRecord.getResourceKey())
+            .isEqualTo(recordValue.getResourceKey());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1354,6 +1373,13 @@ public class RecordTransformTest {
     when(value.getChecksum()).thenReturn("checksum".getBytes());
     when(value.getResource()).thenReturn("resource".getBytes());
     when(value.isDuplicate()).thenReturn(false);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
+    return value;
+  }
+
+  private ResourceDeletionRecordValue mockResourceDeletionRecordValue() {
+    final var value = mock(ResourceDeletionRecordValue.class);
+    when(value.getResourceKey()).thenReturn(1L);
     when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
