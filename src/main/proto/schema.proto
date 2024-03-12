@@ -491,3 +491,23 @@ message ResourceDeletionRecord {
   int64 resourceKey = 2;
   string tenantId = 3;
 }
+
+message UserTaskRecord {
+  RecordMetadata metadata = 1;
+  int64 userTaskKey = 2;
+  string assignee = 3;
+  string candidateGroups = 4;
+  string candidateUsers = 5;
+  string dueDate = 6;
+  string followUpDate = 7;
+  int64 formKey = 8;
+  string externalFormReference = 9;
+  google.protobuf.Struct variables = 10;
+  string bpmnProcessId = 11;
+  int32 processDefinitionVersion = 12;
+  int64 processDefinitionKey = 13;
+  int64 processInstanceKey = 14;
+  string elementId = 15;
+  int64 elementInstanceKey = 16;
+  string tenantId = 17;
+}
