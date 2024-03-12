@@ -934,6 +934,50 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
+  @Test
+  public void shouldTransformUserTaskRecord() {
+    // given
+    final var recordValue = mockUserTaskRecordValue();
+    final Record<UserTaskRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.USER_TASK, UserTaskIntent.CREATED);
+
+    // when
+    final var transformedRecord =
+            (Schema.UserTaskRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "USER_TASK", "CREATED");
+
+    assertThat(transformedRecord.getUserTaskKey())
+            .isEqualTo(recordValue.getUserTaskKey());
+    assertThat(transformedRecord.getAssignee())
+            .isEqualTo(recordValue.getAssignee());
+    assertThat(transformedRecord.getCandidateGroups())
+            .isEqualTo(recordValue.getCandidateGroups());
+    assertThat(transformedRecord.getCandidateUsers())
+            .isEqualTo(recordValue.getCandidateUsers());
+    assertThat(transformedRecord.getDueDate())
+            .isEqualTo(recordValue.getDueDate());
+    assertThat(transformedRecord.getFollowUpDate())
+            .isEqualTo(recordValue.getFollowUpDate());
+    assertThat(transformedRecord.getFormKey())
+            .isEqualTo(recordValue.getFormKey());
+    assertThat(transformedRecord.getBpmnProcessId())
+            .isEqualTo(recordValue.getBpmnProcessId());
+    assertThat(transformedRecord.getProcessDefinitionVersion())
+            .isEqualTo(recordValue.getProcessDefinitionVersion());
+    assertThat(transformedRecord.getProcessDefinitionKey())
+            .isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getProcessInstanceKey())
+            .isEqualTo(recordValue.getProcessInstanceKey());
+    assertThat(transformedRecord.getElementId())
+            .isEqualTo(recordValue.getElementId());
+    assertThat(transformedRecord.getElementInstanceKey())
+            .isEqualTo(recordValue.getElementInstanceKey());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
+    assertVariables(transformedRecord.getVariables());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1383,6 +1427,26 @@ public class RecordTransformTest {
     when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
+  private UserTaskRecordValue mockUserTaskRecordValue() {
+    final var value = mock(UserTaskRecordValue.class);
+    when(value.getUserTaskKey()).thenReturn(1L);
+    when(value.getAssignee()).thenReturn("assignee");
+    when(value.getCandidateGroups()).thenReturn("candidate-groups");
+    when(value.getCandidateUsers()).thenReturn("candidate-users");
+    when(value.getDueDate()).thenReturn("2024-04-01T12:00:00Z");
+    when(value.getFollowUpDate()).thenReturn("2024-04-02T12:00:00Z");
+    when(value.getFormKey()).thenReturn(2L);
+    when(value.getVariables()).thenReturn(VARIABLES);
+    when(value.getBpmnProcessId()).thenReturn("bpmn-process-id");
+    when(value.getProcessDefinitionVersion()).thenReturn(3);
+    when(value.getProcessDefinitionKey()).thenReturn(4L);
+    when(value.getProcessInstanceKey()).thenReturn(5L);
+    when(value.getElementId()).thenReturn("element-id");
+    when(value.getElementInstanceKey()).thenReturn(6L);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
+    return value;
+  }
+
 
   private void assertVariables(final Struct payload) {
     assertThat(payload.getFieldsCount()).isEqualTo(1);

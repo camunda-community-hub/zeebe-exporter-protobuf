@@ -102,6 +102,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.SIGNAL_SUBSCRIPTION, RecordTransformer::toSignalSubscriptionRecord);
     TRANSFORMERS.put(ValueType.FORM, RecordTransformer::toFormRecord);
     TRANSFORMERS.put(ValueType.RESOURCE_DELETION, RecordTransformer::toResourceDeletionRecord);
+    TRANSFORMERS.put(ValueType.USER_TASK, RecordTransformer::toUserTaskRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -144,6 +145,7 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(
         ValueType.COMMAND_DISTRIBUTION, RecordMetadata.ValueType.COMMAND_DISTRIBUTION);
     VALUE_TYPE_MAPPING.put(ValueType.FORM, RecordMetadata.ValueType.FORM);
+    VALUE_TYPE_MAPPING.put(ValueType.USER_TASK, RecordMetadata.ValueType.USER_TASK);
   }
 
   private RecordTransformer() {}
@@ -785,6 +787,29 @@ public final class RecordTransformer {
             .setMetadata(toMetadata(record))
             .setTenantId(toTenantId(value))
             .build();
+  }
+
+  private static Schema.UserTaskRecord toUserTaskRecord(Record<UserTaskRecordValue> record) {
+    final var value = record.getValue();
+
+    return Schema.UserTaskRecord.newBuilder()
+        .setUserTaskKey(value.getUserTaskKey())
+        .setAssignee(value.getAssignee())
+        .setCandidateGroups(value.getCandidateGroups())
+        .setCandidateUsers(value.getCandidateUsers())
+        .setDueDate(value.getDueDate())
+        .setFollowUpDate(value.getFollowUpDate())
+        .setFormKey(value.getFormKey())
+        .setVariables(toStruct(value.getVariables()))
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setProcessDefinitionVersion(value.getProcessDefinitionVersion())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setElementId(value.getElementId())
+        .setElementInstanceKey(value.getElementInstanceKey())
+        .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
+        .build();
   }
 
   private static Struct toStruct(Map<?, ?> map) {
