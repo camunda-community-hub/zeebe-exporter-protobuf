@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  */
 public final class RecordTransformer {
 
-  private static final EnumMap<ValueType, Function<Record, GeneratedMessageV3>> TRANSFORMERS =
+  private static final EnumMap<ValueType, Function<Record, GeneratedMessage>> TRANSFORMERS =
       new EnumMap<>(ValueType.class);
 
   private static final EnumMap<ValueType, RecordMetadata.ValueType> VALUE_TYPE_MAPPING =
@@ -150,9 +150,9 @@ public final class RecordTransformer {
 
   private RecordTransformer() {}
 
-  public static GeneratedMessageV3 toProtobufMessage(Record record) {
+  public static GeneratedMessage toProtobufMessage(Record record) {
     final ValueType valueType = record.getValueType();
-    final Function<Record, GeneratedMessageV3> toRecordFunc = TRANSFORMERS.get(valueType);
+    final Function<Record, GeneratedMessage> toRecordFunc = TRANSFORMERS.get(valueType);
     return toRecordFunc != null ? toRecordFunc.apply(record) : Empty.getDefaultInstance();
   }
 
