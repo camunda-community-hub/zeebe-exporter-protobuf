@@ -509,7 +509,11 @@ message UserTaskRecord {
   string elementId = 14;
   int64 elementInstanceKey = 15;
   string tenantId = 16;
-
   repeated string candidateGroup = 17;
   repeated string candidateUser = 18;
+  string externalFormReference = 19;
+  google.protobuf.Struct customHeaders = 20;
+  repeated string changedAttribute = 21;
+  string action = 22;
+  int64 creationTimestamp = 23;
 }
