@@ -496,8 +496,8 @@ message UserTaskRecord {
   RecordMetadata metadata = 1;
   int64 userTaskKey = 2;
   string assignee = 3;
-  string candidateGroups = 4;
-  string candidateUsers = 5;
+  string candidateGroups = 4 [deprecated = true];
+  string candidateUsers = 5 [deprecated = true];
   string dueDate = 6;
   string followUpDate = 7;
   int64 formKey = 8;
@@ -509,4 +509,7 @@ message UserTaskRecord {
   string elementId = 14;
   int64 elementInstanceKey = 15;
   string tenantId = 16;
+
+  repeated string candidateGroup = 17;
+  repeated string candidateUser = 18;
 }

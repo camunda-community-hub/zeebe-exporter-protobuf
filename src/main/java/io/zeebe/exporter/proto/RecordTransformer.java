@@ -795,8 +795,6 @@ public final class RecordTransformer {
     return Schema.UserTaskRecord.newBuilder()
         .setUserTaskKey(value.getUserTaskKey())
         .setAssignee(value.getAssignee())
-        .setCandidateGroups(value.getCandidateGroups())
-        .setCandidateUsers(value.getCandidateUsers())
         .setDueDate(value.getDueDate())
         .setFollowUpDate(value.getFollowUpDate())
         .setFormKey(value.getFormKey())
@@ -809,6 +807,12 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .addAllCandidateGroup(value.getCandidateGroupsList())
+        .addAllCandidateUser(value.getCandidateUsersList())
+        // === deprecated properties
+        .setCandidateGroups(String.join(",", value.getCandidateGroupsList()))
+        .setCandidateUsers(String.join(",", value.getCandidateUsersList()))
+        // ===
         .build();
   }
 

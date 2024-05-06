@@ -936,8 +936,8 @@ public class RecordTransformTest {
 
     assertThat(transformedRecord.getUserTaskKey()).isEqualTo(recordValue.getUserTaskKey());
     assertThat(transformedRecord.getAssignee()).isEqualTo(recordValue.getAssignee());
-    assertThat(transformedRecord.getCandidateGroups()).isEqualTo(recordValue.getCandidateGroups());
-    assertThat(transformedRecord.getCandidateUsers()).isEqualTo(recordValue.getCandidateUsers());
+    assertThat(transformedRecord.getCandidateGroupList()).isEqualTo(recordValue.getCandidateGroupsList());
+    assertThat(transformedRecord.getCandidateUserList()).isEqualTo(recordValue.getCandidateUsersList());
     assertThat(transformedRecord.getDueDate()).isEqualTo(recordValue.getDueDate());
     assertThat(transformedRecord.getFollowUpDate()).isEqualTo(recordValue.getFollowUpDate());
     assertThat(transformedRecord.getFormKey()).isEqualTo(recordValue.getFormKey());
@@ -953,6 +953,9 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getElementInstanceKey());
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
     assertVariables(transformedRecord.getVariables());
+
+    assertThat(transformedRecord.getCandidateGroups()).isEqualTo("group1,group2");
+    assertThat(transformedRecord.getCandidateUsers()).isEqualTo("user1,user2");
   }
 
   private void assertEvaluatedDecision(
@@ -1408,8 +1411,8 @@ public class RecordTransformTest {
     final var value = mock(UserTaskRecordValue.class);
     when(value.getUserTaskKey()).thenReturn(1L);
     when(value.getAssignee()).thenReturn("assignee");
-    when(value.getCandidateGroups()).thenReturn("candidate-groups");
-    when(value.getCandidateUsers()).thenReturn("candidate-users");
+    when(value.getCandidateGroupsList()).thenReturn(List.of("group1", "group2"));
+    when(value.getCandidateUsersList()).thenReturn(List.of("user1", "user2"));
     when(value.getDueDate()).thenReturn("2024-04-01T12:00:00Z");
     when(value.getFollowUpDate()).thenReturn("2024-04-02T12:00:00Z");
     when(value.getFormKey()).thenReturn(2L);
