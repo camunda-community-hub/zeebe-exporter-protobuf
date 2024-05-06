@@ -809,6 +809,11 @@ public final class RecordTransformer {
         .setTenantId(toTenantId(value))
         .addAllCandidateGroup(value.getCandidateGroupsList())
         .addAllCandidateUser(value.getCandidateUsersList())
+        .setExternalFormReference(value.getExternalFormReference())
+        .setCustomHeaders(toStruct(value.getCustomHeaders()))
+        .addAllChangedAttribute(value.getChangedAttributes())
+        .setAction(value.getAction())
+        .setCreationTimestamp(value.getCreationTimestamp())
         // === deprecated properties
         .setCandidateGroups(String.join(",", value.getCandidateGroupsList()))
         .setCandidateUsers(String.join(",", value.getCandidateUsersList()))

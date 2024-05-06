@@ -936,8 +936,10 @@ public class RecordTransformTest {
 
     assertThat(transformedRecord.getUserTaskKey()).isEqualTo(recordValue.getUserTaskKey());
     assertThat(transformedRecord.getAssignee()).isEqualTo(recordValue.getAssignee());
-    assertThat(transformedRecord.getCandidateGroupList()).isEqualTo(recordValue.getCandidateGroupsList());
-    assertThat(transformedRecord.getCandidateUserList()).isEqualTo(recordValue.getCandidateUsersList());
+    assertThat(transformedRecord.getCandidateGroupList())
+        .isEqualTo(recordValue.getCandidateGroupsList());
+    assertThat(transformedRecord.getCandidateUserList())
+        .isEqualTo(recordValue.getCandidateUsersList());
     assertThat(transformedRecord.getDueDate()).isEqualTo(recordValue.getDueDate());
     assertThat(transformedRecord.getFollowUpDate()).isEqualTo(recordValue.getFollowUpDate());
     assertThat(transformedRecord.getFormKey()).isEqualTo(recordValue.getFormKey());
@@ -953,6 +955,14 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getElementInstanceKey());
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
     assertVariables(transformedRecord.getVariables());
+    assertThat(transformedRecord.getExternalFormReference())
+        .isEqualTo(recordValue.getExternalFormReference());
+    assertStruct(transformedRecord.getCustomHeaders(), recordValue.getCustomHeaders());
+    assertThat(transformedRecord.getChangedAttributeList())
+        .isEqualTo(recordValue.getChangedAttributes());
+    assertThat(transformedRecord.getAction()).isEqualTo(recordValue.getAction());
+    assertThat(transformedRecord.getCreationTimestamp())
+        .isEqualTo(recordValue.getCreationTimestamp());
 
     assertThat(transformedRecord.getCandidateGroups()).isEqualTo("group1,group2");
     assertThat(transformedRecord.getCandidateUsers()).isEqualTo("user1,user2");
@@ -1424,6 +1434,11 @@ public class RecordTransformTest {
     when(value.getElementId()).thenReturn("element-id");
     when(value.getElementInstanceKey()).thenReturn(6L);
     when(value.getTenantId()).thenReturn(TENANT_ID);
+    when(value.getExternalFormReference()).thenReturn("external-form-reference");
+    when(value.getCustomHeaders()).thenReturn(Map.of("custom-header", "h1"));
+    when(value.getChangedAttributes()).thenReturn(List.of("a1", "a2"));
+    when(value.getAction()).thenReturn("action");
+    when(value.getCreationTimestamp()).thenReturn(7L);
     return value;
   }
 
@@ -1431,6 +1446,19 @@ public class RecordTransformTest {
     assertThat(payload.getFieldsCount()).isEqualTo(1);
     assertThat(payload.getFieldsMap())
         .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+  }
+
+  private void assertStruct(final Struct actual, final Map<String, String> expected) {
+    assertThat(actual.getFieldsCount()).isEqualTo(expected.size());
+    assertThat(actual.getFieldsMap().keySet()).containsExactlyElementsOf(expected.keySet());
+    assertThat(actual.getFieldsMap())
+        .allSatisfy(
+            (key, value) -> {
+              final Object expectedValue = expected.get(key);
+              assertThat(expectedValue).isInstanceOf(String.class);
+              assertThat(value.getKindCase()).isEqualTo(Value.KindCase.STRING_VALUE);
+              assertThat(expectedValue).isEqualTo(value.getStringValue());
+            });
   }
 
   private void assertJobRecord(final JobRecord jobRecord) {
