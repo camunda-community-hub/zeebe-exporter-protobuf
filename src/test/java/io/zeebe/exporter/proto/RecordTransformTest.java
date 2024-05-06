@@ -54,7 +54,7 @@ public class RecordTransformTest {
   public static final long POSITION = 300L;
   public static final long TIMESTAMP = 1000L;
   public static final long SOURCE_POSITION = 100L;
-  public static final Map<String, Object> VARIABLES = Map.of("foo", 23);
+  public static final Map<String, Object> VARIABLES = Map.of("var", "v1");
   public static final String TENANT_ID = "tenant-42";
 
   @Test
@@ -253,7 +253,9 @@ public class RecordTransformTest {
     assertThat(workflowInstanceCreation.getVersion()).isEqualTo(1);
     assertThat(workflowInstanceCreation.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(workflowInstanceCreation.getTenantId()).isEqualTo(TENANT_ID);
-    assertVariables(workflowInstanceCreation.getVariables());
+    assertStruct(
+        workflowInstanceCreation.getVariables(),
+        workflowInstanceCreationRecordValue.getVariables());
   }
 
   @Test
@@ -345,8 +347,7 @@ public class RecordTransformTest {
     assertThat(messageRecord.getName()).isEqualTo("message");
     assertThat(messageRecord.getTimeToLive()).isEqualTo(1000L);
     assertThat(messageRecord.getTenantId()).isEqualTo(TENANT_ID);
-
-    assertVariables(messageRecord.getVariables());
+    assertStruct(messageRecord.getVariables(), messageRecordValue.getVariables());
   }
 
   @Test
@@ -417,8 +418,6 @@ public class RecordTransformTest {
         "PROCESS_MESSAGE_SUBSCRIPTION",
         "CORRELATED");
 
-    assertVariables(workflowInstanceSubscriptionRecord.getVariables());
-
     assertThat(workflowInstanceSubscriptionRecord.getMessageName()).isEqualTo("message");
     assertThat(workflowInstanceSubscriptionRecord.getElementInstanceKey()).isEqualTo(4L);
     assertThat(workflowInstanceSubscriptionRecord.getProcessInstanceKey()).isEqualTo(1L);
@@ -430,7 +429,7 @@ public class RecordTransformTest {
     assertThat(workflowInstanceSubscriptionRecord.getElementId()).isEqualTo(value.getElementId());
     assertThat(workflowInstanceSubscriptionRecord.getIsInterrupting()).isTrue();
     assertThat(workflowInstanceSubscriptionRecord.getTenantId()).isEqualTo(value.getTenantId());
-    assertVariables(workflowInstanceSubscriptionRecord.getVariables());
+    assertStruct(workflowInstanceSubscriptionRecord.getVariables(), value.getVariables());
   }
 
   @Test
@@ -478,7 +477,7 @@ public class RecordTransformTest {
     assertThat(variableRecord.getUpdateSemantics().name())
         .isEqualTo(variableDocumentRecordValue.getUpdateSemantics().name());
     assertThat(variableRecord.getTenantId()).isEqualTo(variableDocumentRecordValue.getTenantId());
-    assertVariables(variableRecord.getVariables());
+    assertStruct(variableRecord.getVariables(), variableDocumentRecordValue.getVariables());
   }
 
   @Test
@@ -1154,7 +1153,7 @@ public class RecordTransformTest {
     when(jobRecordValue.getWorker()).thenReturn("myveryownworker");
 
     when(jobRecordValue.getCustomHeaders()).thenReturn(Collections.singletonMap("foo", "bar"));
-    when(jobRecordValue.getVariables()).thenReturn(Collections.singletonMap("foo", 23));
+    when(jobRecordValue.getVariables()).thenReturn(VARIABLES);
 
     when(jobRecordValue.getBpmnProcessId()).thenReturn("process");
     when(jobRecordValue.getElementId()).thenReturn("task");
@@ -1442,22 +1441,27 @@ public class RecordTransformTest {
     return value;
   }
 
-  private void assertVariables(final Struct payload) {
-    assertThat(payload.getFieldsCount()).isEqualTo(1);
-    assertThat(payload.getFieldsMap())
-        .containsExactly(entry("foo", Value.newBuilder().setNumberValue(23).build()));
+  private void assertVariables(final Struct variables) {
+    assertStruct(variables, VARIABLES);
   }
 
-  private void assertStruct(final Struct actual, final Map<String, String> expected) {
+  private void assertStruct(final Struct actual, final Map<String, ?> expected) {
     assertThat(actual.getFieldsCount()).isEqualTo(expected.size());
     assertThat(actual.getFieldsMap().keySet()).containsExactlyElementsOf(expected.keySet());
     assertThat(actual.getFieldsMap())
         .allSatisfy(
             (key, value) -> {
               final Object expectedValue = expected.get(key);
-              assertThat(expectedValue).isInstanceOf(String.class);
-              assertThat(value.getKindCase()).isEqualTo(Value.KindCase.STRING_VALUE);
-              assertThat(expectedValue).isEqualTo(value.getStringValue());
+              assertThat(expectedValue).isInstanceOfAny(String.class, Integer.class);
+
+              if (expectedValue instanceof String) {
+                assertThat(value.getKindCase()).isEqualTo(Value.KindCase.STRING_VALUE);
+                assertThat(expectedValue).isEqualTo(value.getStringValue());
+
+              } else if (expectedValue instanceof Integer) {
+                assertThat(value.getKindCase()).isEqualTo(Value.KindCase.NUMBER_VALUE);
+                assertThat(expectedValue).isEqualTo((int) value.getNumberValue());
+              }
             });
   }
 
@@ -1469,10 +1473,8 @@ public class RecordTransformTest {
     assertThat(jobRecord.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(jobRecord.getElementInstanceKey()).isEqualTo(3L);
 
-    assertThat(jobRecord.getCustomHeaders().getFieldsCount()).isEqualTo(1);
-    assertThat(jobRecord.getCustomHeaders().getFieldsMap())
-        .containsExactly(entry("foo", Value.newBuilder().setStringValue("bar").build()));
-    assertVariables(jobRecord.getVariables());
+    assertStruct(jobRecord.getCustomHeaders(), Map.of("foo", "bar"));
+    assertStruct(jobRecord.getVariables(), VARIABLES);
 
     assertThat(jobRecord.getDeadline()).isEqualTo(1000L);
     assertThat(jobRecord.getErrorMessage()).isEqualTo("this is an error msg");
