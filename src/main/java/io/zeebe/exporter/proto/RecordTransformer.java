@@ -266,8 +266,7 @@ public final class RecordTransformer {
         .build();
   }
 
-  private static Schema.DeploymentRecord.FormMetadata toFormMetadata(
-          FormMetadataValue form) {
+  private static Schema.DeploymentRecord.FormMetadata toFormMetadata(FormMetadataValue form) {
     return Schema.DeploymentRecord.FormMetadata.newBuilder()
         .setFormId(form.getFormId())
         .setVersion(form.getVersion())
@@ -767,26 +766,27 @@ public final class RecordTransformer {
     final Form value = record.getValue();
 
     return Schema.FormRecord.newBuilder()
-            .setFormId(value.getFormId())
-            .setVersion(value.getVersion())
-            .setFormKey(value.getFormKey())
-            .setResourceName(value.getResourceName())
-            .setChecksum(ByteString.copyFrom(value.getChecksum()))
-            .setIsDuplicate(value.isDuplicate())
-            .setResource(ByteString.copyFrom(value.getResource()))
-            .setMetadata(toMetadata(record))
-            .setTenantId(toTenantId(value))
-            .build();
+        .setFormId(value.getFormId())
+        .setVersion(value.getVersion())
+        .setFormKey(value.getFormKey())
+        .setResourceName(value.getResourceName())
+        .setChecksum(ByteString.copyFrom(value.getChecksum()))
+        .setIsDuplicate(value.isDuplicate())
+        .setResource(ByteString.copyFrom(value.getResource()))
+        .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
+        .build();
   }
 
-  private static Schema.ResourceDeletionRecord toResourceDeletionRecord(Record<ResourceDeletionRecordValue> record) {
+  private static Schema.ResourceDeletionRecord toResourceDeletionRecord(
+      Record<ResourceDeletionRecordValue> record) {
     final var value = record.getValue();
 
     return Schema.ResourceDeletionRecord.newBuilder()
-            .setResourceKey(value.getResourceKey())
-            .setMetadata(toMetadata(record))
-            .setTenantId(toTenantId(value))
-            .build();
+        .setResourceKey(value.getResourceKey())
+        .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
+        .build();
   }
 
   private static Schema.UserTaskRecord toUserTaskRecord(Record<UserTaskRecordValue> record) {

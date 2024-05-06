@@ -142,23 +142,16 @@ public class RecordTransformTest {
     assertThat(formMetadataList).hasSize(1);
 
     final var transformedFormMetadata = formMetadataList.get(0);
-    final var formMetadata =
-            deploymentRecordValue.getFormMetadata().get(0);
+    final var formMetadata = deploymentRecordValue.getFormMetadata().get(0);
 
-    assertThat(transformedFormMetadata.getFormId())
-            .isEqualTo(formMetadata.getFormId());
-    assertThat(transformedFormMetadata.getVersion())
-            .isEqualTo(formMetadata.getVersion());
-    assertThat(transformedFormMetadata.getFormKey())
-            .isEqualTo(formMetadata.getFormKey());
-    assertThat(transformedFormMetadata.getResourceName())
-            .isEqualTo(formMetadata.getResourceName());
+    assertThat(transformedFormMetadata.getFormId()).isEqualTo(formMetadata.getFormId());
+    assertThat(transformedFormMetadata.getVersion()).isEqualTo(formMetadata.getVersion());
+    assertThat(transformedFormMetadata.getFormKey()).isEqualTo(formMetadata.getFormKey());
+    assertThat(transformedFormMetadata.getResourceName()).isEqualTo(formMetadata.getResourceName());
     assertThat(transformedFormMetadata.getChecksum().toByteArray())
-            .isEqualTo(formMetadata.getChecksum());
-    assertThat(transformedFormMetadata.getIsDuplicate())
-            .isEqualTo(formMetadata.isDuplicate());
-    assertThat(transformedFormMetadata.getTenantId())
-            .isEqualTo(formMetadata.getTenantId());
+        .isEqualTo(formMetadata.getChecksum());
+    assertThat(transformedFormMetadata.getIsDuplicate()).isEqualTo(formMetadata.isDuplicate());
+    assertThat(transformedFormMetadata.getTenantId()).isEqualTo(formMetadata.getTenantId());
   }
 
   @Test
@@ -891,27 +884,21 @@ public class RecordTransformTest {
   public void shouldTransformFormRecord() {
     // given
     final var recordValue = mockFormRecordValue();
-    final Record<Form> mockedRecord =
-            mockRecord(recordValue, ValueType.FORM, FormIntent.CREATED);
+    final Record<Form> mockedRecord = mockRecord(recordValue, ValueType.FORM, FormIntent.CREATED);
 
     // when
     final var transformedRecord =
-            (Schema.FormRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.FormRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "FORM", "CREATED");
 
-    assertThat(transformedRecord.getFormId())
-            .isEqualTo(recordValue.getFormId());
-    assertThat(transformedRecord.getVersion())
-            .isEqualTo(recordValue.getVersion());
+    assertThat(transformedRecord.getFormId()).isEqualTo(recordValue.getFormId());
+    assertThat(transformedRecord.getVersion()).isEqualTo(recordValue.getVersion());
     assertThat(transformedRecord.getFormKey()).isEqualTo(recordValue.getFormKey());
-    assertThat(transformedRecord.getResourceName())
-            .isEqualTo(recordValue.getResourceName());
-    assertThat(transformedRecord.getChecksum().toByteArray())
-            .isEqualTo(recordValue.getChecksum());
-    assertThat(transformedRecord.getResource().toByteArray())
-            .isEqualTo(recordValue.getResource());
+    assertThat(transformedRecord.getResourceName()).isEqualTo(recordValue.getResourceName());
+    assertThat(transformedRecord.getChecksum().toByteArray()).isEqualTo(recordValue.getChecksum());
+    assertThat(transformedRecord.getResource().toByteArray()).isEqualTo(recordValue.getResource());
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
@@ -920,17 +907,16 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockResourceDeletionRecordValue();
     final Record<ResourceDeletionRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.RESOURCE_DELETION, ResourceDeletionIntent.DELETED);
+        mockRecord(recordValue, ValueType.RESOURCE_DELETION, ResourceDeletionIntent.DELETED);
 
     // when
     final var transformedRecord =
-            (Schema.ResourceDeletionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.ResourceDeletionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "RESOURCE_DELETION", "DELETED");
 
-    assertThat(transformedRecord.getResourceKey())
-            .isEqualTo(recordValue.getResourceKey());
+    assertThat(transformedRecord.getResourceKey()).isEqualTo(recordValue.getResourceKey());
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
   }
 
@@ -939,41 +925,32 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockUserTaskRecordValue();
     final Record<UserTaskRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.USER_TASK, UserTaskIntent.CREATED);
+        mockRecord(recordValue, ValueType.USER_TASK, UserTaskIntent.CREATED);
 
     // when
     final var transformedRecord =
-            (Schema.UserTaskRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.UserTaskRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "USER_TASK", "CREATED");
 
-    assertThat(transformedRecord.getUserTaskKey())
-            .isEqualTo(recordValue.getUserTaskKey());
-    assertThat(transformedRecord.getAssignee())
-            .isEqualTo(recordValue.getAssignee());
-    assertThat(transformedRecord.getCandidateGroups())
-            .isEqualTo(recordValue.getCandidateGroups());
-    assertThat(transformedRecord.getCandidateUsers())
-            .isEqualTo(recordValue.getCandidateUsers());
-    assertThat(transformedRecord.getDueDate())
-            .isEqualTo(recordValue.getDueDate());
-    assertThat(transformedRecord.getFollowUpDate())
-            .isEqualTo(recordValue.getFollowUpDate());
-    assertThat(transformedRecord.getFormKey())
-            .isEqualTo(recordValue.getFormKey());
-    assertThat(transformedRecord.getBpmnProcessId())
-            .isEqualTo(recordValue.getBpmnProcessId());
+    assertThat(transformedRecord.getUserTaskKey()).isEqualTo(recordValue.getUserTaskKey());
+    assertThat(transformedRecord.getAssignee()).isEqualTo(recordValue.getAssignee());
+    assertThat(transformedRecord.getCandidateGroups()).isEqualTo(recordValue.getCandidateGroups());
+    assertThat(transformedRecord.getCandidateUsers()).isEqualTo(recordValue.getCandidateUsers());
+    assertThat(transformedRecord.getDueDate()).isEqualTo(recordValue.getDueDate());
+    assertThat(transformedRecord.getFollowUpDate()).isEqualTo(recordValue.getFollowUpDate());
+    assertThat(transformedRecord.getFormKey()).isEqualTo(recordValue.getFormKey());
+    assertThat(transformedRecord.getBpmnProcessId()).isEqualTo(recordValue.getBpmnProcessId());
     assertThat(transformedRecord.getProcessDefinitionVersion())
-            .isEqualTo(recordValue.getProcessDefinitionVersion());
+        .isEqualTo(recordValue.getProcessDefinitionVersion());
     assertThat(transformedRecord.getProcessDefinitionKey())
-            .isEqualTo(recordValue.getProcessDefinitionKey());
+        .isEqualTo(recordValue.getProcessDefinitionKey());
     assertThat(transformedRecord.getProcessInstanceKey())
-            .isEqualTo(recordValue.getProcessInstanceKey());
-    assertThat(transformedRecord.getElementId())
-            .isEqualTo(recordValue.getElementId());
+        .isEqualTo(recordValue.getProcessInstanceKey());
+    assertThat(transformedRecord.getElementId()).isEqualTo(recordValue.getElementId());
     assertThat(transformedRecord.getElementInstanceKey())
-            .isEqualTo(recordValue.getElementInstanceKey());
+        .isEqualTo(recordValue.getElementInstanceKey());
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
     assertVariables(transformedRecord.getVariables());
   }
@@ -1206,7 +1183,6 @@ public class RecordTransformTest {
     formMetadata.add(mockFormRecordValue());
     when(deploymentRecordValue.getFormMetadata()).thenReturn(formMetadata);
 
-
     final List<DeploymentResource> resources = new ArrayList<>();
     final DeploymentResource deploymentResource = mock(DeploymentResource.class);
     when(deploymentResource.getResource()).thenReturn("resourceContent".getBytes());
@@ -1427,6 +1403,7 @@ public class RecordTransformTest {
     when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
+
   private UserTaskRecordValue mockUserTaskRecordValue() {
     final var value = mock(UserTaskRecordValue.class);
     when(value.getUserTaskKey()).thenReturn(1L);
@@ -1446,7 +1423,6 @@ public class RecordTransformTest {
     when(value.getTenantId()).thenReturn(TENANT_ID);
     return value;
   }
-
 
   private void assertVariables(final Struct payload) {
     assertThat(payload.getFieldsCount()).isEqualTo(1);
