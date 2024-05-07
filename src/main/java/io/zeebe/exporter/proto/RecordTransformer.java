@@ -103,6 +103,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.FORM, RecordTransformer::toFormRecord);
     TRANSFORMERS.put(ValueType.RESOURCE_DELETION, RecordTransformer::toResourceDeletionRecord);
     TRANSFORMERS.put(ValueType.USER_TASK, RecordTransformer::toUserTaskRecord);
+    TRANSFORMERS.put(ValueType.COMPENSATION_SUBSCRIPTION, RecordTransformer::toCompensationSubscriptionRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -146,6 +147,7 @@ public final class RecordTransformer {
         ValueType.COMMAND_DISTRIBUTION, RecordMetadata.ValueType.COMMAND_DISTRIBUTION);
     VALUE_TYPE_MAPPING.put(ValueType.FORM, RecordMetadata.ValueType.FORM);
     VALUE_TYPE_MAPPING.put(ValueType.USER_TASK, RecordMetadata.ValueType.USER_TASK);
+    VALUE_TYPE_MAPPING.put(ValueType.COMPENSATION_SUBSCRIPTION, RecordMetadata.ValueType.COMPENSATION_SUBSCRIPTION);
   }
 
   private RecordTransformer() {}
@@ -819,6 +821,25 @@ public final class RecordTransformer {
         .setCandidateUsers(String.join(",", value.getCandidateUsersList()))
         // ===
         .build();
+  }
+
+  private static Schema.CompensationSubscriptionRecord toCompensationSubscriptionRecord(Record<CompensationSubscriptionRecordValue> record) {
+    final var value = record.getValue();
+
+    return Schema.CompensationSubscriptionRecord.newBuilder()
+            .setMetadata(toMetadata(record))
+            .setTenantId(value.getTenantId())
+            .setProcessInstanceKey(value.getProcessInstanceKey())
+            .setProcessDefinitionKey(value.getProcessDefinitionKey())
+            .setCompensableActivityId(value.getCompensableActivityId())
+            .setThrowEventId(value.getThrowEventId())
+            .setThrowEventInstanceKey(value.getThrowEventInstanceKey())
+            .setCompensationHandlerId(value.getCompensationHandlerId())
+            .setCompensationHandlerInstanceKey(value.getCompensationHandlerInstanceKey())
+            .setCompensableActivityScopeKey(value.getCompensableActivityScopeKey())
+            .setCompensableActivityInstanceKey(value.getCompensableActivityInstanceKey())
+            .setVariables(toStruct(value.getVariables()))
+            .build();
   }
 
   private static Struct toStruct(Map<?, ?> map) {
