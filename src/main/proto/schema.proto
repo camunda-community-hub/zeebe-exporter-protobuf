@@ -517,3 +517,18 @@ message UserTaskRecord {
   string action = 22;
   int64 creationTimestamp = 23;
 }
+
+message CompensationSubscriptionRecord {
+  RecordMetadata metadata = 1;
+  string tenantId = 2;
+  int64 processInstanceKey = 3;
+  int64 processDefinitionKey = 4;
+  string compensableActivityId = 5;
+  string throwEventId = 6;
+  int64 throwEventInstanceKey = 7;
+  string compensationHandlerId = 8;
+  int64 compensationHandlerInstanceKey = 9;
+  int64 compensableActivityScopeKey = 10;
+  int64 compensableActivityInstanceKey = 11;
+  google.protobuf.Struct variables = 12;
+}

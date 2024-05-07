@@ -967,6 +967,44 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getCandidateUsers()).isEqualTo("user1,user2");
   }
 
+  @Test
+  public void shouldTransformCompensationSubscriptionRecord() {
+    // given
+    final var recordValue = mockCompensationSubscriptionRecordValue();
+    final Record<CompensationSubscriptionRecordValue> mockedRecord =
+        mockRecord(
+            recordValue,
+            ValueType.COMPENSATION_SUBSCRIPTION,
+            CompensationSubscriptionIntent.CREATED);
+
+    // when
+    final var transformedRecord =
+        (Schema.CompensationSubscriptionRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "COMPENSATION_SUBSCRIPTION", "CREATED");
+
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
+    assertThat(transformedRecord.getProcessInstanceKey())
+        .isEqualTo(recordValue.getProcessInstanceKey());
+    assertThat(transformedRecord.getProcessDefinitionKey())
+        .isEqualTo(recordValue.getProcessDefinitionKey());
+    assertThat(transformedRecord.getCompensableActivityId())
+        .isEqualTo(recordValue.getCompensableActivityId());
+    assertThat(transformedRecord.getThrowEventId()).isEqualTo(recordValue.getThrowEventId());
+    assertThat(transformedRecord.getThrowEventInstanceKey())
+        .isEqualTo(recordValue.getThrowEventInstanceKey());
+    assertThat(transformedRecord.getCompensationHandlerId())
+        .isEqualTo(recordValue.getCompensationHandlerId());
+    assertThat(transformedRecord.getCompensationHandlerInstanceKey())
+        .isEqualTo(recordValue.getCompensationHandlerInstanceKey());
+    assertThat(transformedRecord.getCompensableActivityScopeKey())
+        .isEqualTo(recordValue.getCompensableActivityScopeKey());
+    assertThat(transformedRecord.getCompensableActivityInstanceKey())
+        .isEqualTo(recordValue.getCompensableActivityInstanceKey());
+    assertStruct(transformedRecord.getVariables(), recordValue.getVariables());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1438,6 +1476,22 @@ public class RecordTransformTest {
     when(value.getChangedAttributes()).thenReturn(List.of("a1", "a2"));
     when(value.getAction()).thenReturn("action");
     when(value.getCreationTimestamp()).thenReturn(7L);
+    return value;
+  }
+
+  private CompensationSubscriptionRecordValue mockCompensationSubscriptionRecordValue() {
+    final var value = mock(CompensationSubscriptionRecordValue.class);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
+    when(value.getProcessInstanceKey()).thenReturn(1L);
+    when(value.getProcessDefinitionKey()).thenReturn(2L);
+    when(value.getCompensableActivityId()).thenReturn("compensable-activity-id");
+    when(value.getThrowEventId()).thenReturn("throw-event-id");
+    when(value.getThrowEventInstanceKey()).thenReturn(3L);
+    when(value.getCompensationHandlerId()).thenReturn("compensation-handler-id");
+    when(value.getCompensationHandlerInstanceKey()).thenReturn(4L);
+    when(value.getCompensableActivityScopeKey()).thenReturn(5L);
+    when(value.getCompensableActivityInstanceKey()).thenReturn(6L);
+    when(value.getVariables()).thenReturn(VARIABLES);
     return value;
   }
 
