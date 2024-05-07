@@ -6,7 +6,7 @@
   <name>Zeebe Exporter Protobuf Schema</name>
   <groupId>io.zeebe</groupId>
   <artifactId>zeebe-exporter-protobuf</artifactId>
-  <version>1.5.1-SNAPSHOT</version>
+  <version>1.6.0</version>
   <packaging>jar</packaging>
 
   <url>https://github.com/camunda-community-hub/zeebe-exporter-protobuf</url>
