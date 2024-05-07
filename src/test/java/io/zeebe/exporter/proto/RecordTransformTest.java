@@ -1005,6 +1005,27 @@ public class RecordTransformTest {
     assertStruct(transformedRecord.getVariables(), recordValue.getVariables());
   }
 
+  @Test
+  public void shouldTransformEscalationRecord() {
+    // given
+    final var recordValue = mockEscalationRecordValue();
+    final Record<EscalationRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.ESCALATION, EscalationIntent.ESCALATED);
+
+    // when
+    final var transformedRecord =
+        (Schema.EscalationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "ESCALATION", "ESCALATED");
+
+    assertThat(transformedRecord.getProcessInstanceKey())
+        .isEqualTo(recordValue.getProcessInstanceKey());
+    assertThat(transformedRecord.getEscalationCode()).isEqualTo(recordValue.getEscalationCode());
+    assertThat(transformedRecord.getThrowElementId()).isEqualTo(recordValue.getThrowElementId());
+    assertThat(transformedRecord.getCatchElementId()).isEqualTo(recordValue.getCatchElementId());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1492,6 +1513,16 @@ public class RecordTransformTest {
     when(value.getCompensableActivityScopeKey()).thenReturn(5L);
     when(value.getCompensableActivityInstanceKey()).thenReturn(6L);
     when(value.getVariables()).thenReturn(VARIABLES);
+    return value;
+  }
+
+  private EscalationRecordValue mockEscalationRecordValue() {
+    final var value = mock(EscalationRecordValue.class);
+    when(value.getTenantId()).thenReturn(TENANT_ID);
+    when(value.getProcessInstanceKey()).thenReturn(1L);
+    when(value.getEscalationCode()).thenReturn("escalation-code");
+    when(value.getThrowElementId()).thenReturn("throw-element-id");
+    when(value.getCatchElementId()).thenReturn("catch-element-id");
     return value;
   }
 
