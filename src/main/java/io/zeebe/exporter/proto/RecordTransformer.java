@@ -104,6 +104,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.RESOURCE_DELETION, RecordTransformer::toResourceDeletionRecord);
     TRANSFORMERS.put(ValueType.USER_TASK, RecordTransformer::toUserTaskRecord);
     TRANSFORMERS.put(ValueType.COMPENSATION_SUBSCRIPTION, RecordTransformer::toCompensationSubscriptionRecord);
+    TRANSFORMERS.put(ValueType.ESCALATION, RecordTransformer::toEscalationRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -839,6 +840,18 @@ public final class RecordTransformer {
             .setCompensableActivityScopeKey(value.getCompensableActivityScopeKey())
             .setCompensableActivityInstanceKey(value.getCompensableActivityInstanceKey())
             .setVariables(toStruct(value.getVariables()))
+            .build();
+  }
+
+  private static Schema.EscalationRecord toEscalationRecord(Record<EscalationRecordValue> record) {
+    final var value = record.getValue();
+
+    return Schema.EscalationRecord.newBuilder()
+            .setMetadata(toMetadata(record))
+            .setProcessInstanceKey(value.getProcessInstanceKey())
+            .setEscalationCode(value.getEscalationCode())
+            .setThrowElementId(value.getThrowElementId())
+            .setCatchElementId(value.getCatchElementId())
             .build();
   }
 

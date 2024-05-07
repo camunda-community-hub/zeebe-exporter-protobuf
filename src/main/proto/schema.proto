@@ -532,3 +532,11 @@ message CompensationSubscriptionRecord {
   int64 compensableActivityInstanceKey = 11;
   google.protobuf.Struct variables = 12;
 }
+
+message EscalationRecord {
+  RecordMetadata metadata = 1;
+  int64 processInstanceKey = 2;
+  string escalationCode = 3;
+  string throwElementId = 4;
+  string catchElementId = 5;
+}
