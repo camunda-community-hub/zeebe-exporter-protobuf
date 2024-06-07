@@ -38,7 +38,7 @@
     <!-- project dependencies -->
     <version.zeebe>8.5.1</version.zeebe>
 
-    <version.protobuf>3.25.3</version.protobuf>
+    <version.protobuf>4.27.1</version.protobuf>
     <version.protoc>3.25.3</version.protoc>
     <version.slf4j>1.7.25</version.slf4j>
 
