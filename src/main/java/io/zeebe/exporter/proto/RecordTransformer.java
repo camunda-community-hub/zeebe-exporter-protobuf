@@ -74,6 +74,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.JOB, RecordTransformer::toJobRecord);
     TRANSFORMERS.put(ValueType.INCIDENT, RecordTransformer::toIncidentRecord);
     TRANSFORMERS.put(ValueType.MESSAGE, RecordTransformer::toMessageRecord);
+    TRANSFORMERS.put(ValueType.MESSAGE_BATCH, RecordTransformer::toMessageBatchRecord);
     TRANSFORMERS.put(
         ValueType.MESSAGE_SUBSCRIPTION, RecordTransformer::toMessageSubscriptionRecord);
     TRANSFORMERS.put(ValueType.PROCESS, RecordTransformer::toProcessRecord);
@@ -106,6 +107,17 @@ public final class RecordTransformer {
     TRANSFORMERS.put(
         ValueType.COMPENSATION_SUBSCRIPTION, RecordTransformer::toCompensationSubscriptionRecord);
     TRANSFORMERS.put(ValueType.ESCALATION, RecordTransformer::toEscalationRecord);
+    TRANSFORMERS.put(
+        ValueType.PROCESS_INSTANCE_MIGRATION, RecordTransformer::toProcessInstanceMigrationRecord);
+    TRANSFORMERS.put(ValueType.CLOCK, RecordTransformer::toClockRecord);
+    TRANSFORMERS.put(ValueType.MESSAGE_CORRELATION, RecordTransformer::toMessageCorrelationRecord);
+    TRANSFORMERS.put(
+        ValueType.PROCESS_INSTANCE_BATCH, RecordTransformer::toProcessInstanceBatchRecord);
+    TRANSFORMERS.put(
+        ValueType.PROCESS_INSTANCE_RESULT, RecordTransformer::toProcessInstanceResultRecord);
+    TRANSFORMERS.put(ValueType.RESOURCE, RecordTransformer::toResourceRecord);
+    TRANSFORMERS.put(ValueType.USER, RecordTransformer::toUserRecord);
+    TRANSFORMERS.put(ValueType.AUTHORIZATION, RecordTransformer::toAuthorizationRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -115,6 +127,7 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.JOB, RecordMetadata.ValueType.JOB);
     VALUE_TYPE_MAPPING.put(ValueType.JOB_BATCH, RecordMetadata.ValueType.JOB_BATCH);
     VALUE_TYPE_MAPPING.put(ValueType.MESSAGE, RecordMetadata.ValueType.MESSAGE);
+    VALUE_TYPE_MAPPING.put(ValueType.MESSAGE_BATCH, RecordMetadata.ValueType.MESSAGE_BATCH);
     VALUE_TYPE_MAPPING.put(
         ValueType.MESSAGE_START_EVENT_SUBSCRIPTION,
         RecordMetadata.ValueType.MESSAGE_START_EVENT_SUBSCRIPTION);
@@ -151,6 +164,18 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.USER_TASK, RecordMetadata.ValueType.USER_TASK);
     VALUE_TYPE_MAPPING.put(
         ValueType.COMPENSATION_SUBSCRIPTION, RecordMetadata.ValueType.COMPENSATION_SUBSCRIPTION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.PROCESS_INSTANCE_MIGRATION, RecordMetadata.ValueType.PROCESS_INSTANCE_MIGRATION);
+    VALUE_TYPE_MAPPING.put(ValueType.CLOCK, RecordMetadata.ValueType.CLOCK);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.MESSAGE_CORRELATION, RecordMetadata.ValueType.MESSAGE_CORRELATION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.PROCESS_INSTANCE_BATCH, RecordMetadata.ValueType.PROCESS_INSTANCE_BATCH);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.PROCESS_INSTANCE_RESULT, RecordMetadata.ValueType.PROCESS_INSTANCE_RESULT);
+    VALUE_TYPE_MAPPING.put(ValueType.RESOURCE, RecordMetadata.ValueType.RESOURCE);
+    VALUE_TYPE_MAPPING.put(ValueType.USER, RecordMetadata.ValueType.USER);
+    VALUE_TYPE_MAPPING.put(ValueType.AUTHORIZATION, RecordMetadata.ValueType.AUTHORIZATION);
   }
 
   private RecordTransformer() {}
@@ -213,7 +238,7 @@ public final class RecordTransformer {
     }
 
     for (final var processMetadata : record.getValue().getProcessesMetadata()) {
-      builder.addProcessMetadata(toProcessMetadata(processMetadata));
+      builder.addProcessesMetadata(toProcessesMetadata(processMetadata));
     }
 
     for (DecisionRequirementsMetadataValue decisionRequirementsMetadata :
@@ -223,27 +248,32 @@ public final class RecordTransformer {
     }
 
     for (DecisionRecordValue decisionMetadata : record.getValue().getDecisionsMetadata()) {
-      builder.addDecisionMetadata(toDecisionMetadata(decisionMetadata));
+      builder.addDecisionsMetadata(toDecisionsMetadata(decisionMetadata));
     }
 
     for (FormMetadataValue formMetadata : record.getValue().getFormMetadata()) {
       builder.addFormMetadata(toFormMetadata(formMetadata));
     }
 
+    for (ResourceMetadataValue resourceMetadata : record.getValue().getResourceMetadata()) {
+      builder.addResourceMetadata(toResourceMetadata(resourceMetadata));
+    }
+
     builder.setTenantId(toTenantId(record.getValue()));
+    builder.setDeploymentKey(record.getValue().getDeploymentKey());
 
     return builder.build();
   }
 
-  private static Schema.DeploymentRecord.Resource toDeploymentRecordResource(
+  private static Schema.DeploymentRecord.DeploymentResource toDeploymentRecordResource(
       DeploymentResource resource) {
-    return Schema.DeploymentRecord.Resource.newBuilder()
+    return Schema.DeploymentRecord.DeploymentResource.newBuilder()
         .setResource(ByteString.copyFrom(resource.getResource()))
         .setResourceName(resource.getResourceName())
         .build();
   }
 
-  private static Schema.DeploymentRecord.ProcessMetadata toProcessMetadata(
+  private static Schema.DeploymentRecord.ProcessMetadata toProcessesMetadata(
       ProcessMetadataValue processMetadata) {
 
     return Schema.DeploymentRecord.ProcessMetadata.newBuilder()
@@ -254,10 +284,12 @@ public final class RecordTransformer {
         .setChecksum(ByteString.copyFrom(processMetadata.getChecksum()))
         .setIsDuplicate(processMetadata.isDuplicate())
         .setTenantId(toTenantId(processMetadata))
+        .setOrClearVersionTag(processMetadata.getVersionTag())
+        .setDeploymentKey(processMetadata.getDeploymentKey())
         .build();
   }
 
-  private static Schema.DeploymentRecord.DecisionMetadata toDecisionMetadata(
+  private static Schema.DeploymentRecord.DecisionMetadata toDecisionsMetadata(
       DecisionRecordValue decision) {
     return Schema.DeploymentRecord.DecisionMetadata.newBuilder()
         .setDecisionId(decision.getDecisionId())
@@ -268,6 +300,8 @@ public final class RecordTransformer {
         .setDecisionRequirementsKey(decision.getDecisionRequirementsKey())
         .setIsDuplicate(decision.isDuplicate())
         .setTenantId(toTenantId(decision))
+        .setOrClearVersionTag(decision.getVersionTag())
+        .setDeploymentKey(decision.getDeploymentKey())
         .build();
   }
 
@@ -280,6 +314,22 @@ public final class RecordTransformer {
         .setResourceName(form.getResourceName())
         .setChecksum(ByteString.copyFrom(form.getChecksum()))
         .setTenantId(toTenantId(form))
+        .setOrClearVersionTag(form.getVersionTag())
+        .setDeploymentKey(form.getDeploymentKey())
+        .build();
+  }
+
+  private static Schema.DeploymentRecord.ResourceMetadata toResourceMetadata(
+      ResourceMetadataValue resourceMetadata) {
+    return Schema.DeploymentRecord.ResourceMetadata.newBuilder()
+        .setResourceId(resourceMetadata.getResourceId())
+        .setVersion(resourceMetadata.getVersion())
+        .setVersionTag(resourceMetadata.getVersionTag())
+        .setResourceKey(resourceMetadata.getResourceKey())
+        .setChecksum(ByteString.copyFrom(resourceMetadata.getChecksum()))
+        .setResourceName(resourceMetadata.getResourceName())
+        .setIsDuplicate(resourceMetadata.isDuplicate())
+        .setDeploymentKey(resourceMetadata.getDeploymentKey())
         .build();
   }
 
@@ -329,10 +379,39 @@ public final class RecordTransformer {
     return builder.setMetadata(toMetadata(record)).build();
   }
 
+  private static final EnumMap<JobKind, Schema.JobRecord.JobKind> JOB_KIND_MAPPING =
+      new EnumMap<>(
+          Map.of(
+              JobKind.BPMN_ELEMENT,
+              Schema.JobRecord.JobKind.BPMN_ELEMENT,
+              JobKind.EXECUTION_LISTENER,
+              Schema.JobRecord.JobKind.EXECUTION_LISTENER,
+              JobKind.TASK_LISTENER,
+              Schema.JobRecord.JobKind.TASK_LISTENER));
+
+  private static Schema.JobRecord.JobKind toJobKind(JobKind jobKind) {
+    return JOB_KIND_MAPPING.getOrDefault(jobKind, Schema.JobRecord.JobKind.UNKNOWN_JOB_KIND);
+  }
+
+  private static final EnumMap<JobListenerEventType, Schema.JobRecord.JobListenerEventType>
+      JOB_LISTENER_EVENT_TYPE_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  JobListenerEventType.START,
+                  Schema.JobRecord.JobListenerEventType.START,
+                  JobListenerEventType.END,
+                  Schema.JobRecord.JobListenerEventType.END));
+
+  private static Schema.JobRecord.JobListenerEventType toJobListenerEventType(
+      JobListenerEventType jobListenerEventType) {
+    return JOB_LISTENER_EVENT_TYPE_MAPPING.getOrDefault(
+        jobListenerEventType, Schema.JobRecord.JobListenerEventType.UNSPECIFIED);
+  }
+
   private static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
     return Schema.JobRecord.newBuilder()
         .setDeadline(value.getDeadline())
-        .setErrorMessage(value.getErrorMessage())
+        .setOrClearErrorMessage(value.getErrorMessage())
         .setRetries(value.getRetries())
         .setType(value.getType())
         .setWorker(value.getWorker())
@@ -341,10 +420,17 @@ public final class RecordTransformer {
         .setBpmnProcessId(value.getBpmnProcessId())
         .setElementId(value.getElementId())
         .setElementInstanceKey(value.getElementInstanceKey())
-        .setWorkflowDefinitionVersion(value.getProcessDefinitionVersion())
+        .setProcessDefinitionVersion(value.getProcessDefinitionVersion())
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
-        .setTenantId(toTenantId(value));
+        .setTenantId(toTenantId(value))
+        .setOrClearErrorCode(value.getErrorCode())
+        .setRecurringTime(value.getRecurringTime())
+        .setRetryBackoff(value.getRetryBackoff())
+        .setTimeout(value.getTimeout())
+        .addAllChangedAttributes(value.getChangedAttributes())
+        .setJobKind(toJobKind(value.getJobKind()))
+        .setJobListenerEventType(toJobListenerEventType(value.getJobListenerEventType()));
   }
 
   private static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
@@ -386,6 +472,7 @@ public final class RecordTransformer {
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .setDeadline(value.getDeadline())
         .build();
   }
 
@@ -501,6 +588,16 @@ public final class RecordTransformer {
       Record<ProcessInstanceCreationRecordValue> record) {
     final ProcessInstanceCreationRecordValue value = record.getValue();
 
+    final var startInstructions =
+        value.getStartInstructions().stream()
+            .map(
+                startInstruction ->
+                    Schema.ProcessInstanceCreationRecord.ProcessInstanceCreationStartInstruction
+                        .newBuilder()
+                        .setElementId(startInstruction.getElementId())
+                        .build())
+            .collect(Collectors.toList());
+
     return Schema.ProcessInstanceCreationRecord.newBuilder()
         .setBpmnProcessId(value.getBpmnProcessId())
         .setVersion(value.getVersion())
@@ -509,6 +606,7 @@ public final class RecordTransformer {
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .addAllStartInstructions(startInstructions)
         .build();
   }
 
@@ -570,6 +668,8 @@ public final class RecordTransformer {
         .setIsDuplicate(value.isDuplicate())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .setDeploymentKey(value.getDeploymentKey())
+        .setOrClearVersionTag(value.getVersionTag())
         .build();
   }
 
@@ -737,8 +837,8 @@ public final class RecordTransformer {
   private static Schema.CheckpointRecord toCheckpointRecord(Record<CheckpointRecordValue> record) {
     final CheckpointRecordValue value = record.getValue();
     return Schema.CheckpointRecord.newBuilder()
-        .setId(value.getCheckpointId())
-        .setPosition(value.getCheckpointPosition())
+        .setCheckpointId(value.getCheckpointId())
+        .setCheckpointPosition(value.getCheckpointPosition())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -812,17 +912,14 @@ public final class RecordTransformer {
         .setElementInstanceKey(value.getElementInstanceKey())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
-        .addAllCandidateGroup(value.getCandidateGroupsList())
-        .addAllCandidateUser(value.getCandidateUsersList())
+        .addAllCandidateGroups(value.getCandidateGroupsList())
+        .addAllCandidateUsers(value.getCandidateUsersList())
         .setExternalFormReference(value.getExternalFormReference())
         .setCustomHeaders(toStruct(value.getCustomHeaders()))
-        .addAllChangedAttribute(value.getChangedAttributes())
+        .addAllChangedAttributes(value.getChangedAttributes())
         .setAction(value.getAction())
         .setCreationTimestamp(value.getCreationTimestamp())
-        // === deprecated properties
-        .setCandidateGroups(String.join(",", value.getCandidateGroupsList()))
-        .setCandidateUsers(String.join(",", value.getCandidateUsersList()))
-        // ===
+        .setPriority(value.getPriority())
         .build();
   }
 
@@ -855,6 +952,274 @@ public final class RecordTransformer {
         .setEscalationCode(value.getEscalationCode())
         .setThrowElementId(value.getThrowElementId())
         .setCatchElementId(value.getCatchElementId())
+        .build();
+  }
+
+  private static Schema.ProcessInstanceMigrationRecord toProcessInstanceMigrationRecord(
+      Record<ProcessInstanceMigrationRecordValue> record) {
+    final var value = record.getValue();
+
+    var builder = Schema.ProcessInstanceMigrationRecord.newBuilder();
+
+    value
+        .getMappingInstructions()
+        .forEach(
+            instruction -> {
+              builder.addMappingInstructions(
+                  toProcessInstanceMigrationMappingInstructionRecord(instruction));
+            });
+
+    return builder
+        .setMetadata(toMetadata(record))
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setTargetProcessDefinitionKey(value.getTargetProcessDefinitionKey())
+        .build();
+  }
+
+  private static Schema.ProcessInstanceMigrationRecord.ProcessInstanceMigrationMappingInstruction
+      toProcessInstanceMigrationMappingInstructionRecord(
+          ProcessInstanceMigrationRecordValue.ProcessInstanceMigrationMappingInstructionValue
+              mappingInstructionValue) {
+    return Schema.ProcessInstanceMigrationRecord.ProcessInstanceMigrationMappingInstruction
+        .newBuilder()
+        .setSourceElementId(mappingInstructionValue.getSourceElementId())
+        .setTargetElementId(mappingInstructionValue.getTargetElementId())
+        .build();
+  }
+
+  private static Schema.MessageBatchRecord toMessageBatchRecord(
+      Record<MessageBatchRecordValue> record) {
+    final var value = record.getValue();
+
+    var builder = Schema.MessageBatchRecord.newBuilder();
+
+    value.getMessageKeys().forEach(builder::addMessageKeys);
+    return builder.setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.ClockRecord toClockRecord(Record<ClockRecordValue> record) {
+    final var value = record.getValue();
+
+    return Schema.ClockRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setTime(value.getTime())
+        .build();
+  }
+
+  private static Schema.MessageCorrelationRecord toMessageCorrelationRecord(
+      Record<MessageCorrelationRecordValue> record) {
+    final var value = record.getValue();
+
+    return Schema.MessageCorrelationRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setName(value.getName())
+        .setCorrelationKey(value.getCorrelationKey())
+        .setMessageKey(value.getMessageKey())
+        .setRequestId(value.getRequestId())
+        .setRequestStreamId(value.getRequestStreamId())
+        .build();
+  }
+
+  private static Schema.ProcessInstanceResultRecord toProcessInstanceResultRecord(
+      Record<ProcessInstanceResultRecordValue> record) {
+    final ProcessInstanceResultRecordValue value = record.getValue();
+
+    return Schema.ProcessInstanceResultRecord.newBuilder()
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setVersion(value.getVersion())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setVariables(toStruct(value.getVariables()))
+        .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
+        .build();
+  }
+
+  private static Schema.ProcessInstanceBatchRecord toProcessInstanceBatchRecord(
+      Record<ProcessInstanceBatchRecordValue> record) {
+    final ProcessInstanceBatchRecordValue value = record.getValue();
+
+    return Schema.ProcessInstanceBatchRecord.newBuilder()
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setBatchElementInstanceKey(value.getBatchElementInstanceKey())
+        .setIndex(value.getIndex())
+        .setMetadata(toMetadata(record))
+        .setTenantId(toTenantId(value))
+        .build();
+  }
+
+  private static Schema.ResourceRecord toResourceRecord(Record<Resource> record) {
+    final var value = record.getValue();
+
+    return Schema.ResourceRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setResourceId(value.getResourceId())
+        .setVersion(value.getVersion())
+        .setVersionTag(value.getVersionTag())
+        .setResourceKey(value.getResourceKey())
+        .setChecksum(ByteString.copyFrom(value.getChecksum()))
+        .setResourceName(value.getResourceName())
+        .setIsDuplicate(value.isDuplicate())
+        .setDeploymentKey(value.getDeploymentKey())
+        .setTenantId(toTenantId(value))
+        .setResourceProp(value.getResourceProp())
+        .build();
+  }
+
+  private static final EnumMap<UserType, Schema.UserRecord.UserType> USER_TYPE_MAPPING =
+      new EnumMap<>(
+          Map.of(
+              UserType.DEFAULT,
+              Schema.UserRecord.UserType.DEFAULT,
+              UserType.REGULAR,
+              Schema.UserRecord.UserType.REGULAR));
+
+  private static Schema.UserRecord.UserType toUserType(UserType userType) {
+    return USER_TYPE_MAPPING.getOrDefault(userType, Schema.UserRecord.UserType.UNKNOWN_USER_TYPE);
+  }
+
+  private static Schema.UserRecord toUserRecord(Record<UserRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.UserRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setUserKey(value.getUserKey())
+        .setUsername(value.getUsername())
+        .setName(value.getName())
+        .setEmail(value.getEmail())
+        .setPassword(value.getPassword())
+        .setUserType(toUserType(value.getUserType()))
+        .build();
+  }
+
+  private static final EnumMap<PermissionAction, Schema.AuthorizationRecord.PermissionAction>
+      PERMISSION_ACTION_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  PermissionAction.ADD,
+                  Schema.AuthorizationRecord.PermissionAction.ADD,
+                  PermissionAction.REMOVE,
+                  Schema.AuthorizationRecord.PermissionAction.REMOVE));
+
+  private static Schema.AuthorizationRecord.PermissionAction toPermissionAction(
+      PermissionAction action) {
+    return PERMISSION_ACTION_MAPPING.getOrDefault(
+        action, Schema.AuthorizationRecord.PermissionAction.UNKNOWN_ACTION);
+  }
+
+  private static final EnumMap<
+          AuthorizationOwnerType, Schema.AuthorizationRecord.AuthorizationOwnerType>
+      AUTHORIZATION_OWNER_TYPE_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  AuthorizationOwnerType.GROUP,
+                  Schema.AuthorizationRecord.AuthorizationOwnerType._GROUP,
+                  AuthorizationOwnerType.USER,
+                  Schema.AuthorizationRecord.AuthorizationOwnerType._USER,
+                  AuthorizationOwnerType.ROLE,
+                  Schema.AuthorizationRecord.AuthorizationOwnerType._ROLE));
+
+  private static Schema.AuthorizationRecord.AuthorizationOwnerType toAuthorizationOwnerType(
+      AuthorizationOwnerType authorizationOwnerType) {
+    return AUTHORIZATION_OWNER_TYPE_MAPPING.getOrDefault(
+        authorizationOwnerType, Schema.AuthorizationRecord.AuthorizationOwnerType._UNSPECIFIED);
+  }
+
+  private static final EnumMap<
+          AuthorizationResourceType, Schema.AuthorizationRecord.AuthorizationResourceType>
+      AUTHORIZATION_RESOURCE_TYPE_MAPPING =
+          new EnumMap<>(
+              Map.ofEntries(
+                  Map.entry(
+                      AuthorizationResourceType.AUTHORIZATION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.AUTHORIZATION),
+                  Map.entry(
+                      AuthorizationResourceType.MESSAGE,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.MESSAGE),
+                  Map.entry(
+                      AuthorizationResourceType.JOB,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.JOB),
+                  Map.entry(
+                      AuthorizationResourceType.APPLICATION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.APPLICATION),
+                  Map.entry(
+                      AuthorizationResourceType.TENANT,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.TENANT),
+                  Map.entry(
+                      AuthorizationResourceType.DEPLOYMENT,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.DEPLOYMENT),
+                  Map.entry(
+                      AuthorizationResourceType.PROCESS_DEFINITION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.PROCESS_DEFINITION),
+                  Map.entry(
+                      AuthorizationResourceType.USER_TASK,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.USER_TASK),
+                  Map.entry(
+                      AuthorizationResourceType.DECISION_REQUIREMENTS_DEFINITION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType
+                          .DECISION_REQUIREMENTS_DEFINITION),
+                  Map.entry(
+                      AuthorizationResourceType.DECISION_DEFINITION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.DECISION_DEFINITION),
+                  Map.entry(
+                      AuthorizationResourceType.USER_GROUP,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.USER_GROUP),
+                  Map.entry(
+                      AuthorizationResourceType.USER,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.USER),
+                  Map.entry(
+                      AuthorizationResourceType.ROLE,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.ROLE)));
+
+  private static Schema.AuthorizationRecord.AuthorizationResourceType toAuthorizationResourceType(
+      AuthorizationResourceType authorizationResourceType) {
+    return AUTHORIZATION_RESOURCE_TYPE_MAPPING.getOrDefault(
+        authorizationResourceType,
+        Schema.AuthorizationRecord.AuthorizationResourceType.UNSPECIFIED);
+  }
+
+  private static final EnumMap<
+          PermissionType, Schema.AuthorizationRecord.PermissionValue.PermissionType>
+      PERMISSION_TYPE_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  PermissionType.CREATE,
+                  Schema.AuthorizationRecord.PermissionValue.PermissionType.CREATE,
+                  PermissionType.READ,
+                  Schema.AuthorizationRecord.PermissionValue.PermissionType.READ,
+                  PermissionType.UPDATE,
+                  Schema.AuthorizationRecord.PermissionValue.PermissionType.UPDATE,
+                  PermissionType.DELETE,
+                  Schema.AuthorizationRecord.PermissionValue.PermissionType.DELETE));
+
+  private static Schema.AuthorizationRecord.PermissionValue.PermissionType toPermissionType(
+      PermissionType permissionType) {
+    return PERMISSION_TYPE_MAPPING.getOrDefault(
+        permissionType, Schema.AuthorizationRecord.PermissionValue.PermissionType.UNSPECIFIED);
+  }
+
+  private static Schema.AuthorizationRecord toAuthorizationRecord(
+      Record<AuthorizationRecordValue> record) {
+    final var value = record.getValue();
+
+    var builder = Schema.AuthorizationRecord.newBuilder().setMetadata(toMetadata(record));
+
+    for (AuthorizationRecordValue.PermissionValue permission : value.getPermissions()) {
+      builder.addPermissions(toPermissionValue(permission));
+    }
+
+    return builder
+        .setAction(toPermissionAction(value.getAction()))
+        .setOwnerKey(value.getOwnerKey())
+        .setOwnerType(toAuthorizationOwnerType(value.getOwnerType()))
+        .setResourceType(toAuthorizationResourceType(value.getResourceType()))
+        .build();
+  }
+
+  private static Schema.AuthorizationRecord.PermissionValue toPermissionValue(
+      AuthorizationRecordValue.PermissionValue permissionValue) {
+    return Schema.AuthorizationRecord.PermissionValue.newBuilder()
+        .setPermissionType(toPermissionType(permissionValue.getPermissionType()))
+        .addAllResourceIds(permissionValue.getResourceIds())
         .build();
   }
 
