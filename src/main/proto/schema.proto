@@ -68,6 +68,7 @@ message RecordMetadata {
     RESOURCE = 37;
     USER = 38;
     AUTHORIZATION = 39;
+    MULTI_INSTANCE = 40;
   }
 
   enum RecordType {
@@ -721,4 +722,9 @@ message AuthorizationRecord {
   AuthorizationOwnerType ownerType = 4;
   AuthorizationResourceType resourceType = 5;
   repeated PermissionValue permissions = 6;
+}
+
+message MultiInstanceRecord {
+  RecordMetadata metadata = 1;
+  repeated string inputCollection = 2;
 }

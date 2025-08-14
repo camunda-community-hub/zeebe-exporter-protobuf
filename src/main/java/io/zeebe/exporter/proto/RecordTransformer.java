@@ -118,6 +118,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.RESOURCE, RecordTransformer::toResourceRecord);
     TRANSFORMERS.put(ValueType.USER, RecordTransformer::toUserRecord);
     TRANSFORMERS.put(ValueType.AUTHORIZATION, RecordTransformer::toAuthorizationRecord);
+    TRANSFORMERS.put(ValueType.MULTI_INSTANCE, RecordTransformer::toMultiInstanceRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -176,6 +177,7 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.RESOURCE, RecordMetadata.ValueType.RESOURCE);
     VALUE_TYPE_MAPPING.put(ValueType.USER, RecordMetadata.ValueType.USER);
     VALUE_TYPE_MAPPING.put(ValueType.AUTHORIZATION, RecordMetadata.ValueType.AUTHORIZATION);
+    VALUE_TYPE_MAPPING.put(ValueType.MULTI_INSTANCE, RecordMetadata.ValueType.MULTI_INSTANCE);
   }
 
   private RecordTransformer() {}
@@ -1220,6 +1222,15 @@ public final class RecordTransformer {
     return Schema.AuthorizationRecord.PermissionValue.newBuilder()
         .setPermissionType(toPermissionType(permissionValue.getPermissionType()))
         .addAllResourceIds(permissionValue.getResourceIds())
+        .build();
+  }
+
+  private static Schema.MultiInstanceRecord toMultiInstanceRecord(
+      Record<MultiInstanceRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.MultiInstanceRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .addAllInputCollection(value.getInputCollection())
         .build();
   }
 

@@ -1258,6 +1258,24 @@ public class RecordTransformTest {
         .containsExactly("resource-1", "resource-2");
   }
 
+  @Test
+  public void shouldTransformMultiInstanceRecord() {
+    // given
+    final var recordValue = mockMultiInstanceRecordValue();
+    final Record<MultiInstanceRecordValue> mockedRecord =
+        mockRecord(
+            recordValue, ValueType.MULTI_INSTANCE, MultiInstanceIntent.INPUT_COLLECTION_EVALUATED);
+
+    // when
+    final var transformedRecord =
+        (Schema.MultiInstanceRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "MULTI_INSTANCE", "INPUT_COLLECTION_EVALUATED");
+    assertThat(transformedRecord.getInputCollectionList())
+        .isEqualTo(recordValue.getInputCollection());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1904,6 +1922,12 @@ public class RecordTransformTest {
 
     when(value.getPermissions()).thenReturn(List.of(permission));
 
+    return value;
+  }
+
+  private MultiInstanceRecordValue mockMultiInstanceRecordValue() {
+    final var value = mock(MultiInstanceRecordValue.class);
+    when(value.getInputCollection()).thenReturn(List.of("input-1", "input-2"));
     return value;
   }
 
