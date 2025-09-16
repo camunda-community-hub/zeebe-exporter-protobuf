@@ -39,7 +39,7 @@
         project dependencies
         Zeebe itself uses: https://github.com/camunda/camunda/blob/main/parent/pom.xml
     -->
-    <version.zeebe>8.7.10</version.zeebe>
+    <version.zeebe>8.7.13</version.zeebe>
 
     <version.protobuf>3.25.8</version.protobuf>
     <version.protoc>3.25.8</version.protoc>
