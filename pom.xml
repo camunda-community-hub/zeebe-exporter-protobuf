@@ -55,7 +55,7 @@
     <plugin.version.checkstyle>3.6.0</plugin.version.checkstyle>
     <plugin.version.enforcer>3.5.0</plugin.version.enforcer>
     <plugin.version.failsafe>3.5.2</plugin.version.failsafe>
-    <plugin.version.fmt>2.27</plugin.version.fmt>
+    <plugin.version.fmt>2.29</plugin.version.fmt>
     <plugin.version.license>5.0.0</plugin.version.license>
     <plugin.version.protobuf-maven-plugin>0.6.1</plugin.version.protobuf-maven-plugin>
     <plugin.version.protoc-gen-java-optional>1.10.0</plugin.version.protoc-gen-java-optional>
