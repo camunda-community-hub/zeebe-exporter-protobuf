@@ -201,6 +201,19 @@ message JobRecord {
     START = 1;
     END = 2;
   }
+  enum JobResultType {
+    _UNSPECIFIED = 0;
+    _USER_TASK = 1;
+    _AD_HOC_SUB_PROCESS = 2;
+  }
+  message JobResult {
+    JobResultType type = 1;
+    bool isDenied = 2;
+    string deniedReason = 3;
+    repeated string correctedAttributes = 4;
+    bool isCompletionConditionFulfilled = 5;
+    bool isCancelRemainingInstances = 6;
+  }
 
   RecordMetadata metadata = 1;
 
@@ -228,6 +241,8 @@ message JobRecord {
   repeated string changedAttributes = 20;
   JobKind jobKind = 21;
   JobListenerEventType jobListenerEventType= 22;
+  JobResult result = 23;
+  repeated string tags = 24;
 }
 
 message JobBatchRecord {
@@ -339,6 +354,7 @@ message ProcessInstanceRecord {
   int64 parentElementInstanceKey = 10;
   string bpmnEventType = 11;
   string tenantId = 12;
+  repeated string tags = 13;
 }
 
 message ProcessInstanceCreationRecord {
@@ -355,8 +371,8 @@ message ProcessInstanceCreationRecord {
   int64 processInstanceKey = 5;
   google.protobuf.Struct variables = 6;
   string tenantId = 7;
-
   repeated ProcessInstanceCreationStartInstruction startInstructions = 8;
+  repeated string tags = 9;
 }
 
 message ProcessMessageSubscriptionRecord {
@@ -441,6 +457,7 @@ message DecisionEvaluationRecord {
     repeated EvaluatedInput evaluatedInputs = 7;
     repeated MatchedRule matchedRules = 8;
     string tenantId = 9;
+    string decisionEvaluationInstanceKey = 10;
   }
 
   message MatchedRule {
@@ -643,6 +660,7 @@ message ProcessInstanceResultRecord {
   int64 processInstanceKey = 5;
   google.protobuf.Struct variables = 6;
   string tenantId = 7;
+  repeated string tags = 8;
 }
 
 message ResourceRecord {
@@ -661,27 +679,16 @@ message ResourceRecord {
 
 message UserRecord {
 
-  enum UserType {
-      UNKNOWN_USER_TYPE = 0;
-      DEFAULT = 1;
-      REGULAR = 2;
-  }
-
   RecordMetadata metadata = 1;
   int64 userKey = 2;
   string username = 3;
   string name = 4;
   string email = 5;
   string password = 6;
-  UserType userType = 7;
+
 }
 
 message AuthorizationRecord {
-  enum PermissionAction {
-      UNKNOWN_ACTION = 0;
-      ADD = 1;
-      REMOVE = 2;
-  }
   enum AuthorizationOwnerType {
       _USER = 0;
       _ROLE = 1;
@@ -689,39 +696,71 @@ message AuthorizationRecord {
       _UNSPECIFIED = 3;
   }
   enum AuthorizationResourceType {
-      AUTHORIZATION = 0;
-      MESSAGE = 1;
-      JOB = 2;
-      APPLICATION = 3;
-      TENANT = 4;
-      DEPLOYMENT = 5;
-      PROCESS_DEFINITION = 6;
-      USER_TASK = 7;
-      DECISION_REQUIREMENTS_DEFINITION = 8;
-      DECISION_DEFINITION = 9;
-      USER_GROUP = 10;
-      USER = 11;
-      ROLE = 12;
-      UNSPECIFIED = 13;
+    UNSPECIFIED_RESOURCE_TYPE = 0;
+    AUTHORIZATION = 1;
+    BATCH = 2;
+    COMPONENT = 3;
+    DECISION_DEFINITION = 4;
+    DECISION_REQUIREMENTS_DEFINITION = 5;
+    DOCUMENT = 6;
+    GROUP = 7;
+    MAPPING_RULE = 8;
+    MESSAGE = 9;
+    PROCESS_DEFINITION = 10;
+    RESOURCE = 11;
+    ROLE = 12;
+    SYSTEM = 13;
+    TENANT = 14;
+    USER = 15;
   }
-  message PermissionValue {
-    enum PermissionType {
-        UNSPECIFIED = 0;
-        CREATE = 1;
-        READ = 2;
-        UPDATE = 3;
-        DELETE = 4;
-    }
-    PermissionType permissionType = 1;
-    repeated string resourceIds = 2;
+  enum PermissionType {
+    UNSPECIFIED_PERMISSION_TYPE = 0;
+    ACCESS = 1;
+    CREATE = 2;
+    CREATE_BATCH_OPERATION_CANCEL_PROCESS_INSTANCE = 3;
+    CREATE_BATCH_OPERATION_DELETE_PROCESS_INSTANCE = 4;
+    CREATE_BATCH_OPERATION_MIGRATE_PROCESS_INSTANCE = 5;
+    CREATE_BATCH_OPERATION_MODIFY_PROCESS_INSTANCE = 6;
+    CREATE_BATCH_OPERATION_RESOLVE_INCIDENT = 7;
+    CREATE_BATCH_OPERATION_DELETE_DECISION_INSTANCE = 8;
+    CREATE_BATCH_OPERATION_DELETE_DECISION_DEFINITION = 9;
+    CREATE_BATCH_OPERATION_DELETE_PROCESS_DEFINITION = 10;
+    CREATE_PROCESS_INSTANCE = 11;
+    CREATE_DECISION_INSTANCE = 12;
+    READ = 13;
+    READ_PROCESS_INSTANCE = 14;
+    READ_USER_TASK = 15;
+    READ_DECISION_INSTANCE = 16;
+    READ_PROCESS_DEFINITION = 17;
+    READ_DECISION_DEFINITION = 18;
+    READ_USAGE_METRIC = 19;
+    UPDATE = 20;
+    UPDATE_PROCESS_INSTANCE = 21;
+    UPDATE_USER_TASK = 22;
+    CANCEL_PROCESS_INSTANCE = 23;
+    MODIFY_PROCESS_INSTANCE = 24;
+    DELETE = 25;
+    DELETE_PROCESS = 26;
+    DELETE_DRD = 27;
+    DELETE_FORM = 28;
+    DELETE_RESOURCE = 29;
+    DELETE_PROCESS_INSTANCE = 30;
+    DELETE_DECISION_INSTANCE = 31;
+  }
+  enum AuthorizationResourceMatcher {
+    UNSPECIFIED = 0;
+    ANY = 1;
+    ID = 2;
   }
 
   RecordMetadata metadata = 1;
-  PermissionAction action = 2;
-  int64 ownerKey = 3;
+  int64 authorizationKey = 2;
+  string ownerId = 3;
   AuthorizationOwnerType ownerType = 4;
-  AuthorizationResourceType resourceType = 5;
-  repeated PermissionValue permissions = 6;
+  AuthorizationResourceMatcher resourceMatcher = 5;
+  string resourceId = 6;
+  AuthorizationResourceType resourceType = 7;
+  repeated PermissionType permissionTypes = 8;
 }
 
 message MultiInstanceRecord {

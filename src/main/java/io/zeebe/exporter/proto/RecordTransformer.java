@@ -404,10 +404,35 @@ public final class RecordTransformer {
                   JobListenerEventType.END,
                   Schema.JobRecord.JobListenerEventType.END));
 
+  private static Schema.JobRecord.JobResultType toJobResultType(JobResultType jobResultType) {
+    return JOB_RESULT_TYPE_MAPPING.getOrDefault(
+        jobResultType, Schema.JobRecord.JobResultType._UNSPECIFIED);
+  }
+
+  private static final EnumMap<JobResultType, Schema.JobRecord.JobResultType>
+      JOB_RESULT_TYPE_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  JobResultType.USER_TASK,
+                  Schema.JobRecord.JobResultType._USER_TASK,
+                  JobResultType.AD_HOC_SUB_PROCESS,
+                  Schema.JobRecord.JobResultType._AD_HOC_SUB_PROCESS));
+
   private static Schema.JobRecord.JobListenerEventType toJobListenerEventType(
       JobListenerEventType jobListenerEventType) {
     return JOB_LISTENER_EVENT_TYPE_MAPPING.getOrDefault(
         jobListenerEventType, Schema.JobRecord.JobListenerEventType.UNSPECIFIED);
+  }
+
+  private static Schema.JobRecord.JobResult toJobResult(JobRecordValue.JobResultValue value) {
+    return Schema.JobRecord.JobResult.newBuilder()
+        .setType(toJobResultType(value.getType()))
+        .setIsDenied(value.isDenied())
+        .setDeniedReason(value.getDeniedReason())
+        .addAllCorrectedAttributes(value.getCorrectedAttributes())
+        .setIsCompletionConditionFulfilled(value.isCompletionConditionFulfilled())
+        .setIsCancelRemainingInstances(value.isCancelRemainingInstances())
+        .build();
   }
 
   private static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
@@ -432,7 +457,9 @@ public final class RecordTransformer {
         .setTimeout(value.getTimeout())
         .addAllChangedAttributes(value.getChangedAttributes())
         .setJobKind(toJobKind(value.getJobKind()))
-        .setJobListenerEventType(toJobListenerEventType(value.getJobListenerEventType()));
+        .setJobListenerEventType(toJobListenerEventType(value.getJobListenerEventType()))
+        .setResult(toJobResult(value.getResult()))
+        .addAllTags(value.getTags());
   }
 
   private static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
@@ -564,6 +591,7 @@ public final class RecordTransformer {
         .setParentElementInstanceKey(value.getParentElementInstanceKey())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .addAllTags(value.getTags())
         .build();
   }
 
@@ -609,6 +637,7 @@ public final class RecordTransformer {
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .addAllStartInstructions(startInstructions)
+        .addAllTags(value.getTags())
         .build();
   }
 
@@ -757,6 +786,7 @@ public final class RecordTransformer {
         .setDecisionType(value.getDecisionType())
         .setDecisionOutput(value.getDecisionOutput())
         .setTenantId(toTenantId(value))
+        .setDecisionEvaluationInstanceKey(value.getDecisionEvaluationInstanceKey())
         .build();
   }
 
@@ -1034,6 +1064,7 @@ public final class RecordTransformer {
         .setVariables(toStruct(value.getVariables()))
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .addAllTags(value.getTags())
         .build();
   }
 
@@ -1068,18 +1099,6 @@ public final class RecordTransformer {
         .build();
   }
 
-  private static final EnumMap<UserType, Schema.UserRecord.UserType> USER_TYPE_MAPPING =
-      new EnumMap<>(
-          Map.of(
-              UserType.DEFAULT,
-              Schema.UserRecord.UserType.DEFAULT,
-              UserType.REGULAR,
-              Schema.UserRecord.UserType.REGULAR));
-
-  private static Schema.UserRecord.UserType toUserType(UserType userType) {
-    return USER_TYPE_MAPPING.getOrDefault(userType, Schema.UserRecord.UserType.UNKNOWN_USER_TYPE);
-  }
-
   private static Schema.UserRecord toUserRecord(Record<UserRecordValue> record) {
     final var value = record.getValue();
     return Schema.UserRecord.newBuilder()
@@ -1089,23 +1108,7 @@ public final class RecordTransformer {
         .setName(value.getName())
         .setEmail(value.getEmail())
         .setPassword(value.getPassword())
-        .setUserType(toUserType(value.getUserType()))
         .build();
-  }
-
-  private static final EnumMap<PermissionAction, Schema.AuthorizationRecord.PermissionAction>
-      PERMISSION_ACTION_MAPPING =
-          new EnumMap<>(
-              Map.of(
-                  PermissionAction.ADD,
-                  Schema.AuthorizationRecord.PermissionAction.ADD,
-                  PermissionAction.REMOVE,
-                  Schema.AuthorizationRecord.PermissionAction.REMOVE));
-
-  private static Schema.AuthorizationRecord.PermissionAction toPermissionAction(
-      PermissionAction action) {
-    return PERMISSION_ACTION_MAPPING.getOrDefault(
-        action, Schema.AuthorizationRecord.PermissionAction.UNKNOWN_ACTION);
   }
 
   private static final EnumMap<
@@ -1135,68 +1138,177 @@ public final class RecordTransformer {
                       AuthorizationResourceType.AUTHORIZATION,
                       Schema.AuthorizationRecord.AuthorizationResourceType.AUTHORIZATION),
                   Map.entry(
-                      AuthorizationResourceType.MESSAGE,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.MESSAGE),
+                      AuthorizationResourceType.BATCH,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.BATCH),
                   Map.entry(
-                      AuthorizationResourceType.JOB,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.JOB),
+                      AuthorizationResourceType.COMPONENT,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.COMPONENT),
                   Map.entry(
-                      AuthorizationResourceType.APPLICATION,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.APPLICATION),
-                  Map.entry(
-                      AuthorizationResourceType.TENANT,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.TENANT),
-                  Map.entry(
-                      AuthorizationResourceType.DEPLOYMENT,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.DEPLOYMENT),
-                  Map.entry(
-                      AuthorizationResourceType.PROCESS_DEFINITION,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.PROCESS_DEFINITION),
-                  Map.entry(
-                      AuthorizationResourceType.USER_TASK,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.USER_TASK),
+                      AuthorizationResourceType.DECISION_DEFINITION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.DECISION_DEFINITION),
                   Map.entry(
                       AuthorizationResourceType.DECISION_REQUIREMENTS_DEFINITION,
                       Schema.AuthorizationRecord.AuthorizationResourceType
                           .DECISION_REQUIREMENTS_DEFINITION),
                   Map.entry(
-                      AuthorizationResourceType.DECISION_DEFINITION,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.DECISION_DEFINITION),
+                      AuthorizationResourceType.DOCUMENT,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.DOCUMENT),
                   Map.entry(
-                      AuthorizationResourceType.USER_GROUP,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.USER_GROUP),
+                      AuthorizationResourceType.GROUP,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.GROUP),
                   Map.entry(
-                      AuthorizationResourceType.USER,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.USER),
+                      AuthorizationResourceType.MAPPING_RULE,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.MAPPING_RULE),
+                  Map.entry(
+                      AuthorizationResourceType.MESSAGE,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.MESSAGE),
+                  Map.entry(
+                      AuthorizationResourceType.PROCESS_DEFINITION,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.PROCESS_DEFINITION),
+                  Map.entry(
+                      AuthorizationResourceType.RESOURCE,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.RESOURCE),
                   Map.entry(
                       AuthorizationResourceType.ROLE,
-                      Schema.AuthorizationRecord.AuthorizationResourceType.ROLE)));
+                      Schema.AuthorizationRecord.AuthorizationResourceType.ROLE),
+                  Map.entry(
+                      AuthorizationResourceType.SYSTEM,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.SYSTEM),
+                  Map.entry(
+                      AuthorizationResourceType.TENANT,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.TENANT),
+                  Map.entry(
+                      AuthorizationResourceType.USER,
+                      Schema.AuthorizationRecord.AuthorizationResourceType.USER)));
 
   private static Schema.AuthorizationRecord.AuthorizationResourceType toAuthorizationResourceType(
       AuthorizationResourceType authorizationResourceType) {
     return AUTHORIZATION_RESOURCE_TYPE_MAPPING.getOrDefault(
         authorizationResourceType,
-        Schema.AuthorizationRecord.AuthorizationResourceType.UNSPECIFIED);
+        Schema.AuthorizationRecord.AuthorizationResourceType.UNSPECIFIED_RESOURCE_TYPE);
+  }
+
+  private static final EnumMap<PermissionType, Schema.AuthorizationRecord.PermissionType>
+      PERMISSION_TYPE_MAPPING =
+          new EnumMap<>(
+              Map.ofEntries(
+                  Map.entry(
+                      PermissionType.ACCESS, Schema.AuthorizationRecord.PermissionType.ACCESS),
+                  Map.entry(
+                      PermissionType.CREATE, Schema.AuthorizationRecord.PermissionType.CREATE),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_CANCEL_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_CANCEL_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_DELETE_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_DELETE_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_MIGRATE_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_MIGRATE_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_MODIFY_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_MODIFY_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_RESOLVE_INCIDENT,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_RESOLVE_INCIDENT),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_DELETE_DECISION_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_DELETE_DECISION_INSTANCE),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_DELETE_DECISION_DEFINITION,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_DELETE_DECISION_DEFINITION),
+                  Map.entry(
+                      PermissionType.CREATE_BATCH_OPERATION_DELETE_PROCESS_DEFINITION,
+                      Schema.AuthorizationRecord.PermissionType
+                          .CREATE_BATCH_OPERATION_DELETE_PROCESS_DEFINITION),
+                  Map.entry(
+                      PermissionType.CREATE_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.CREATE_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.CREATE_DECISION_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.CREATE_DECISION_INSTANCE),
+                  Map.entry(PermissionType.READ, Schema.AuthorizationRecord.PermissionType.READ),
+                  Map.entry(
+                      PermissionType.READ_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.READ_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.READ_USER_TASK,
+                      Schema.AuthorizationRecord.PermissionType.READ_USER_TASK),
+                  Map.entry(
+                      PermissionType.READ_DECISION_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.READ_DECISION_INSTANCE),
+                  Map.entry(
+                      PermissionType.READ_PROCESS_DEFINITION,
+                      Schema.AuthorizationRecord.PermissionType.READ_PROCESS_DEFINITION),
+                  Map.entry(
+                      PermissionType.READ_DECISION_DEFINITION,
+                      Schema.AuthorizationRecord.PermissionType.READ_DECISION_DEFINITION),
+                  Map.entry(
+                      PermissionType.READ_USAGE_METRIC,
+                      Schema.AuthorizationRecord.PermissionType.READ_USAGE_METRIC),
+                  Map.entry(
+                      PermissionType.UPDATE, Schema.AuthorizationRecord.PermissionType.UPDATE),
+                  Map.entry(
+                      PermissionType.UPDATE_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.UPDATE_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.UPDATE_USER_TASK,
+                      Schema.AuthorizationRecord.PermissionType.UPDATE_USER_TASK),
+                  Map.entry(
+                      PermissionType.CANCEL_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.CANCEL_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.MODIFY_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.MODIFY_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.DELETE, Schema.AuthorizationRecord.PermissionType.DELETE),
+                  Map.entry(
+                      PermissionType.DELETE_PROCESS,
+                      Schema.AuthorizationRecord.PermissionType.DELETE_PROCESS),
+                  Map.entry(
+                      PermissionType.DELETE_DRD,
+                      Schema.AuthorizationRecord.PermissionType.DELETE_DRD),
+                  Map.entry(
+                      PermissionType.DELETE_FORM,
+                      Schema.AuthorizationRecord.PermissionType.DELETE_FORM),
+                  Map.entry(
+                      PermissionType.DELETE_RESOURCE,
+                      Schema.AuthorizationRecord.PermissionType.DELETE_RESOURCE),
+                  Map.entry(
+                      PermissionType.DELETE_PROCESS_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.DELETE_PROCESS_INSTANCE),
+                  Map.entry(
+                      PermissionType.DELETE_DECISION_INSTANCE,
+                      Schema.AuthorizationRecord.PermissionType.DELETE_DECISION_INSTANCE)));
+
+  private static Schema.AuthorizationRecord.PermissionType toPermissionType(
+      PermissionType permissionType) {
+    return PERMISSION_TYPE_MAPPING.getOrDefault(
+        permissionType, Schema.AuthorizationRecord.PermissionType.UNSPECIFIED_PERMISSION_TYPE);
   }
 
   private static final EnumMap<
-          PermissionType, Schema.AuthorizationRecord.PermissionValue.PermissionType>
-      PERMISSION_TYPE_MAPPING =
+          AuthorizationResourceMatcher, Schema.AuthorizationRecord.AuthorizationResourceMatcher>
+      AUTHORIZATION_RESOURCE_MATCHER_MAPPING =
           new EnumMap<>(
               Map.of(
-                  PermissionType.CREATE,
-                  Schema.AuthorizationRecord.PermissionValue.PermissionType.CREATE,
-                  PermissionType.READ,
-                  Schema.AuthorizationRecord.PermissionValue.PermissionType.READ,
-                  PermissionType.UPDATE,
-                  Schema.AuthorizationRecord.PermissionValue.PermissionType.UPDATE,
-                  PermissionType.DELETE,
-                  Schema.AuthorizationRecord.PermissionValue.PermissionType.DELETE));
+                  AuthorizationResourceMatcher.ANY,
+                  Schema.AuthorizationRecord.AuthorizationResourceMatcher.ANY,
+                  AuthorizationResourceMatcher.ID,
+                  Schema.AuthorizationRecord.AuthorizationResourceMatcher.ID));
 
-  private static Schema.AuthorizationRecord.PermissionValue.PermissionType toPermissionType(
-      PermissionType permissionType) {
-    return PERMISSION_TYPE_MAPPING.getOrDefault(
-        permissionType, Schema.AuthorizationRecord.PermissionValue.PermissionType.UNSPECIFIED);
+  private static Schema.AuthorizationRecord.AuthorizationResourceMatcher
+      toAuthorizationResourceMatcher(AuthorizationResourceMatcher authorizationResourceMatcher) {
+    return AUTHORIZATION_RESOURCE_MATCHER_MAPPING.getOrDefault(
+        authorizationResourceMatcher,
+        Schema.AuthorizationRecord.AuthorizationResourceMatcher.UNSPECIFIED);
   }
 
   private static Schema.AuthorizationRecord toAuthorizationRecord(
@@ -1205,23 +1317,17 @@ public final class RecordTransformer {
 
     var builder = Schema.AuthorizationRecord.newBuilder().setMetadata(toMetadata(record));
 
-    for (AuthorizationRecordValue.PermissionValue permission : value.getPermissions()) {
-      builder.addPermissions(toPermissionValue(permission));
+    for (PermissionType permissionType : value.getPermissionTypes()) {
+      builder.addPermissionTypes(toPermissionType(permissionType));
     }
 
     return builder
-        .setAction(toPermissionAction(value.getAction()))
-        .setOwnerKey(value.getOwnerKey())
+        .setAuthorizationKey(value.getAuthorizationKey())
+        .setOwnerId(value.getOwnerId())
         .setOwnerType(toAuthorizationOwnerType(value.getOwnerType()))
+        .setResourceMatcher(toAuthorizationResourceMatcher(value.getResourceMatcher()))
+        .setResourceId(value.getResourceId())
         .setResourceType(toAuthorizationResourceType(value.getResourceType()))
-        .build();
-  }
-
-  private static Schema.AuthorizationRecord.PermissionValue toPermissionValue(
-      AuthorizationRecordValue.PermissionValue permissionValue) {
-    return Schema.AuthorizationRecord.PermissionValue.newBuilder()
-        .setPermissionType(toPermissionType(permissionValue.getPermissionType()))
-        .addAllResourceIds(permissionValue.getResourceIds())
         .build();
   }
 
