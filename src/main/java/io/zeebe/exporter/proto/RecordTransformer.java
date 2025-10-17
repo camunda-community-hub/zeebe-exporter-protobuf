@@ -119,6 +119,10 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.USER, RecordTransformer::toUserRecord);
     TRANSFORMERS.put(ValueType.AUTHORIZATION, RecordTransformer::toAuthorizationRecord);
     TRANSFORMERS.put(ValueType.MULTI_INSTANCE, RecordTransformer::toMultiInstanceRecord);
+    TRANSFORMERS.put(ValueType.TENANT, RecordTransformer::toTenantRecord);
+    TRANSFORMERS.put(ValueType.ROLE, RecordTransformer::toRoleRecord);
+    TRANSFORMERS.put(ValueType.GROUP, RecordTransformer::toGroupRecord);
+    TRANSFORMERS.put(ValueType.MAPPING_RULE, RecordTransformer::toMappingRuleRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -178,6 +182,10 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.USER, RecordMetadata.ValueType.USER);
     VALUE_TYPE_MAPPING.put(ValueType.AUTHORIZATION, RecordMetadata.ValueType.AUTHORIZATION);
     VALUE_TYPE_MAPPING.put(ValueType.MULTI_INSTANCE, RecordMetadata.ValueType.MULTI_INSTANCE);
+    VALUE_TYPE_MAPPING.put(ValueType.TENANT, RecordMetadata.ValueType.TENANT);
+    VALUE_TYPE_MAPPING.put(ValueType.ROLE, RecordMetadata.ValueType.ROLE);
+    VALUE_TYPE_MAPPING.put(ValueType.GROUP, RecordMetadata.ValueType.GROUP);
+    VALUE_TYPE_MAPPING.put(ValueType.MAPPING_RULE, RecordMetadata.ValueType.MAPPING_RULE);
   }
 
   private RecordTransformer() {}
@@ -1337,6 +1345,76 @@ public final class RecordTransformer {
     return Schema.MultiInstanceRecord.newBuilder()
         .setMetadata(toMetadata(record))
         .addAllInputCollection(value.getInputCollection())
+        .build();
+  }
+
+  private static final EnumMap<EntityType, Schema.EntityType> ENTITY_TYPE_MAPPING =
+      new EnumMap<>(
+          Map.of(
+              EntityType.USER,
+              Schema.EntityType.USER,
+              EntityType.CLIENT,
+              Schema.EntityType.CLIENT,
+              EntityType.MAPPING_RULE,
+              Schema.EntityType.MAPPING_RULE,
+              EntityType.GROUP,
+              Schema.EntityType.GROUP,
+              EntityType.ROLE,
+              Schema.EntityType.ROLE));
+
+  private static Schema.EntityType toEntityType(EntityType entityType) {
+    return ENTITY_TYPE_MAPPING.getOrDefault(entityType, Schema.EntityType.UNSPECIFIED);
+  }
+
+  private static Schema.TenantRecord toTenantRecord(Record<TenantRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.TenantRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setTenantKey(value.getTenantKey())
+        .setTenantId(value.getTenantId())
+        .setName(value.getName())
+        .setDescription(value.getDescription())
+        .setEntityId(value.getEntityId())
+        .setEntityType(toEntityType(value.getEntityType()))
+        .build();
+  }
+
+  private static Schema.RoleRecord toRoleRecord(Record<RoleRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.RoleRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setRoleKey(value.getRoleKey())
+        .setRoleId(value.getRoleId())
+        .setName(value.getName())
+        .setDescription(value.getDescription())
+        .setEntityId(value.getEntityId())
+        .setEntityType(toEntityType(value.getEntityType()))
+        .build();
+  }
+
+  private static Schema.GroupRecord toGroupRecord(Record<GroupRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.GroupRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setGroupKey(value.getGroupKey())
+        .setGroupId(value.getGroupId())
+        .setName(value.getName())
+        .setDescription(value.getDescription())
+        .setEntityId(value.getEntityId())
+        .setEntityType(toEntityType(value.getEntityType()))
+        .build();
+  }
+
+  private static Schema.MappingRuleRecord toMappingRuleRecord(
+      Record<MappingRuleRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.MappingRuleRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setMappingRuleKey(value.getMappingRuleKey())
+        .setClaimName(value.getClaimName())
+        .setClaimValue(value.getClaimValue())
+        .setName(value.getName())
+        .setMappingRuleId(value.getMappingRuleId())
         .build();
   }
 

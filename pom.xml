@@ -252,12 +252,6 @@
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <additionalSourceDirectories>
-            <additionalSourceDirectory>${project.basedir}/src/test/jmh
-            </additionalSourceDirectory>
-          </additionalSourceDirectories>
-        </configuration>
       </plugin>
 
       <!-- Shade Plugin -->

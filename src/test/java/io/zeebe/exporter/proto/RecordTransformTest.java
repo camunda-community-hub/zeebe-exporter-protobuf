@@ -1279,6 +1279,89 @@ public class RecordTransformTest {
         .isEqualTo(recordValue.getInputCollection());
   }
 
+  @Test
+  public void shouldTransformTenantRecord() {
+    // given
+    final var recordValue = mockTenantRecordValue();
+    final Record<TenantRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.TENANT, TenantIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+            (Schema.TenantRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "TENANT", "CREATE");
+    assertThat(transformedRecord.getTenantKey()).isEqualTo(recordValue.getTenantKey());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
+    assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
+    assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
+ }
+
+  @Test
+  public void shouldTransformRoleRecord() {
+    // given
+    final var recordValue = mockRoleRecordValue();
+    final Record<RoleRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.ROLE, RoleIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+            (Schema.RoleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "ROLE", "CREATE");
+    assertThat(transformedRecord.getRoleKey()).isEqualTo(recordValue.getRoleKey());
+    assertThat(transformedRecord.getRoleId()).isEqualTo(recordValue.getRoleId());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
+    assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
+    assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
+  }
+
+  @Test
+  public void shouldTransformGroupRecord() {
+    // given
+    final var recordValue = mockGroupRecordValue();
+    final Record<GroupRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.GROUP, GroupIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+            (Schema.GroupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "GROUP", "CREATE");
+    assertThat(transformedRecord.getGroupKey()).isEqualTo(recordValue.getGroupKey());
+    assertThat(transformedRecord.getGroupId()).isEqualTo(recordValue.getGroupId());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
+    assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
+    assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
+  }
+
+  @Test
+  public void shouldTransformMappingRuleRecord() {
+    // given
+    final var recordValue = mockMappingRuleRecordValue();
+    final Record<MappingRuleRecordValue> mockedRecord =
+            mockRecord(recordValue, ValueType.MAPPING_RULE, MappingRuleIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+            (Schema.MappingRuleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "MAPPING_RULE", "CREATE");
+    assertThat(transformedRecord.getMappingRuleKey()).isEqualTo(recordValue.getMappingRuleKey());
+    assertThat(transformedRecord.getClaimName()).isEqualTo(recordValue.getClaimName());
+    assertThat(transformedRecord.getClaimValue()).isEqualTo(recordValue.getClaimValue());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getMappingRuleId()).isEqualTo(recordValue.getMappingRuleId());
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -1943,6 +2026,57 @@ public class RecordTransformTest {
     when(value.getResourceType()).thenReturn(AuthorizationResourceType.PROCESS_DEFINITION);
     when(value.getPermissionTypes())
         .thenReturn(Set.of(PermissionType.READ_PROCESS_DEFINITION, PermissionType.DELETE_PROCESS));
+
+    return value;
+  }
+
+  private TenantRecordValue mockTenantRecordValue() {
+    final var value = mock(TenantRecordValue.class);
+
+    when(value.getTenantKey()).thenReturn(1L);
+    when(value.getTenantId()).thenReturn("tenantId-1");
+    when(value.getName()).thenReturn("name");
+    when(value.getDescription()).thenReturn("description");
+    when(value.getEntityId()).thenReturn("entityId-1");
+    when(value.getEntityType()).thenReturn(EntityType.USER);
+
+    return value;
+  }
+
+  private RoleRecordValue mockRoleRecordValue() {
+    final var value = mock(RoleRecordValue.class);
+
+    when(value.getRoleKey()).thenReturn(1L);
+    when(value.getRoleId()).thenReturn("roleId-1");
+    when(value.getName()).thenReturn("name");
+    when(value.getDescription()).thenReturn("description");
+    when(value.getEntityId()).thenReturn("entityId-1");
+    when(value.getEntityType()).thenReturn(EntityType.USER);
+
+    return value;
+  }
+
+  private GroupRecordValue mockGroupRecordValue() {
+    final var value = mock(GroupRecordValue.class);
+
+    when(value.getGroupKey()).thenReturn(1L);
+    when(value.getGroupId()).thenReturn("groupId-1");
+    when(value.getName()).thenReturn("name");
+    when(value.getDescription()).thenReturn("description");
+    when(value.getEntityId()).thenReturn("entityId-1");
+    when(value.getEntityType()).thenReturn(EntityType.USER);
+
+    return value;
+  }
+
+  private MappingRuleRecordValue mockMappingRuleRecordValue() {
+    final var value = mock(MappingRuleRecordValue.class);
+
+    when(value.getMappingRuleKey()).thenReturn(1L);
+    when(value.getClaimName()).thenReturn("claimName");
+    when(value.getClaimValue()).thenReturn("claimValue");
+    when(value.getName()).thenReturn("name");
+    when(value.getMappingRuleId()).thenReturn("mappingRuleId-1");
 
     return value;
   }
