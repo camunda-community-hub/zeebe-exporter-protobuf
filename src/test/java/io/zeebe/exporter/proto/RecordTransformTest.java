@@ -647,7 +647,23 @@ public class RecordTransformTest {
   @Test
   public void shouldTransformValueType() {
 
-    final var ignoredValueTypes = Set.of(ValueType.NULL_VAL, ValueType.SBE_UNKNOWN);
+    final var ignoredValueTypes =
+        Set.of(
+            // to be ignored forever
+            ValueType.NULL_VAL,
+            ValueType.SBE_UNKNOWN,
+            // not yet implemented or questionable if it makes sense
+            ValueType.BATCH_OPERATION_CHUNK,
+            ValueType.BATCH_OPERATION_CREATION,
+            ValueType.BATCH_OPERATION_EXECUTION,
+            ValueType.BATCH_OPERATION_INITIALIZATION,
+            ValueType.BATCH_OPERATION_LIFECYCLE_MANAGEMENT,
+            ValueType.BATCH_OPERATION_PARTITION_LIFECYCLE,
+            ValueType.AD_HOC_SUB_PROCESS_INSTRUCTION,
+            ValueType.ASYNC_REQUEST,
+            ValueType.RUNTIME_INSTRUCTION,
+            ValueType.SCALE,
+            ValueType.USAGE_METRIC);
 
     final List<String> valueTypes =
         Arrays.stream(ValueType.values())
@@ -1245,6 +1261,11 @@ public class RecordTransformTest {
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "AUTHORIZATION", "CREATE");
+    assertAuthorization(transformedRecord, recordValue);
+  }
+
+  private void assertAuthorization(
+      Schema.AuthorizationRecord transformedRecord, AuthorizationRecordValue recordValue) {
     assertThat(transformedRecord.getAuthorizationKey())
         .isEqualTo(recordValue.getAuthorizationKey());
     assertThat(transformedRecord.getOwnerId()).isEqualTo(recordValue.getOwnerId());
@@ -1284,35 +1305,43 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockTenantRecordValue();
     final Record<TenantRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.TENANT, TenantIntent.CREATE);
+        mockRecord(recordValue, ValueType.TENANT, TenantIntent.CREATE);
 
     // when
     final var transformedRecord =
-            (Schema.TenantRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.TenantRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "TENANT", "CREATE");
+    assertTenant(transformedRecord, recordValue);
+  }
+
+  private void assertTenant(Schema.TenantRecord transformedRecord, TenantRecordValue recordValue) {
     assertThat(transformedRecord.getTenantKey()).isEqualTo(recordValue.getTenantKey());
     assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
     assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
     assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
     assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
     assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
- }
+  }
 
   @Test
   public void shouldTransformRoleRecord() {
     // given
     final var recordValue = mockRoleRecordValue();
     final Record<RoleRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.ROLE, RoleIntent.CREATE);
+        mockRecord(recordValue, ValueType.ROLE, RoleIntent.CREATE);
 
     // when
     final var transformedRecord =
-            (Schema.RoleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.RoleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "ROLE", "CREATE");
+    assertRole(transformedRecord, recordValue);
+  }
+
+  private void assertRole(Schema.RoleRecord transformedRecord, RoleRecordValue recordValue) {
     assertThat(transformedRecord.getRoleKey()).isEqualTo(recordValue.getRoleKey());
     assertThat(transformedRecord.getRoleId()).isEqualTo(recordValue.getRoleId());
     assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
@@ -1326,11 +1355,11 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockGroupRecordValue();
     final Record<GroupRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.GROUP, GroupIntent.CREATE);
+        mockRecord(recordValue, ValueType.GROUP, GroupIntent.CREATE);
 
     // when
     final var transformedRecord =
-            (Schema.GroupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.GroupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "GROUP", "CREATE");
@@ -1347,19 +1376,52 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockMappingRuleRecordValue();
     final Record<MappingRuleRecordValue> mockedRecord =
-            mockRecord(recordValue, ValueType.MAPPING_RULE, MappingRuleIntent.CREATE);
+        mockRecord(recordValue, ValueType.MAPPING_RULE, MappingRuleIntent.CREATE);
 
     // when
     final var transformedRecord =
-            (Schema.MappingRuleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+        (Schema.MappingRuleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "MAPPING_RULE", "CREATE");
+    assertMappingRule(transformedRecord, recordValue);
+  }
+
+  private void assertMappingRule(
+      Schema.MappingRuleRecord transformedRecord, MappingRuleRecordValue recordValue) {
     assertThat(transformedRecord.getMappingRuleKey()).isEqualTo(recordValue.getMappingRuleKey());
     assertThat(transformedRecord.getClaimName()).isEqualTo(recordValue.getClaimName());
     assertThat(transformedRecord.getClaimValue()).isEqualTo(recordValue.getClaimValue());
     assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
     assertThat(transformedRecord.getMappingRuleId()).isEqualTo(recordValue.getMappingRuleId());
+  }
+
+  @Test
+  public void shouldTransformIdentitySetupRecord() {
+    // given
+    final var recordValue = mockIdentitySetupRecordValue();
+    final Record<IdentitySetupRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.IDENTITY_SETUP, IdentitySetupIntent.INITIALIZED);
+
+    // when
+    final var transformedRecord =
+        (Schema.IdentitySetupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "IDENTITY_SETUP", "INITIALIZED");
+    assertThat(transformedRecord.getRolesList()).isNotEmpty();
+    assertRole(transformedRecord.getRoles(0), recordValue.getRoles().iterator().next());
+    assertThat(transformedRecord.getRoleMembersList()).isNotEmpty();
+    assertRole(transformedRecord.getRoleMembers(0), recordValue.getRoleMembers().iterator().next());
+    assertTenant(transformedRecord.getDefaultTenant(), recordValue.getDefaultTenant());
+    assertThat(transformedRecord.getTenantMembersList()).isNotEmpty();
+    assertTenant(
+        transformedRecord.getTenantMembers(0), recordValue.getTenantMembers().iterator().next());
+    assertThat(transformedRecord.getMappingRulesList()).isNotEmpty();
+    assertMappingRule(transformedRecord.getMappingRules(0), recordValue.getMappingRules().get(0));
+    assertThat(transformedRecord.getAuthorizationsList()).isNotEmpty();
+    assertAuthorization(
+        transformedRecord.getAuthorizations(0), recordValue.getAuthorizations().iterator().next());
   }
 
   private void assertEvaluatedDecision(
@@ -2084,6 +2146,25 @@ public class RecordTransformTest {
   private MultiInstanceRecordValue mockMultiInstanceRecordValue() {
     final var value = mock(MultiInstanceRecordValue.class);
     when(value.getInputCollection()).thenReturn(List.of("input-1", "input-2"));
+    return value;
+  }
+
+  private IdentitySetupRecordValue mockIdentitySetupRecordValue() {
+    final var value = mock(IdentitySetupRecordValue.class);
+    var role = mockRoleRecordValue();
+    when(value.getRoles()).thenReturn(List.of(role));
+    var roleMember = mockRoleRecordValue();
+    when(value.getRoleMembers()).thenReturn(List.of(roleMember));
+    var user = mockUserRecordValue();
+    when(value.getUsers()).thenReturn(List.of(user));
+    var defaultTenant = mockTenantRecordValue();
+    when(value.getDefaultTenant()).thenReturn(defaultTenant);
+    var tenantMember = mockTenantRecordValue();
+    when(value.getTenantMembers()).thenReturn(List.of(tenantMember));
+    var mappingRule = mockMappingRuleRecordValue();
+    when(value.getMappingRules()).thenReturn(List.of(mappingRule));
+    var authorization = mockAuthorizationRecordValue();
+    when(value.getAuthorizations()).thenReturn(List.of(authorization));
     return value;
   }
 

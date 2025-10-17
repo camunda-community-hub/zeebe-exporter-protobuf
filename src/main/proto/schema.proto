@@ -73,6 +73,7 @@ message RecordMetadata {
     ROLE = 42;
     GROUP = 43;
     MAPPING_RULE = 44;
+    IDENTITY_SETUP = 45;
   }
 
   enum RecordType {
@@ -818,4 +819,15 @@ message MappingRuleRecord {
   string claimValue = 4;
   string name = 5;
   string mappingRuleId = 6;
+}
+
+message IdentitySetupRecord {
+  RecordMetadata metadata = 1;
+  repeated RoleRecord roles = 2;
+  repeated RoleRecord roleMembers = 3;
+  repeated UserRecord user = 4;
+  TenantRecord defaultTenant = 5;
+  repeated TenantRecord tenantMembers = 6;
+  repeated MappingRuleRecord mappingRules = 7;
+  repeated AuthorizationRecord authorizations = 8;
 }

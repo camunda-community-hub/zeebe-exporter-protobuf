@@ -123,6 +123,7 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.ROLE, RecordTransformer::toRoleRecord);
     TRANSFORMERS.put(ValueType.GROUP, RecordTransformer::toGroupRecord);
     TRANSFORMERS.put(ValueType.MAPPING_RULE, RecordTransformer::toMappingRuleRecord);
+    TRANSFORMERS.put(ValueType.IDENTITY_SETUP, RecordTransformer::toIdentitySetupRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -186,6 +187,7 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.ROLE, RecordMetadata.ValueType.ROLE);
     VALUE_TYPE_MAPPING.put(ValueType.GROUP, RecordMetadata.ValueType.GROUP);
     VALUE_TYPE_MAPPING.put(ValueType.MAPPING_RULE, RecordMetadata.ValueType.MAPPING_RULE);
+    VALUE_TYPE_MAPPING.put(ValueType.IDENTITY_SETUP, RecordMetadata.ValueType.IDENTITY_SETUP);
   }
 
   private RecordTransformer() {}
@@ -1323,20 +1325,23 @@ public final class RecordTransformer {
       Record<AuthorizationRecordValue> record) {
     final var value = record.getValue();
 
-    var builder = Schema.AuthorizationRecord.newBuilder().setMetadata(toMetadata(record));
+    return toAuthorizationRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.AuthorizationRecord.Builder toAuthorizationRecord(
+      AuthorizationRecordValue value) {
+    var builder = Schema.AuthorizationRecord.newBuilder();
 
     for (PermissionType permissionType : value.getPermissionTypes()) {
       builder.addPermissionTypes(toPermissionType(permissionType));
     }
-
     return builder
         .setAuthorizationKey(value.getAuthorizationKey())
         .setOwnerId(value.getOwnerId())
         .setOwnerType(toAuthorizationOwnerType(value.getOwnerType()))
         .setResourceMatcher(toAuthorizationResourceMatcher(value.getResourceMatcher()))
         .setResourceId(value.getResourceId())
-        .setResourceType(toAuthorizationResourceType(value.getResourceType()))
-        .build();
+        .setResourceType(toAuthorizationResourceType(value.getResourceType()));
   }
 
   private static Schema.MultiInstanceRecord toMultiInstanceRecord(
@@ -1368,28 +1373,32 @@ public final class RecordTransformer {
 
   private static Schema.TenantRecord toTenantRecord(Record<TenantRecordValue> record) {
     final var value = record.getValue();
+    return toTenantRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.TenantRecord.Builder toTenantRecord(TenantRecordValue value) {
     return Schema.TenantRecord.newBuilder()
-        .setMetadata(toMetadata(record))
         .setTenantKey(value.getTenantKey())
         .setTenantId(value.getTenantId())
         .setName(value.getName())
         .setDescription(value.getDescription())
         .setEntityId(value.getEntityId())
-        .setEntityType(toEntityType(value.getEntityType()))
-        .build();
+        .setEntityType(toEntityType(value.getEntityType()));
   }
 
   private static Schema.RoleRecord toRoleRecord(Record<RoleRecordValue> record) {
     final var value = record.getValue();
+    return toRoleRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.RoleRecord.Builder toRoleRecord(RoleRecordValue value) {
     return Schema.RoleRecord.newBuilder()
-        .setMetadata(toMetadata(record))
         .setRoleKey(value.getRoleKey())
         .setRoleId(value.getRoleId())
         .setName(value.getName())
         .setDescription(value.getDescription())
         .setEntityId(value.getEntityId())
-        .setEntityType(toEntityType(value.getEntityType()))
-        .build();
+        .setEntityType(toEntityType(value.getEntityType()));
   }
 
   private static Schema.GroupRecord toGroupRecord(Record<GroupRecordValue> record) {
@@ -1408,14 +1417,36 @@ public final class RecordTransformer {
   private static Schema.MappingRuleRecord toMappingRuleRecord(
       Record<MappingRuleRecordValue> record) {
     final var value = record.getValue();
+    return toMappingRuleRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.MappingRuleRecord.Builder toMappingRuleRecord(
+      MappingRuleRecordValue value) {
     return Schema.MappingRuleRecord.newBuilder()
-        .setMetadata(toMetadata(record))
         .setMappingRuleKey(value.getMappingRuleKey())
         .setClaimName(value.getClaimName())
         .setClaimValue(value.getClaimValue())
         .setName(value.getName())
-        .setMappingRuleId(value.getMappingRuleId())
-        .build();
+        .setMappingRuleId(value.getMappingRuleId());
+  }
+
+  private static Schema.IdentitySetupRecord toIdentitySetupRecord(
+      Record<IdentitySetupRecordValue> record) {
+    final var value = record.getValue();
+    var builder = Schema.IdentitySetupRecord.newBuilder().setMetadata(toMetadata(record));
+    value.getRoles().forEach(role -> builder.addRoles(toRoleRecord(role).build()));
+    value.getRoleMembers().forEach(member -> builder.addRoleMembers(toRoleRecord(member).build()));
+    builder.setDefaultTenant(toTenantRecord(value.getDefaultTenant()));
+    value
+        .getTenantMembers()
+        .forEach(member -> builder.addTenantMembers(toTenantRecord(member).build()));
+    value
+        .getMappingRules()
+        .forEach(rule -> builder.addMappingRules(toMappingRuleRecord(rule).build()));
+    value
+        .getAuthorizations()
+        .forEach(auth -> builder.addAuthorizations(toAuthorizationRecord(auth).build()));
+    return builder.build();
   }
 
   private static Struct toStruct(Map<?, ?> map) {
