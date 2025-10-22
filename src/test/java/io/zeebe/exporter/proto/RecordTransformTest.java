@@ -1651,6 +1651,20 @@ public class RecordTransformTest {
     when(jobResultValue.isCompletionConditionFulfilled()).thenReturn(true);
     when(jobResultValue.isCancelRemainingInstances()).thenReturn(false);
 
+    final JobRecordValue.JobResultCorrectionsValue corrections = mock(JobRecordValue.JobResultCorrectionsValue.class);
+    when(corrections.getAssignee()).thenReturn("assignee");
+    when(corrections.getDueDate()).thenReturn("dueDate");
+    when(corrections.getFollowUpDate()).thenReturn("followUpDate");
+    when(corrections.getCandidateGroupsList()).thenReturn(List.of("candidateGroup1", "candidateGroup2"));
+    when(corrections.getCandidateUsersList()).thenReturn(List.of("candidateUser1", "candidateUser2"));
+    when(corrections.getPriority()).thenReturn(42);
+    when(jobResultValue.getCorrections()).thenReturn(corrections);
+
+    final JobRecordValue.JobResultActivateElementValue activateElement = mock(JobRecordValue.JobResultActivateElementValue.class);
+    when(activateElement.getElementId()).thenReturn("elementId");
+    when(activateElement.getVariables()).thenReturn(Map.of("attr-1", "value-1"));
+    when(jobResultValue.getActivateElements()).thenReturn(List.of(activateElement));
+
     return jobResultValue;
   }
 
@@ -2222,6 +2236,19 @@ public class RecordTransformTest {
     assertThat(jobResult.getCorrectedAttributesList()).containsOnly("attr-1", "attr-2");
     assertThat(jobResult.getIsCompletionConditionFulfilled()).isTrue();
     assertThat(jobResult.getIsCancelRemainingInstances()).isFalse();
+
+    var corrections = jobResult.getCorrections();
+    assertThat(corrections.getAssignee()).isEqualTo("assignee");
+    assertThat(corrections.getDueDate()).isEqualTo("dueDate");
+    assertThat(corrections.getFollowUpDate()).isEqualTo("followUpDate");
+    assertThat(corrections.getPriority()).isEqualTo(42);
+    assertThat(corrections.getCandidateGroupsList()).containsOnly("candidateGroup1", "candidateGroup2");
+    assertThat(corrections.getCandidateUsersList()).containsOnly("candidateUser1", "candidateUser2");
+
+    var activateElementsList = jobResult.getActivateElementsList();
+    assertThat(activateElementsList).isNotEmpty();
+    assertThat(activateElementsList.get(0).getElementId()).isEqualTo("elementId");
+    assertStruct(activateElementsList.get(0).getVariables(), Map.of("attr-1", "value-1"));
   }
 
   private void assertMetadata(

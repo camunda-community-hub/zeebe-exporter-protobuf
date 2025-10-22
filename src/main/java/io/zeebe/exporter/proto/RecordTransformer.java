@@ -434,8 +434,41 @@ public final class RecordTransformer {
         jobListenerEventType, Schema.JobRecord.JobListenerEventType.UNSPECIFIED);
   }
 
+  private static Schema.JobRecord.JobResultCorrections toJobResultCorrections(
+      JobRecordValue.JobResultCorrectionsValue value) {
+    return Schema.JobRecord.JobResultCorrections.newBuilder()
+        .setAssignee(value.getAssignee())
+        .setDueDate(value.getDueDate())
+        .setFollowUpDate(value.getFollowUpDate())
+        .addAllCandidateGroups(value.getCandidateGroupsList())
+        .addAllCandidateUsers(value.getCandidateUsersList())
+        .setPriority(value.getPriority())
+        .build();
+  }
+
+  private static Schema.JobRecord.JobResultActivateElement toJobResultActivateElement(
+      JobRecordValue.JobResultActivateElementValue value) {
+    return Schema.JobRecord.JobResultActivateElement.newBuilder()
+        .setElementId(value.getElementId())
+        .setVariables(toStruct(value.getVariables()))
+        .build();
+  }
+
   private static Schema.JobRecord.JobResult toJobResult(JobRecordValue.JobResultValue value) {
-    return Schema.JobRecord.JobResult.newBuilder()
+    var builder = Schema.JobRecord.JobResult.newBuilder();
+
+    if (!value.getActivateElements().isEmpty()) {
+      for (final JobRecordValue.JobResultActivateElementValue elementValue :
+          value.getActivateElements()) {
+        builder.addActivateElements(toJobResultActivateElement(elementValue));
+      }
+    }
+
+    if (value.getCorrections() != null) {
+      builder.setCorrections(toJobResultCorrections(value.getCorrections()));
+    }
+
+    return builder
         .setType(toJobResultType(value.getType()))
         .setIsDenied(value.isDenied())
         .setDeniedReason(value.getDeniedReason())
@@ -446,7 +479,17 @@ public final class RecordTransformer {
   }
 
   private static Schema.JobRecord.Builder toJobRecord(JobRecordValue value) {
-    return Schema.JobRecord.newBuilder()
+    var builder = Schema.JobRecord.newBuilder();
+
+    if (value.getResult() != null) {
+      builder.setResult(toJobResult(value.getResult()));
+    }
+
+    if (value.getJobListenerEventType() != null) {
+      builder.setJobListenerEventType(toJobListenerEventType(value.getJobListenerEventType()));
+    }
+
+    return builder
         .setDeadline(value.getDeadline())
         .setOrClearErrorMessage(value.getErrorMessage())
         .setRetries(value.getRetries())
@@ -467,8 +510,6 @@ public final class RecordTransformer {
         .setTimeout(value.getTimeout())
         .addAllChangedAttributes(value.getChangedAttributes())
         .setJobKind(toJobKind(value.getJobKind()))
-        .setJobListenerEventType(toJobListenerEventType(value.getJobListenerEventType()))
-        .setResult(toJobResult(value.getResult()))
         .addAllTags(value.getTags());
   }
 
@@ -1436,7 +1477,9 @@ public final class RecordTransformer {
     var builder = Schema.IdentitySetupRecord.newBuilder().setMetadata(toMetadata(record));
     value.getRoles().forEach(role -> builder.addRoles(toRoleRecord(role).build()));
     value.getRoleMembers().forEach(member -> builder.addRoleMembers(toRoleRecord(member).build()));
-    builder.setDefaultTenant(toTenantRecord(value.getDefaultTenant()));
+    if(value.getDefaultTenant() != null) {
+      builder.setDefaultTenant(toTenantRecord(value.getDefaultTenant()));
+    }
     value
         .getTenantMembers()
         .forEach(member -> builder.addTenantMembers(toTenantRecord(member).build()));

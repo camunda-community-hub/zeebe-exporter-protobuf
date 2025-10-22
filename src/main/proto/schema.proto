@@ -211,13 +211,27 @@ message JobRecord {
     _USER_TASK = 1;
     _AD_HOC_SUB_PROCESS = 2;
   }
+  message JobResultCorrections {
+    string assignee = 1;
+    string dueDate = 2;
+    string followUpDate = 3;
+    repeated string candidateGroups = 4;
+    repeated string candidateUsers = 5;
+    int32 priority = 6;
+  }
+  message JobResultActivateElement {
+    string elementId = 1;
+    google.protobuf.Struct variables = 2;
+  }
   message JobResult {
     JobResultType type = 1;
     bool isDenied = 2;
     string deniedReason = 3;
     repeated string correctedAttributes = 4;
-    bool isCompletionConditionFulfilled = 5;
-    bool isCancelRemainingInstances = 6;
+    JobResultCorrections corrections = 5;
+    repeated JobResultActivateElement activateElements = 6;
+    bool isCompletionConditionFulfilled = 7;
+    bool isCancelRemainingInstances = 8;
   }
 
   RecordMetadata metadata = 1;
