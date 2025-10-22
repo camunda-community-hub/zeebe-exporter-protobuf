@@ -1477,7 +1477,7 @@ public final class RecordTransformer {
     var builder = Schema.IdentitySetupRecord.newBuilder().setMetadata(toMetadata(record));
     value.getRoles().forEach(role -> builder.addRoles(toRoleRecord(role).build()));
     value.getRoleMembers().forEach(member -> builder.addRoleMembers(toRoleRecord(member).build()));
-    if(value.getDefaultTenant() != null) {
+    if (value.getDefaultTenant() != null) {
       builder.setDefaultTenant(toTenantRecord(value.getDefaultTenant()));
     }
     value
