@@ -247,6 +247,7 @@ public class RecordTransformTest {
     assertThat(workflowInstance.getParentProcessInstanceKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getParentElementInstanceKey()).isEqualTo(-1L);
     assertThat(workflowInstance.getTenantId()).isEqualTo(TENANT_ID);
+    assertThat(workflowInstance.getTagsList()).containsOnly("tag1", "tag2");
   }
 
   @Test
@@ -279,16 +280,17 @@ public class RecordTransformTest {
     assertThat(workflowInstanceCreation.getStartInstructionsList()).hasSize(1);
     assertThat(workflowInstanceCreation.getStartInstructionsList().get(0).getElementId())
         .isEqualTo("startId");
+    assertThat(workflowInstanceCreation.getTagsList()).containsOnly("tag1", "tag2");
   }
 
   @Test
   public void shouldTransformProcessInstanceResult() {
     // given
-    final ProcessInstanceResultRecordValue processInstanceCreationRecordValue =
+    final ProcessInstanceResultRecordValue processInstanceResultRecordValue =
         mockProcessInstanceResultRecordValue();
     final Record<ProcessInstanceResultRecordValue> mockedRecord =
         mockRecord(
-            processInstanceCreationRecordValue,
+            processInstanceResultRecordValue,
             ValueType.PROCESS_INSTANCE_RESULT,
             ProcessInstanceResultIntent.COMPLETED);
 
@@ -301,12 +303,13 @@ public class RecordTransformTest {
 
     assertThat(processInstanceResult.getBpmnProcessId()).isEqualTo("process");
     assertThat(processInstanceResult.getProcessDefinitionKey())
-        .isEqualTo(processInstanceCreationRecordValue.getProcessDefinitionKey());
+        .isEqualTo(processInstanceResultRecordValue.getProcessDefinitionKey());
     assertThat(processInstanceResult.getVersion()).isEqualTo(1);
     assertThat(processInstanceResult.getProcessInstanceKey()).isEqualTo(1L);
     assertThat(processInstanceResult.getTenantId()).isEqualTo(TENANT_ID);
     assertStruct(
-        processInstanceResult.getVariables(), processInstanceCreationRecordValue.getVariables());
+        processInstanceResult.getVariables(), processInstanceResultRecordValue.getVariables());
+    assertThat(processInstanceResult.getTagsList()).containsOnly("tag1", "tag2");
   }
 
   @Test
@@ -644,7 +647,23 @@ public class RecordTransformTest {
   @Test
   public void shouldTransformValueType() {
 
-    final var ignoredValueTypes = Set.of(ValueType.NULL_VAL, ValueType.SBE_UNKNOWN);
+    final var ignoredValueTypes =
+        Set.of(
+            // to be ignored forever
+            ValueType.NULL_VAL,
+            ValueType.SBE_UNKNOWN,
+            // not yet implemented or questionable if it makes sense
+            ValueType.BATCH_OPERATION_CHUNK,
+            ValueType.BATCH_OPERATION_CREATION,
+            ValueType.BATCH_OPERATION_EXECUTION,
+            ValueType.BATCH_OPERATION_INITIALIZATION,
+            ValueType.BATCH_OPERATION_LIFECYCLE_MANAGEMENT,
+            ValueType.BATCH_OPERATION_PARTITION_LIFECYCLE,
+            ValueType.AD_HOC_SUB_PROCESS_INSTRUCTION,
+            ValueType.ASYNC_REQUEST,
+            ValueType.RUNTIME_INSTRUCTION,
+            ValueType.SCALE,
+            ValueType.USAGE_METRIC);
 
     final List<String> valueTypes =
         Arrays.stream(ValueType.values())
@@ -1227,7 +1246,6 @@ public class RecordTransformTest {
     assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
     assertThat(transformedRecord.getEmail()).isEqualTo(recordValue.getEmail());
     assertThat(transformedRecord.getPassword()).isEqualTo(recordValue.getPassword());
-    assertThat(transformedRecord.getUserType()).isEqualTo(Schema.UserRecord.UserType.DEFAULT);
   }
 
   @Test
@@ -1235,27 +1253,33 @@ public class RecordTransformTest {
     // given
     final var recordValue = mockAuthorizationRecordValue();
     final Record<AuthorizationRecordValue> mockedRecord =
-        mockRecord(recordValue, ValueType.AUTHORIZATION, AuthorizationIntent.ADD_PERMISSION);
+        mockRecord(recordValue, ValueType.AUTHORIZATION, AuthorizationIntent.CREATE);
 
     // when
     final var transformedRecord =
         (Schema.AuthorizationRecord) RecordTransformer.toProtobufMessage(mockedRecord);
 
     // then
-    assertMetadata(transformedRecord.getMetadata(), "AUTHORIZATION", "ADD_PERMISSION");
-    assertThat(transformedRecord.getAction())
-        .isEqualTo(Schema.AuthorizationRecord.PermissionAction.ADD);
-    assertThat(transformedRecord.getOwnerKey()).isEqualTo(recordValue.getOwnerKey());
+    assertMetadata(transformedRecord.getMetadata(), "AUTHORIZATION", "CREATE");
+    assertAuthorization(transformedRecord, recordValue);
+  }
+
+  private void assertAuthorization(
+      Schema.AuthorizationRecord transformedRecord, AuthorizationRecordValue recordValue) {
+    assertThat(transformedRecord.getAuthorizationKey())
+        .isEqualTo(recordValue.getAuthorizationKey());
+    assertThat(transformedRecord.getOwnerId()).isEqualTo(recordValue.getOwnerId());
     assertThat(transformedRecord.getOwnerType())
         .isEqualTo(Schema.AuthorizationRecord.AuthorizationOwnerType._USER);
+    assertThat(transformedRecord.getResourceMatcher())
+        .isEqualTo(Schema.AuthorizationRecord.AuthorizationResourceMatcher.ID);
+    assertThat(transformedRecord.getResourceId()).isEqualTo(recordValue.getResourceId());
     assertThat(transformedRecord.getResourceType())
         .isEqualTo(Schema.AuthorizationRecord.AuthorizationResourceType.PROCESS_DEFINITION);
-    assertThat(transformedRecord.getPermissionsList()).hasSize(1);
-    var transformedPermission = transformedRecord.getPermissions(0);
-    assertThat(transformedPermission.getPermissionType())
-        .isEqualTo(Schema.AuthorizationRecord.PermissionValue.PermissionType.READ);
-    assertThat(transformedPermission.getResourceIdsList())
-        .containsExactly("resource-1", "resource-2");
+    assertThat(transformedRecord.getPermissionTypesList())
+        .containsOnly(
+            Schema.AuthorizationRecord.PermissionType.READ_PROCESS_DEFINITION,
+            Schema.AuthorizationRecord.PermissionType.DELETE_PROCESS);
   }
 
   @Test
@@ -1274,6 +1298,130 @@ public class RecordTransformTest {
     assertMetadata(transformedRecord.getMetadata(), "MULTI_INSTANCE", "INPUT_COLLECTION_EVALUATED");
     assertThat(transformedRecord.getInputCollectionList())
         .isEqualTo(recordValue.getInputCollection());
+  }
+
+  @Test
+  public void shouldTransformTenantRecord() {
+    // given
+    final var recordValue = mockTenantRecordValue();
+    final Record<TenantRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.TENANT, TenantIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+        (Schema.TenantRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "TENANT", "CREATE");
+    assertTenant(transformedRecord, recordValue);
+  }
+
+  private void assertTenant(Schema.TenantRecord transformedRecord, TenantRecordValue recordValue) {
+    assertThat(transformedRecord.getTenantKey()).isEqualTo(recordValue.getTenantKey());
+    assertThat(transformedRecord.getTenantId()).isEqualTo(recordValue.getTenantId());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
+    assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
+    assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
+  }
+
+  @Test
+  public void shouldTransformRoleRecord() {
+    // given
+    final var recordValue = mockRoleRecordValue();
+    final Record<RoleRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.ROLE, RoleIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+        (Schema.RoleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "ROLE", "CREATE");
+    assertRole(transformedRecord, recordValue);
+  }
+
+  private void assertRole(Schema.RoleRecord transformedRecord, RoleRecordValue recordValue) {
+    assertThat(transformedRecord.getRoleKey()).isEqualTo(recordValue.getRoleKey());
+    assertThat(transformedRecord.getRoleId()).isEqualTo(recordValue.getRoleId());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
+    assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
+    assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
+  }
+
+  @Test
+  public void shouldTransformGroupRecord() {
+    // given
+    final var recordValue = mockGroupRecordValue();
+    final Record<GroupRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.GROUP, GroupIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+        (Schema.GroupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "GROUP", "CREATE");
+    assertThat(transformedRecord.getGroupKey()).isEqualTo(recordValue.getGroupKey());
+    assertThat(transformedRecord.getGroupId()).isEqualTo(recordValue.getGroupId());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getDescription()).isEqualTo(recordValue.getDescription());
+    assertThat(transformedRecord.getEntityId()).isEqualTo(recordValue.getEntityId());
+    assertThat(transformedRecord.getEntityType()).isEqualTo(Schema.EntityType.USER);
+  }
+
+  @Test
+  public void shouldTransformMappingRuleRecord() {
+    // given
+    final var recordValue = mockMappingRuleRecordValue();
+    final Record<MappingRuleRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.MAPPING_RULE, MappingRuleIntent.CREATE);
+
+    // when
+    final var transformedRecord =
+        (Schema.MappingRuleRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "MAPPING_RULE", "CREATE");
+    assertMappingRule(transformedRecord, recordValue);
+  }
+
+  private void assertMappingRule(
+      Schema.MappingRuleRecord transformedRecord, MappingRuleRecordValue recordValue) {
+    assertThat(transformedRecord.getMappingRuleKey()).isEqualTo(recordValue.getMappingRuleKey());
+    assertThat(transformedRecord.getClaimName()).isEqualTo(recordValue.getClaimName());
+    assertThat(transformedRecord.getClaimValue()).isEqualTo(recordValue.getClaimValue());
+    assertThat(transformedRecord.getName()).isEqualTo(recordValue.getName());
+    assertThat(transformedRecord.getMappingRuleId()).isEqualTo(recordValue.getMappingRuleId());
+  }
+
+  @Test
+  public void shouldTransformIdentitySetupRecord() {
+    // given
+    final var recordValue = mockIdentitySetupRecordValue();
+    final Record<IdentitySetupRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.IDENTITY_SETUP, IdentitySetupIntent.INITIALIZED);
+
+    // when
+    final var transformedRecord =
+        (Schema.IdentitySetupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertMetadata(transformedRecord.getMetadata(), "IDENTITY_SETUP", "INITIALIZED");
+    assertThat(transformedRecord.getRolesList()).isNotEmpty();
+    assertRole(transformedRecord.getRoles(0), recordValue.getRoles().iterator().next());
+    assertThat(transformedRecord.getRoleMembersList()).isNotEmpty();
+    assertRole(transformedRecord.getRoleMembers(0), recordValue.getRoleMembers().iterator().next());
+    assertTenant(transformedRecord.getDefaultTenant(), recordValue.getDefaultTenant());
+    assertThat(transformedRecord.getTenantMembersList()).isNotEmpty();
+    assertTenant(
+        transformedRecord.getTenantMembers(0), recordValue.getTenantMembers().iterator().next());
+    assertThat(transformedRecord.getMappingRulesList()).isNotEmpty();
+    assertMappingRule(transformedRecord.getMappingRules(0), recordValue.getMappingRules().get(0));
+    assertThat(transformedRecord.getAuthorizationsList()).isNotEmpty();
+    assertAuthorization(
+        transformedRecord.getAuthorizations(0), recordValue.getAuthorizations().iterator().next());
   }
 
   private void assertEvaluatedDecision(
@@ -1298,6 +1446,8 @@ public class RecordTransformTest {
     final Schema.DecisionEvaluationRecord.MatchedRule matchedRule =
         transformedRecord.getMatchedRulesList().get(0);
     assertMatchedRule(matchedRule, recordValue.getMatchedRules().get(0));
+    assertThat(transformedRecord.getDecisionEvaluationInstanceKey())
+        .isEqualTo(recordValue.getDecisionEvaluationInstanceKey());
   }
 
   private void assertMatchedRule(
@@ -1484,8 +1634,38 @@ public class RecordTransformTest {
     when(jobRecordValue.getErrorCode()).thenReturn(null);
     when(jobRecordValue.getJobKind()).thenReturn(JobKind.EXECUTION_LISTENER);
     when(jobRecordValue.getJobListenerEventType()).thenReturn(JobListenerEventType.START);
+    final JobRecordValue.JobResultValue result = mockJobResultValue();
+    when(jobRecordValue.getResult()).thenReturn(result);
+    when(jobRecordValue.getTags()).thenReturn(Set.of("tag1", "tag2"));
 
     return jobRecordValue;
+  }
+
+  private JobRecordValue.JobResultValue mockJobResultValue() {
+    final JobRecordValue.JobResultValue jobResultValue = mock(JobRecordValue.JobResultValue.class);
+
+    when(jobResultValue.getType()).thenReturn(JobResultType.AD_HOC_SUB_PROCESS);
+    when(jobResultValue.isDenied()).thenReturn(false);
+    when(jobResultValue.getDeniedReason()).thenReturn("empty");
+    when(jobResultValue.getCorrectedAttributes()).thenReturn(List.of("attr-1", "attr-2"));
+    when(jobResultValue.isCompletionConditionFulfilled()).thenReturn(true);
+    when(jobResultValue.isCancelRemainingInstances()).thenReturn(false);
+
+    final JobRecordValue.JobResultCorrectionsValue corrections = mock(JobRecordValue.JobResultCorrectionsValue.class);
+    when(corrections.getAssignee()).thenReturn("assignee");
+    when(corrections.getDueDate()).thenReturn("dueDate");
+    when(corrections.getFollowUpDate()).thenReturn("followUpDate");
+    when(corrections.getCandidateGroupsList()).thenReturn(List.of("candidateGroup1", "candidateGroup2"));
+    when(corrections.getCandidateUsersList()).thenReturn(List.of("candidateUser1", "candidateUser2"));
+    when(corrections.getPriority()).thenReturn(42);
+    when(jobResultValue.getCorrections()).thenReturn(corrections);
+
+    final JobRecordValue.JobResultActivateElementValue activateElement = mock(JobRecordValue.JobResultActivateElementValue.class);
+    when(activateElement.getElementId()).thenReturn("elementId");
+    when(activateElement.getVariables()).thenReturn(Map.of("attr-1", "value-1"));
+    when(jobResultValue.getActivateElements()).thenReturn(List.of(activateElement));
+
+    return jobResultValue;
   }
 
   private DeploymentRecordValue mockDeploymentRecordValue() {
@@ -1577,6 +1757,7 @@ public class RecordTransformTest {
     when(workflowInstanceRecordValue.getParentProcessInstanceKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getParentElementInstanceKey()).thenReturn(-1L);
     when(workflowInstanceRecordValue.getTenantId()).thenReturn(TENANT_ID);
+    when(workflowInstanceRecordValue.getTags()).thenReturn(Set.of("tag1", "tag2"));
 
     return workflowInstanceRecordValue;
   }
@@ -1599,23 +1780,25 @@ public class RecordTransformTest {
                     .withElementId("startId")
                     .build());
     when(processInstanceCreationRecordValue.getStartInstructions()).thenReturn(startInstructions);
+    when(processInstanceCreationRecordValue.getTags()).thenReturn(Set.of("tag1", "tag2"));
 
     return processInstanceCreationRecordValue;
   }
 
   private ProcessInstanceResultRecordValue mockProcessInstanceResultRecordValue() {
-    final ProcessInstanceResultRecordValue processInstanceCreationRecordValue =
+    final ProcessInstanceResultRecordValue processInstanceResultRecordValue =
         mock(ProcessInstanceResultRecordValue.class);
 
-    when(processInstanceCreationRecordValue.getBpmnProcessId()).thenReturn("process");
-    when(processInstanceCreationRecordValue.getVersion()).thenReturn(1);
-    when(processInstanceCreationRecordValue.getProcessDefinitionKey()).thenReturn(4L);
-    when(processInstanceCreationRecordValue.getProcessInstanceKey()).thenReturn(1L);
-    when(processInstanceCreationRecordValue.getVariables())
+    when(processInstanceResultRecordValue.getBpmnProcessId()).thenReturn("process");
+    when(processInstanceResultRecordValue.getVersion()).thenReturn(1);
+    when(processInstanceResultRecordValue.getProcessDefinitionKey()).thenReturn(4L);
+    when(processInstanceResultRecordValue.getProcessInstanceKey()).thenReturn(1L);
+    when(processInstanceResultRecordValue.getVariables())
         .thenReturn(Collections.singletonMap("foo", 23));
-    when(processInstanceCreationRecordValue.getTenantId()).thenReturn(TENANT_ID);
+    when(processInstanceResultRecordValue.getTenantId()).thenReturn(TENANT_ID);
+    when(processInstanceResultRecordValue.getTags()).thenReturn(Set.of("tag1", "tag2"));
 
-    return processInstanceCreationRecordValue;
+    return processInstanceResultRecordValue;
   }
 
   private ProcessInstanceBatchRecordValue mockProcessInstanceBatchRecordValue() {
@@ -1731,6 +1914,7 @@ public class RecordTransformTest {
     final List<MatchedRuleValue> matchedRules = Collections.singletonList(mockMatchedRuleValue());
     when(value.getMatchedRules()).thenReturn(matchedRules);
     when(value.getTenantId()).thenReturn(TENANT_ID);
+    when(value.getDecisionEvaluationInstanceKey()).thenReturn("deik-42");
     return value;
   }
 
@@ -1903,7 +2087,6 @@ public class RecordTransformTest {
     when(value.getName()).thenReturn("name");
     when(value.getEmail()).thenReturn("email");
     when(value.getPassword()).thenReturn("password");
-    when(value.getUserType()).thenReturn(UserType.DEFAULT);
 
     return value;
   }
@@ -1911,16 +2094,65 @@ public class RecordTransformTest {
   private AuthorizationRecordValue mockAuthorizationRecordValue() {
     final var value = mock(AuthorizationRecordValue.class);
 
-    when(value.getAction()).thenReturn(PermissionAction.ADD);
-    when(value.getOwnerKey()).thenReturn(1L);
+    when(value.getAuthorizationKey()).thenReturn(1L);
+    when(value.getOwnerId()).thenReturn("ownerId-1");
     when(value.getOwnerType()).thenReturn(AuthorizationOwnerType.USER);
+    when(value.getResourceMatcher()).thenReturn(AuthorizationResourceMatcher.ID);
+    when(value.getResourceId()).thenReturn("resourceId-1");
     when(value.getResourceType()).thenReturn(AuthorizationResourceType.PROCESS_DEFINITION);
+    when(value.getPermissionTypes())
+        .thenReturn(Set.of(PermissionType.READ_PROCESS_DEFINITION, PermissionType.DELETE_PROCESS));
 
-    final var permission = mock(AuthorizationRecordValue.PermissionValue.class);
-    when(permission.getPermissionType()).thenReturn(PermissionType.READ);
-    when(permission.getResourceIds()).thenReturn(List.of("resource-1", "resource-2"));
+    return value;
+  }
 
-    when(value.getPermissions()).thenReturn(List.of(permission));
+  private TenantRecordValue mockTenantRecordValue() {
+    final var value = mock(TenantRecordValue.class);
+
+    when(value.getTenantKey()).thenReturn(1L);
+    when(value.getTenantId()).thenReturn("tenantId-1");
+    when(value.getName()).thenReturn("name");
+    when(value.getDescription()).thenReturn("description");
+    when(value.getEntityId()).thenReturn("entityId-1");
+    when(value.getEntityType()).thenReturn(EntityType.USER);
+
+    return value;
+  }
+
+  private RoleRecordValue mockRoleRecordValue() {
+    final var value = mock(RoleRecordValue.class);
+
+    when(value.getRoleKey()).thenReturn(1L);
+    when(value.getRoleId()).thenReturn("roleId-1");
+    when(value.getName()).thenReturn("name");
+    when(value.getDescription()).thenReturn("description");
+    when(value.getEntityId()).thenReturn("entityId-1");
+    when(value.getEntityType()).thenReturn(EntityType.USER);
+
+    return value;
+  }
+
+  private GroupRecordValue mockGroupRecordValue() {
+    final var value = mock(GroupRecordValue.class);
+
+    when(value.getGroupKey()).thenReturn(1L);
+    when(value.getGroupId()).thenReturn("groupId-1");
+    when(value.getName()).thenReturn("name");
+    when(value.getDescription()).thenReturn("description");
+    when(value.getEntityId()).thenReturn("entityId-1");
+    when(value.getEntityType()).thenReturn(EntityType.USER);
+
+    return value;
+  }
+
+  private MappingRuleRecordValue mockMappingRuleRecordValue() {
+    final var value = mock(MappingRuleRecordValue.class);
+
+    when(value.getMappingRuleKey()).thenReturn(1L);
+    when(value.getClaimName()).thenReturn("claimName");
+    when(value.getClaimValue()).thenReturn("claimValue");
+    when(value.getName()).thenReturn("name");
+    when(value.getMappingRuleId()).thenReturn("mappingRuleId-1");
 
     return value;
   }
@@ -1928,6 +2160,25 @@ public class RecordTransformTest {
   private MultiInstanceRecordValue mockMultiInstanceRecordValue() {
     final var value = mock(MultiInstanceRecordValue.class);
     when(value.getInputCollection()).thenReturn(List.of("input-1", "input-2"));
+    return value;
+  }
+
+  private IdentitySetupRecordValue mockIdentitySetupRecordValue() {
+    final var value = mock(IdentitySetupRecordValue.class);
+    var role = mockRoleRecordValue();
+    when(value.getRoles()).thenReturn(List.of(role));
+    var roleMember = mockRoleRecordValue();
+    when(value.getRoleMembers()).thenReturn(List.of(roleMember));
+    var user = mockUserRecordValue();
+    when(value.getUsers()).thenReturn(List.of(user));
+    var defaultTenant = mockTenantRecordValue();
+    when(value.getDefaultTenant()).thenReturn(defaultTenant);
+    var tenantMember = mockTenantRecordValue();
+    when(value.getTenantMembers()).thenReturn(List.of(tenantMember));
+    var mappingRule = mockMappingRuleRecordValue();
+    when(value.getMappingRules()).thenReturn(List.of(mappingRule));
+    var authorization = mockAuthorizationRecordValue();
+    when(value.getAuthorizations()).thenReturn(List.of(authorization));
     return value;
   }
 
@@ -1975,6 +2226,29 @@ public class RecordTransformTest {
     assertThat(jobRecord.getErrorCode()).isEqualTo("");
     assertThat(jobRecord.getJobKind()).isEqualTo(JobRecord.JobKind.EXECUTION_LISTENER);
     assertThat(jobRecord.getJobListenerEventType()).isEqualTo(JobRecord.JobListenerEventType.START);
+    assertThat(jobRecord.getTagsList()).containsOnly("tag1", "tag2");
+
+    assertThat(jobRecord.getResult()).isNotNull();
+    var jobResult = jobRecord.getResult();
+    assertThat(jobResult.getType()).isEqualTo(JobRecord.JobResultType._AD_HOC_SUB_PROCESS);
+    assertThat(jobResult.getIsDenied()).isFalse();
+    assertThat(jobResult.getDeniedReason()).isEqualTo("empty");
+    assertThat(jobResult.getCorrectedAttributesList()).containsOnly("attr-1", "attr-2");
+    assertThat(jobResult.getIsCompletionConditionFulfilled()).isTrue();
+    assertThat(jobResult.getIsCancelRemainingInstances()).isFalse();
+
+    var corrections = jobResult.getCorrections();
+    assertThat(corrections.getAssignee()).isEqualTo("assignee");
+    assertThat(corrections.getDueDate()).isEqualTo("dueDate");
+    assertThat(corrections.getFollowUpDate()).isEqualTo("followUpDate");
+    assertThat(corrections.getPriority()).isEqualTo(42);
+    assertThat(corrections.getCandidateGroupsList()).containsOnly("candidateGroup1", "candidateGroup2");
+    assertThat(corrections.getCandidateUsersList()).containsOnly("candidateUser1", "candidateUser2");
+
+    var activateElementsList = jobResult.getActivateElementsList();
+    assertThat(activateElementsList).isNotEmpty();
+    assertThat(activateElementsList.get(0).getElementId()).isEqualTo("elementId");
+    assertStruct(activateElementsList.get(0).getVariables(), Map.of("attr-1", "value-1"));
   }
 
   private void assertMetadata(
