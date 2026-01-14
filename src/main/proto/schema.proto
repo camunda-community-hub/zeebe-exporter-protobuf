@@ -95,6 +95,10 @@ message RecordMetadata {
 
   string rejectionType = 9;
   string rejectionReason = 10;
+
+  map<string, string> authorizations = 11;
+  int64 operationReference = 12;
+  int64 batchOperationReference = 13;
 }
 
 message DeploymentRecord {

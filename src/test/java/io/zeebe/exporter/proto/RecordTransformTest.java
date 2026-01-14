@@ -55,6 +55,9 @@ public class RecordTransformTest {
   public static final long SOURCE_POSITION = 100L;
   public static final Map<String, Object> VARIABLES = Map.of("var", "v1");
   public static final String TENANT_ID = "tenant-42";
+  public static final Map<String, Object> AUTHORIZATIONS = Map.of("auth", "demo");
+  public static final long OPERATION_REFERENCE = 10L;
+  public static final long BATCH_OPERATION_REFERENCE = 20L;
 
   @Test
   public void shouldTransformDeployment() {
@@ -1424,6 +1427,28 @@ public class RecordTransformTest {
         transformedRecord.getAuthorizations(0), recordValue.getAuthorizations().iterator().next());
   }
 
+  @Test
+  public void toMetadataMappings() {
+    // given
+    final var recordValue = mockIdentitySetupRecordValue();
+    final Record<IdentitySetupRecordValue> mockedRecord =
+        mockRecord(recordValue, ValueType.IDENTITY_SETUP, IdentitySetupIntent.INITIALIZED);
+
+    // when
+    var identitySetupRecord =
+        (Schema.IdentitySetupRecord) RecordTransformer.toProtobufMessage(mockedRecord);
+
+    // then
+    assertThat(identitySetupRecord.getMetadata().getOperationReference())
+        .isEqualTo(OPERATION_REFERENCE);
+    assertThat(identitySetupRecord.getMetadata().getBatchOperationReference())
+        .isEqualTo(BATCH_OPERATION_REFERENCE);
+
+    var authorizations = identitySetupRecord.getMetadata().getAuthorizations();
+    assertThat(authorizations.size()).isEqualTo(1);
+    assertThat(authorizations.get("auth")).isEqualTo("demo");
+  }
+
   private void assertEvaluatedDecision(
       final Schema.DecisionEvaluationRecord.EvaluatedDecision transformedRecord,
       final EvaluatedDecisionValue recordValue) {
@@ -2270,6 +2295,9 @@ public class RecordTransformTest {
     assertThat(metadata.getRejectionReason()).isEqualTo("failed");
     assertThat(metadata.getRejectionType()).isEqualTo("INVALID_ARGUMENT");
     assertThat(metadata.getTimestamp()).isEqualTo(TIMESTAMP);
+    assertThat(metadata.getOperationReference()).isEqualTo(OPERATION_REFERENCE);
+    assertThat(metadata.getBatchOperationReference()).isEqualTo(BATCH_OPERATION_REFERENCE);
+    assertThat(metadata.getAuthorizations()).isEqualTo(AUTHORIZATIONS);
   }
 
   private <V extends RecordValue> Record<V> mockRecord(
@@ -2288,6 +2316,9 @@ public class RecordTransformTest {
     when(record.getRecordType()).thenReturn(RecordType.COMMAND);
     when(record.getValueType()).thenReturn(valueType);
     when(record.getIntent()).thenReturn(intent);
+    when(record.getOperationReference()).thenReturn(OPERATION_REFERENCE);
+    when(record.getBatchOperationReference()).thenReturn(BATCH_OPERATION_REFERENCE);
+    when(record.getAuthorizations()).thenReturn(AUTHORIZATIONS);
 
     when(record.getValue()).thenReturn(recordValue);
 
