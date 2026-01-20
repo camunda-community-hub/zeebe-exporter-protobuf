@@ -15,6 +15,8 @@
  */
 package io.zeebe.exporter.proto;
 
+import static java.util.stream.Collectors.toMap;
+
 import com.google.protobuf.*;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
@@ -222,7 +224,10 @@ public final class RecordTransformer {
             .setSourceRecordPosition(record.getSourceRecordPosition())
             .setPosition(record.getPosition())
             .setTimestamp(record.getTimestamp())
-            .setPartitionId(record.getPartitionId());
+            .setPartitionId(record.getPartitionId())
+            .setOperationReference(record.getOperationReference())
+            .setBatchOperationReference(record.getBatchOperationReference())
+            .putAllAuthorizations(toStringValueMap(record.getAuthorizations()));
 
     if (record.getRejectionType() != null) {
       builder.setRejectionType(record.getRejectionType().name());
@@ -1415,6 +1420,10 @@ public final class RecordTransformer {
   private static Schema.TenantRecord toTenantRecord(Record<TenantRecordValue> record) {
     final var value = record.getValue();
     return toTenantRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Map<String, String> toStringValueMap(Map<String, Object> map) {
+    return map.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> "" + e.getValue()));
   }
 
   private static Schema.TenantRecord.Builder toTenantRecord(TenantRecordValue value) {
