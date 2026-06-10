@@ -1240,7 +1240,6 @@ public class RecordTransformTest {
 
     // then
     assertMetadata(transformedRecord.getMetadata(), "MESSAGE_BATCH", "EXPIRE");
-    assertThat(transformedRecord.getMessageKeysList()).containsExactly(40L, 41L, 42L);
   }
 
   @Test
@@ -1812,11 +1811,7 @@ public class RecordTransformTest {
   }
 
   private MessageBatchRecordValue mockMessageBatchRecordValue() {
-    final MessageBatchRecordValue messageBatchRecordValue = mock(MessageBatchRecordValue.class);
-
-    when(messageBatchRecordValue.getMessageKeys()).thenReturn(List.of(40L, 41L, 42L));
-
-    return messageBatchRecordValue;
+    return mock(MessageBatchRecordValue.class);
   }
 
   private MessageStartEventSubscriptionRecordValue mockMessageStartEventSubscriptionRecordValue() {

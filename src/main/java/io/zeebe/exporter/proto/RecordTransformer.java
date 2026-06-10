@@ -1194,12 +1194,7 @@ public final class RecordTransformer {
 
   private static Schema.MessageBatchRecord toMessageBatchRecord(
       Record<MessageBatchRecordValue> record) {
-    final var value = record.getValue();
-
-    var builder = Schema.MessageBatchRecord.newBuilder();
-
-    value.getMessageKeys().forEach(builder::addMessageKeys);
-    return builder.setMetadata(toMetadata(record)).build();
+    return Schema.MessageBatchRecord.newBuilder().setMetadata(toMetadata(record)).build();
   }
 
   private static Schema.ClockRecord toClockRecord(Record<ClockRecordValue> record) {

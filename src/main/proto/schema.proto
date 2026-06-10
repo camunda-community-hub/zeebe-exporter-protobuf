@@ -719,7 +719,6 @@ message ProcessInstanceMigrationRecord {
 
 message MessageBatchRecord {
   RecordMetadata metadata = 1;
-  repeated int64 messageKeys = 2;
 }
 
 message ClockRecord {
