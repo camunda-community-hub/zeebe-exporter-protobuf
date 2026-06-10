@@ -32,6 +32,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -126,6 +127,16 @@ public final class RecordTransformer {
     TRANSFORMERS.put(ValueType.GROUP, RecordTransformer::toGroupRecord);
     TRANSFORMERS.put(ValueType.MAPPING_RULE, RecordTransformer::toMappingRuleRecord);
     TRANSFORMERS.put(ValueType.IDENTITY_SETUP, RecordTransformer::toIdentitySetupRecord);
+    TRANSFORMERS.put(ValueType.HISTORY_DELETION, RecordTransformer::toHistoryDeletionRecord);
+    TRANSFORMERS.put(ValueType.CLUSTER_VARIABLE, RecordTransformer::toClusterVariableRecord);
+    TRANSFORMERS.put(ValueType.GLOBAL_LISTENER, RecordTransformer::toGlobalListenerRecord);
+    TRANSFORMERS.put(
+        ValueType.GLOBAL_LISTENER_BATCH, RecordTransformer::toGlobalListenerBatchRecord);
+    TRANSFORMERS.put(
+        ValueType.CONDITIONAL_EVALUATION, RecordTransformer::toConditionalEvaluationRecord);
+    TRANSFORMERS.put(ValueType.EXPRESSION, RecordTransformer::toExpressionRecord);
+    TRANSFORMERS.put(
+        ValueType.CONDITIONAL_SUBSCRIPTION, RecordTransformer::toConditionalSubscriptionRecord);
 
     VALUE_TYPE_MAPPING.put(ValueType.DEPLOYMENT, RecordMetadata.ValueType.DEPLOYMENT);
     VALUE_TYPE_MAPPING.put(
@@ -166,8 +177,6 @@ public final class RecordTransformer {
         ValueType.SIGNAL_SUBSCRIPTION, RecordMetadata.ValueType.SIGNAL_SUBSCRIPTION);
     VALUE_TYPE_MAPPING.put(ValueType.SIGNAL, RecordMetadata.ValueType.SIGNAL);
     VALUE_TYPE_MAPPING.put(ValueType.RESOURCE_DELETION, RecordMetadata.ValueType.RESOURCE_DELETION);
-    VALUE_TYPE_MAPPING.put(
-        ValueType.COMMAND_DISTRIBUTION, RecordMetadata.ValueType.COMMAND_DISTRIBUTION);
     VALUE_TYPE_MAPPING.put(ValueType.FORM, RecordMetadata.ValueType.FORM);
     VALUE_TYPE_MAPPING.put(ValueType.USER_TASK, RecordMetadata.ValueType.USER_TASK);
     VALUE_TYPE_MAPPING.put(
@@ -190,6 +199,16 @@ public final class RecordTransformer {
     VALUE_TYPE_MAPPING.put(ValueType.GROUP, RecordMetadata.ValueType.GROUP);
     VALUE_TYPE_MAPPING.put(ValueType.MAPPING_RULE, RecordMetadata.ValueType.MAPPING_RULE);
     VALUE_TYPE_MAPPING.put(ValueType.IDENTITY_SETUP, RecordMetadata.ValueType.IDENTITY_SETUP);
+    VALUE_TYPE_MAPPING.put(ValueType.CLUSTER_VARIABLE, RecordMetadata.ValueType.CLUSTER_VARIABLE);
+    VALUE_TYPE_MAPPING.put(ValueType.HISTORY_DELETION, RecordMetadata.ValueType.HISTORY_DELETION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.CONDITIONAL_SUBSCRIPTION, RecordMetadata.ValueType.CONDITIONAL_SUBSCRIPTION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.CONDITIONAL_EVALUATION, RecordMetadata.ValueType.CONDITIONAL_EVALUATION);
+    VALUE_TYPE_MAPPING.put(
+        ValueType.GLOBAL_LISTENER_BATCH, RecordMetadata.ValueType.GLOBAL_LISTENER_BATCH);
+    VALUE_TYPE_MAPPING.put(ValueType.EXPRESSION, RecordMetadata.ValueType.EXPRESSION);
+    VALUE_TYPE_MAPPING.put(ValueType.GLOBAL_LISTENER, RecordMetadata.ValueType.GLOBAL_LISTENER);
   }
 
   private RecordTransformer() {}
@@ -388,6 +407,10 @@ public final class RecordTransformer {
         .setVariableScopeKey(value.getVariableScopeKey())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .addAllElementInstancePath(toLongPaths(value.getElementInstancePath()))
+        .addAllProcessDefinitionPath(value.getProcessDefinitionPath())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
+        .addAllCallingElementPath(value.getCallingElementPath())
         .build();
   }
 
@@ -515,7 +538,23 @@ public final class RecordTransformer {
         .setTimeout(value.getTimeout())
         .addAllChangedAttributes(value.getChangedAttributes())
         .setJobKind(toJobKind(value.getJobKind()))
-        .addAllTags(value.getTags());
+        .addAllTags(value.getTags())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
+        .setIsJobToUserTaskMigration(value.isJobToUserTaskMigration());
+  }
+
+  private static final EnumMap<TenantFilter, Schema.JobBatchRecord.TenantFilter>
+      TENANT_FILTER_MAPPING =
+          new EnumMap<>(
+              Map.of(
+                  TenantFilter.ASSIGNED,
+                  Schema.JobBatchRecord.TenantFilter.ASSIGNED,
+                  TenantFilter.PROVIDED,
+                  Schema.JobBatchRecord.TenantFilter.PROVIDED));
+
+  private static Schema.JobBatchRecord.TenantFilter toTenantFilter(TenantFilter tenantFilter) {
+    return TENANT_FILTER_MAPPING.getOrDefault(
+        tenantFilter, Schema.JobBatchRecord.TenantFilter.UNSPECIFIED);
   }
 
   private static Schema.JobBatchRecord toJobBatchRecord(Record<JobBatchRecordValue> record) {
@@ -542,6 +581,7 @@ public final class RecordTransformer {
         .setType(value.getType())
         .setWorker(value.getWorker())
         .setTruncated(value.isTruncated())
+        .setTenantFilter(toTenantFilter(value.getTenantFilter()))
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -574,6 +614,7 @@ public final class RecordTransformer {
         .setMessageKey(value.getMessageKey())
         .setVariables(toStruct(value.getVariables()))
         .setIsInterrupting(value.isInterrupting())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .build();
@@ -612,6 +653,14 @@ public final class RecordTransformer {
         .setValue(value.getValue())
         .setTenantId(toTenantId(value));
 
+    if (value.getSource() != null) {
+      builder.setSource(toVariableSource(value.getSource()));
+    }
+
+    builder
+        .setElementInstanceKey(value.getElementInstanceKey())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey());
+
     return builder.setMetadata(toMetadata(record)).build();
   }
 
@@ -648,6 +697,11 @@ public final class RecordTransformer {
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .addAllTags(value.getTags())
+        .setBusinessId(value.getBusinessId())
+        .addAllElementInstancePath(toLongPaths(value.getElementInstancePath()))
+        .addAllProcessDefinitionPath(value.getProcessDefinitionPath())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
+        .addAllCallingElementPath(value.getCallingElementPath())
         .build();
   }
 
@@ -665,6 +719,8 @@ public final class RecordTransformer {
         .setCorrelationKey(value.getCorrelationKey())
         .setElementId(value.getElementId())
         .setIsInterrupting(value.isInterrupting())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .build();
@@ -684,16 +740,30 @@ public final class RecordTransformer {
                         .build())
             .collect(Collectors.toList());
 
+    final var runtimeInstructions =
+        Optional.ofNullable(value.getRuntimeInstructions()).orElse(List.of()).stream()
+            .map(
+                runtimeInstruction ->
+                    Schema.ProcessInstanceCreationRecord.ProcessInstanceCreationRuntimeInstruction
+                        .newBuilder()
+                        .setAfterElementId(runtimeInstruction.getAfterElementId())
+                        .setType(runtimeInstruction.getType().name())
+                        .build())
+            .collect(Collectors.toList());
+
     return Schema.ProcessInstanceCreationRecord.newBuilder()
         .setBpmnProcessId(value.getBpmnProcessId())
         .setVersion(value.getVersion())
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setVariables(toStruct(value.getVariables()))
+        .setBusinessId(value.getBusinessId())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .addAllStartInstructions(startInstructions)
         .addAllTags(value.getTags())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
+        .addAllRuntimeInstructions(runtimeInstructions)
         .build();
   }
 
@@ -769,6 +839,7 @@ public final class RecordTransformer {
         .setDecisionRequirementsMetadata(toDecisionRequirementsMetadata(value))
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .setDeploymentKey(value.getDeploymentKey())
         .build();
   }
 
@@ -817,6 +888,7 @@ public final class RecordTransformer {
         .setFailedDecisionId(value.getFailedDecisionId())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
         .build();
   }
 
@@ -913,12 +985,48 @@ public final class RecordTransformer {
                         .build())
             .collect(Collectors.toList());
 
+    final var moveInstructions =
+        Optional.ofNullable(value.getMoveInstructions()).orElse(List.of()).stream()
+            .map(RecordTransformer::toProcessInstanceModificationMoveInstructionRecord)
+            .collect(Collectors.toList());
+
     return Schema.ProcessInstanceModificationRecord.newBuilder()
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .addAllActivateInstructions(activateInstructions)
         .addAllTerminateInstructions(terminateInstructions)
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
+        .addAllMoveInstructions(moveInstructions)
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
+        .build();
+  }
+
+  private static Schema.ProcessInstanceModificationRecord.ProcessInstanceModificationMoveInstruction
+      toProcessInstanceModificationMoveInstructionRecord(
+          ProcessInstanceModificationRecordValue.ProcessInstanceModificationMoveInstructionValue
+              moveInstruction) {
+    return Schema.ProcessInstanceModificationRecord.ProcessInstanceModificationMoveInstruction
+        .newBuilder()
+        .setSourceElementInstanceKey(moveInstruction.getSourceElementInstanceKey())
+        .setAncestorScopeKey(moveInstruction.getAncestorScopeKey())
+        .setSourceElementId(moveInstruction.getSourceElementId())
+        .setTargetElementId(moveInstruction.getTargetElementId())
+        .addAllVariableInstructions(
+            Optional.ofNullable(moveInstruction.getVariableInstructions())
+                .orElse(List.of())
+                .stream()
+                .map(
+                    variableInstruction ->
+                        Schema.ProcessInstanceModificationRecord
+                            .ProcessInstanceModificationVariableInstruction.newBuilder()
+                            .setElementId(variableInstruction.getElementId())
+                            .setVariables(toStruct(variableInstruction.getVariables()))
+                            .build())
+                .collect(Collectors.toList()))
+        .setInferAncestorScopeFromSourceHierarchy(
+            moveInstruction.isInferAncestorScopeFromSourceHierarchy())
+        .setUseSourceParentKeyAsAncestorScopeKey(
+            moveInstruction.isUseSourceParentKeyAsAncestorScopeKey())
         .build();
   }
 
@@ -927,6 +1035,8 @@ public final class RecordTransformer {
     return Schema.CheckpointRecord.newBuilder()
         .setCheckpointId(value.getCheckpointId())
         .setCheckpointPosition(value.getCheckpointPosition())
+        .setFirstLogPosition(value.getFirstLogPosition())
+        .setCheckpointType(value.getCheckpointType().name())
         .setMetadata(toMetadata(record))
         .build();
   }
@@ -977,6 +1087,10 @@ public final class RecordTransformer {
 
     return Schema.ResourceDeletionRecord.newBuilder()
         .setResourceKey(value.getResourceKey())
+        .setResourceId(Optional.ofNullable(value.getResourceId()).orElse(""))
+        .setBatchOperationType(value.getBatchOperationType().name())
+        .setResourceType(value.getResourceType().name())
+        .setIsDeleteHistory(value.isDeleteHistory())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .build();
@@ -1008,6 +1122,8 @@ public final class RecordTransformer {
         .setAction(value.getAction())
         .setCreationTimestamp(value.getCreationTimestamp())
         .setPriority(value.getPriority())
+        .addAllTags(value.getTags())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
         .build();
   }
 
@@ -1061,6 +1177,7 @@ public final class RecordTransformer {
         .setMetadata(toMetadata(record))
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setTargetProcessDefinitionKey(value.getTargetProcessDefinitionKey())
+        .setRootProcessInstanceKey(value.getRootProcessInstanceKey())
         .build();
   }
 
@@ -1118,6 +1235,7 @@ public final class RecordTransformer {
         .setProcessInstanceKey(value.getProcessInstanceKey())
         .setProcessDefinitionKey(value.getProcessDefinitionKey())
         .setVariables(toStruct(value.getVariables()))
+        .setBusinessId(value.getBusinessId())
         .setMetadata(toMetadata(record))
         .setTenantId(toTenantId(value))
         .addAllTags(value.getTags())
@@ -1157,14 +1275,16 @@ public final class RecordTransformer {
 
   private static Schema.UserRecord toUserRecord(Record<UserRecordValue> record) {
     final var value = record.getValue();
+    return toUserRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.UserRecord.Builder toUserRecord(UserRecordValue value) {
     return Schema.UserRecord.newBuilder()
-        .setMetadata(toMetadata(record))
         .setUserKey(value.getUserKey())
         .setUsername(value.getUsername())
         .setName(value.getName())
         .setEmail(value.getEmail())
-        .setPassword(value.getPassword())
-        .build();
+        .setPassword(value.getPassword());
   }
 
   private static final EnumMap<
@@ -1387,7 +1507,8 @@ public final class RecordTransformer {
         .setOwnerType(toAuthorizationOwnerType(value.getOwnerType()))
         .setResourceMatcher(toAuthorizationResourceMatcher(value.getResourceMatcher()))
         .setResourceId(value.getResourceId())
-        .setResourceType(toAuthorizationResourceType(value.getResourceType()));
+        .setResourceType(toAuthorizationResourceType(value.getResourceType()))
+        .setResourcePropertyName(Optional.ofNullable(value.getResourcePropertyName()).orElse(""));
   }
 
   private static Schema.MultiInstanceRecord toMultiInstanceRecord(
@@ -1453,15 +1574,17 @@ public final class RecordTransformer {
 
   private static Schema.GroupRecord toGroupRecord(Record<GroupRecordValue> record) {
     final var value = record.getValue();
+    return toGroupRecord(value).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.GroupRecord.Builder toGroupRecord(GroupRecordValue value) {
     return Schema.GroupRecord.newBuilder()
-        .setMetadata(toMetadata(record))
         .setGroupKey(value.getGroupKey())
         .setGroupId(value.getGroupId())
         .setName(value.getName())
         .setDescription(value.getDescription())
         .setEntityId(value.getEntityId())
-        .setEntityType(toEntityType(value.getEntityType()))
-        .build();
+        .setEntityType(toEntityType(value.getEntityType()));
   }
 
   private static Schema.MappingRuleRecord toMappingRuleRecord(
@@ -1486,6 +1609,10 @@ public final class RecordTransformer {
     var builder = Schema.IdentitySetupRecord.newBuilder().setMetadata(toMetadata(record));
     value.getRoles().forEach(role -> builder.addRoles(toRoleRecord(role).build()));
     value.getRoleMembers().forEach(member -> builder.addRoleMembers(toRoleRecord(member).build()));
+    value.getUsers().forEach(user -> builder.addUsers(toUserRecord(user).build()));
+    value.getGroups().forEach(group -> builder.addGroups(toGroupRecord(group).build()));
+    value.getTenants().forEach(tenant -> builder.addTenants(toTenantRecord(tenant).build()));
+    value.getGroupMembers().forEach(group -> builder.addGroupMembers(toGroupRecord(group).build()));
     if (value.getDefaultTenant() != null) {
       builder.setDefaultTenant(toTenantRecord(value.getDefaultTenant()));
     }
@@ -1509,6 +1636,135 @@ public final class RecordTransformer {
     }
 
     return builder.build();
+  }
+
+  private static List<Schema.LongPath> toLongPaths(List<List<Long>> value) {
+    return Optional.ofNullable(value).orElse(List.of()).stream()
+        .map(path -> Schema.LongPath.newBuilder().addAllPath(path).build())
+        .collect(Collectors.toList());
+  }
+
+  private static Schema.VariableSource toVariableSource(VariableSourceValue source) {
+    return Schema.VariableSource.newBuilder().setType(source.getType().name()).build();
+  }
+
+  private static Schema.HistoryDeletionRecord toHistoryDeletionRecord(
+      Record<HistoryDeletionRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.HistoryDeletionRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setDecisionDefinitionId(Optional.ofNullable(value.getDecisionDefinitionId()).orElse(""))
+        .setProcessId(Optional.ofNullable(value.getProcessId()).orElse(""))
+        .setResourceType(value.getResourceType().name())
+        .setResourceKey(value.getResourceKey())
+        .setTenantId(toTenantId(value))
+        .build();
+  }
+
+  private static Schema.ClusterVariableRecord toClusterVariableRecord(
+      Record<ClusterVariableRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.ClusterVariableRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .setName(value.getName())
+        .setValue(value.getValue())
+        .setScope(value.getScope().name())
+        .setTenantId(toTenantId(value))
+        .build();
+  }
+
+  private static Schema.GlobalListenerRecord toGlobalListenerRecord(
+      Record<GlobalListenerRecordValue> record) {
+    return toGlobalListenerRecordBuilder(record.getValue()).setMetadata(toMetadata(record)).build();
+  }
+
+  private static Schema.GlobalListenerRecord.Builder toGlobalListenerRecordBuilder(
+      GlobalListenerRecordValue value) {
+    final var builder =
+        Schema.GlobalListenerRecord.newBuilder()
+            .setPriority(value.getPriority())
+            .setId(value.getId())
+            .setType(Optional.ofNullable(value.getType()).orElse(""))
+            .setSource(value.getSource().name())
+            .setRetries(value.getRetries())
+            .addAllEventTypes(Optional.ofNullable(value.getEventTypes()).orElse(List.of()))
+            .setListenerType(value.getListenerType().name())
+            .setIsAfterNonGlobal(value.isAfterNonGlobal())
+            .setConfigKey(Optional.ofNullable(value.getConfigKey()).orElse(0L))
+            .setGlobalListenerKey(Optional.ofNullable(value.getGlobalListenerKey()).orElse(0L));
+    return builder;
+  }
+
+  private static Schema.GlobalListenerBatchRecord toGlobalListenerBatchRecord(
+      Record<GlobalListenerBatchRecordValue> record) {
+    final var value = record.getValue();
+    final var builder =
+        Schema.GlobalListenerBatchRecord.newBuilder()
+            .setMetadata(toMetadata(record))
+            .setGlobalListenerBatchKey(value.getGlobalListenerBatchKey())
+            .addAllCreatedListenerKeys(
+                Optional.ofNullable(value.getCreatedListenerKeys()).orElse(Set.of()))
+            .addAllUpdatedListenerKeys(
+                Optional.ofNullable(value.getUpdatedListenerKeys()).orElse(Set.of()))
+            .addAllDeletedListenerKeys(
+                Optional.ofNullable(value.getDeletedListenerKeys()).orElse(Set.of()));
+    Optional.ofNullable(value.getListeners())
+        .orElse(List.of())
+        .forEach(l -> builder.addListeners(toGlobalListenerRecordBuilder(l).build()));
+    return builder.build();
+  }
+
+  private static Schema.ConditionalEvaluationRecord toConditionalEvaluationRecord(
+      Record<ConditionalEvaluationRecordValue> record) {
+    final var value = record.getValue();
+    final var builder =
+        Schema.ConditionalEvaluationRecord.newBuilder()
+            .setMetadata(toMetadata(record))
+            .setProcessDefinitionKey(value.getProcessDefinitionKey())
+            .setVariables(toStruct(value.getVariables()))
+            .setTenantId(toTenantId(value));
+    Optional.ofNullable(value.getStartedProcessInstances())
+        .orElse(List.of())
+        .forEach(
+            spi ->
+                builder.addStartedProcessInstances(
+                    Schema.ConditionalEvaluationRecord.ConditionalStartedProcessInstance
+                        .newBuilder()
+                        .setProcessInstanceKey(spi.getProcessInstanceKey())
+                        .setProcessDefinitionKey(spi.getProcessDefinitionKey())
+                        .build()));
+    return builder.build();
+  }
+
+  private static Schema.ExpressionRecord toExpressionRecord(Record<ExpressionRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.ExpressionRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .addAllWarnings(Optional.ofNullable(value.getWarnings()).orElse(List.of()))
+        .setExpression(Optional.ofNullable(value.getExpression()).orElse(""))
+        .setResultValue(String.valueOf(value.getResultValue()))
+        .setTenantId(toTenantId(value))
+        .setVariables(toStruct(value.getVariables()))
+        .build();
+  }
+
+  private static Schema.ConditionalSubscriptionRecord toConditionalSubscriptionRecord(
+      Record<ConditionalSubscriptionRecordValue> record) {
+    final var value = record.getValue();
+    return Schema.ConditionalSubscriptionRecord.newBuilder()
+        .setMetadata(toMetadata(record))
+        .addAllVariableEvents(Optional.ofNullable(value.getVariableEvents()).orElse(List.of()))
+        .setBpmnProcessId(value.getBpmnProcessId())
+        .setScopeKey(value.getScopeKey())
+        .addAllVariableNames(Optional.ofNullable(value.getVariableNames()).orElse(List.of()))
+        .setCondition(value.getCondition())
+        .setCatchEventId(value.getCatchEventId())
+        .setIsInterrupting(value.isInterrupting())
+        .setProcessDefinitionKey(value.getProcessDefinitionKey())
+        .setElementInstanceKey(value.getElementInstanceKey())
+        .setProcessInstanceKey(value.getProcessInstanceKey())
+        .setTenantId(toTenantId(value))
+        .build();
   }
 
   private static Value toValue(Object object) {

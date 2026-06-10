@@ -41,7 +41,7 @@ public class DetectMissingFeaturesTest {
     // prepare: get all Protobuf message classes
     Reflections reflections1 =
         new Reflections("io.zeebe.exporter.proto", new SubTypesScanner(false));
-    var protobufMessages = reflections1.getSubTypesOf(com.google.protobuf.GeneratedMessageV3.class);
+    var protobufMessages = reflections1.getSubTypesOf(com.google.protobuf.GeneratedMessage.class);
 
     Reflections reflections =
         new Reflections("io.camunda.zeebe.protocol.record.value", new SubTypesScanner(false));
