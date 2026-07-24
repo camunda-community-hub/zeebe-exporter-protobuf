@@ -2624,6 +2624,31 @@ public class RecordTransformTest {
     assertStruct(activateElementsList.get(0).getVariables(), Map.of("attr-1", "value-1"));
   }
 
+  @Test
+  public void shouldTransformAllJobListenerEventTypes() {
+    final var mappings =
+        Map.of(
+            JobListenerEventType.START, JobRecord.JobListenerEventType.START,
+            JobListenerEventType.END, JobRecord.JobListenerEventType.END,
+            JobListenerEventType.CREATING, JobRecord.JobListenerEventType.CREATING,
+            JobListenerEventType.ASSIGNING, JobRecord.JobListenerEventType.ASSIGNING,
+            JobListenerEventType.UPDATING, JobRecord.JobListenerEventType.UPDATING,
+            JobListenerEventType.COMPLETING, JobRecord.JobListenerEventType.COMPLETING,
+            JobListenerEventType.CANCELING, JobRecord.JobListenerEventType.CANCELING);
+
+    mappings.forEach(
+        (input, expected) -> {
+          final JobRecordValue jobRecordValue = mockJobRecordValue();
+          when(jobRecordValue.getJobListenerEventType()).thenReturn(input);
+          final Record<JobRecordValue> record =
+              mockRecord(jobRecordValue, ValueType.JOB, JobIntent.CREATED);
+          final JobRecord jobRecord = (JobRecord) RecordTransformer.toProtobufMessage(record);
+          assertThat(jobRecord.getJobListenerEventType())
+              .as("mapping for %s", input)
+              .isEqualTo(expected);
+        });
+  }
+
   private void assertMetadata(
       final Schema.RecordMetadata metadata, final String valueType, final String intent) {
     assertThat(metadata.getRecordType()).isEqualTo(Schema.RecordMetadata.RecordType.COMMAND);
