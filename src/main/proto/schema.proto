@@ -227,6 +227,11 @@ message JobRecord {
     UNSPECIFIED = 0;
     START = 1;
     END = 2;
+    CREATING = 3;
+    ASSIGNING = 4;
+    UPDATING = 5;
+    COMPLETING = 6;
+    CANCELING = 7;
   }
   enum JobResultType {
     _UNSPECIFIED = 0;

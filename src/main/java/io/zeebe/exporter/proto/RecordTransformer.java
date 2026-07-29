@@ -440,7 +440,17 @@ public final class RecordTransformer {
                   JobListenerEventType.START,
                   Schema.JobRecord.JobListenerEventType.START,
                   JobListenerEventType.END,
-                  Schema.JobRecord.JobListenerEventType.END));
+                  Schema.JobRecord.JobListenerEventType.END,
+                  JobListenerEventType.CREATING,
+                  Schema.JobRecord.JobListenerEventType.CREATING,
+                  JobListenerEventType.ASSIGNING,
+                  Schema.JobRecord.JobListenerEventType.ASSIGNING,
+                  JobListenerEventType.UPDATING,
+                  Schema.JobRecord.JobListenerEventType.UPDATING,
+                  JobListenerEventType.COMPLETING,
+                  Schema.JobRecord.JobListenerEventType.COMPLETING,
+                  JobListenerEventType.CANCELING,
+                  Schema.JobRecord.JobListenerEventType.CANCELING));
 
   private static Schema.JobRecord.JobResultType toJobResultType(JobResultType jobResultType) {
     return JOB_RESULT_TYPE_MAPPING.getOrDefault(
