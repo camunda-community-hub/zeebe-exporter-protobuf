@@ -14,7 +14,7 @@ jobs:
     - name: Java setup
       uses: actions/setup-java@v6 # pin@v1
       with:
-        java-version: 17
+        java-version: 17.0.20+101
         distribution: 'temurin'
         cache: maven
     - name: Run Maven
